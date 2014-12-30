@@ -1,10 +1,16 @@
 ## Utils 
-import shutil, re, sys, os, itertools, argparse, json
+import shutil, re, sys, os, itertools, argparse, json, types
 import openpyxl
 
 
 def wsRange(ws, rng):
-    return [ [ c.value for c in r ] for r in ws.range(rng) ]
+    def toValue(obj):
+        if hasattr(obj,'__iter__'):
+            return [ toValue(o) for o in obj]
+        else:
+            return obj.value if obj.internal_value else None
+     
+    return toValue(ws[rng])
     
 def wsRangeFrom(ws, a, b):
     return wsRange(ws, "{}:{}".format(a,b))
@@ -18,13 +24,13 @@ def rangerForRow(ws):
 def tupleFrom(ws, base):
     col, row = re.match('([A-Za-z]+)(\d+)', base).groups()
     colNext = col[:-1] + chr(ord(col[-1])+1)
-    cells = ws.range(col+row+':'+colNext+row)[0]
+    cells = next(ws[col+row:colNext+row])
     return (cells[0].value, cells[1].value )
     
 def tupleDownFrom(ws, base):
     col, row = re.match('([A-Za-z]+)(\d+)', base).groups()
     rowNext = str(int(row)+1)
-    cells = ws.range(col+row+':'+col+rowNext)
+    cells = ws.range[col+row:col+rowNext]
     return (cells[0][0].value, cells[1][0].value )
     
 def grouper(iterable, n=2, fillvalue=None):
@@ -64,12 +70,12 @@ def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None):
         elif k == stop_key:
             break
         
-        if dbg:
-            if __name__ != '__main__':
-                from scilab.tools.project import debug
-            else:
-                from Project import debug
-            debug(k, v, '\n')
+        # if dbg:
+        #     if __name__ != '__main__':
+        #         from scilab.tools.project import debug
+        #     else:
+        #         from Project import debug
+        #     debug(k, v, '\n')
         
         data.update( dictFrom((k,v)) )    
     
