@@ -13,10 +13,11 @@ from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
 import logging
 
 from scilab.tools.excel import *
-from scilab.tools.project import DataTree
+from scilab.tools.project import *
 
 import scilab.tools.json as Json
 from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
     
 ## Main
     
@@ -55,8 +56,9 @@ def parse_fatigue_data_sheet_v1(ws):
     
     if 'gauge' in other:
         gauge.value = other.pop('gauge')
-        gauge.base = other.pop('init_position')
-    elif 'gauge_base' in other:
+        gauge.preloaded = other.pop('init_position')
+    
+    if 'gauge_base' in other:
         gauge.base = other.pop('gauge_base')
     elif 'base_position' in other:
         gauge.base = other.pop('base_position')
@@ -70,7 +72,7 @@ def parse_fatigue_data_sheet_v1(ws):
     # data.measurements.area.value = other.pop('area')
     
     notes = {}
-    process_definitions_column(ws, notes, 'A', end+1,end+5, stop_key=None, dbg=False)
+    process_definitions_column(ws, notes, 'A', end+1,end+5, stop_key=None, dbg=None)
     data['notes'] = notes
     
     return data
@@ -118,7 +120,7 @@ def process_image_measurements(testfile, testinfo, imgdata):
     
     return data
 
-    
+
 def parse_from_image_measurements(testfile, testinfo, args):
 
     imgMeasureFile = args.experJson / (testinfo.name+'.measurements.json')
@@ -131,24 +133,31 @@ def parse_from_image_measurements(testfile, testinfo, args):
     data = process_image_measurements(testfile, testinfo, imgMeasurements)
 
     return data
-    
+
 
 def handler(file, args):
     
-    print("Excel notebooks:", file.name)
-
-    testinfo = UtsTestInfo(name=file.with_suffix('').name)
-    print(str(testinfo))
     
-    data = parse_from_image_measurements(
-        testfile=file, 
+    testinfo = UtsTestInfo(name=file.with_suffix('').name)
+    print(mdHeader(2, "Test: "+testinfo.name), file=args.report)
+
+    print(str(testinfo), file=args.report)
+    
+    # data = parse_from_image_measurements(
+    #     testfile=file,
+    #     testinfo=testinfo,
+    #     args=args)
+    
+    data = parse_data_from_worksheet(
+        testpath=file,
         testinfo=testinfo,
         args=args)
     
-    # parse_data_from_worksheet(
-    #     testpath=file,
-    #     testinfo=testinfo,
-    #     args=args)
+    if True:
+        import json
+        print(mdBlock("Excel Sheet Data:"),file=args.report)
+        print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
+
     
     ## Handle Names    
     data['name'] = testinfo.name
@@ -177,6 +186,7 @@ if __name__ == '__main__':
     experData = projectpath / 'test-data'/'uts (expr-1)'
     experExcel = experData/'01 Excel' 
     experJson = experData/'00 JSON'
+    experReport = experData/'02 Reports'
     
     files = experExcel.glob('*.xlsx')
 
@@ -190,17 +200,42 @@ if __name__ == '__main__':
     if 'args' not in locals():
         args = parser.parse_args()
     
-    args.projectpath = projectpath
-    args.experData = experData
-    args.experJson = experJson 
+    args.projectpath = projectpath.resolve()
+    args.experData = experData.resolve()
+    args.experJson = experJson.resolve()
+    args.experReport = experReport.resolve() 
     
     # ScriptRunner.process_files_with(args=args, handler=handler)
     
-    for test in list(files)[:]:
+    with (args.experReport/'Temp Reports'/'Excel Data Sheet Results.md').open('w') as report:
         
-        debug(test)
+        class tee:
+            def __init__(self, _fd1, _fd2) :
+                self.fd1 = _fd1
+                self.fd2 = _fd2
+
+            def __del__(self) :
+                if self.fd1 != sys.stdout and self.fd1 != sys.stderr :
+                    self.fd1.close()
+                if self.fd2 != sys.stdout and self.fd2 != sys.stderr :
+                    self.fd2.close()
+
+            def write(self, text) :
+                self.fd1.write(text)
+                self.fd2.write(text)
+
+            def flush(self) :
+                self.fd1.flush()
+                self.fd2.flush()
+
+        args.report = tee(sys.stdout, report)
+
         
-        handler(file=test, args=args)
+        for test in list(files)[:]:
+        
+            debug(test)
+        
+            handler(file=test, args=args)
     
     
     
