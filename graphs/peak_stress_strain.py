@@ -5,18 +5,18 @@ import csv
 import sys, os
 
 from pylab import *
-from scipy.stats import exponweib, weibull_max, weibull_min
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
-from ntm.Tools.Project import *
-from ntm.Tools.Graphing import *
-from ntm.Tools.InstronCSV import *
+from ..tools.project import *
+from ..tools.graphing import *
+from ..tools.instroncsv import *
 
-from ntm.Tools import Project, Excel, Graphing, ScriptRunner, Json
+from ..tools import project, excel, graphing, scriptrunner, json
 
 PlotData = namedtuple('PlotData', 'array label units max')
+
 
 def get_max(data):
     idx, value = np.argmax(data)
@@ -26,10 +26,10 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
-def handler(file_name, file_object, file_path, file_parent, args):
+    handler(file=file,file_object=file_obect, args=args)
     
     all_data = csvread(file_path)
-    data_json = Json.load_data(file_parent, file_name)    
+    data_json = Json.load_data_path(file)    
 
     debug(all_data.keys())
     
@@ -76,6 +76,7 @@ def data_cleanup_uts(data, details):
 
     if 'load' not in data.keys():
         data.load = data.loadLinearLoad1Maximum # choose Honeywell
+        
     if 'displacement' not in data.keys():
         data.displacement = data.displacementLinearDigitalPositionMaximum # choose peak disp
 
@@ -233,8 +234,8 @@ if __name__ == '__main__':
 
     ## Test
     
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)/"
+    project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)/"
     
     fileglob = "{R}/{P}/*/*.trends.csv".format(R=RAWDATA,P=project)
     test_args = ["--glob", fileglob] 

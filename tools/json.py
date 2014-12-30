@@ -1,38 +1,44 @@
 #!/usr/bin/env python3
 
-import json, os, tempfile, shutil, logging
+import json, os, tempfile, shutil, logging, re
 
 import jsonmerge 
+from pathlib import Path 
 
 if __name__ != '__main__':
-    from ntm.Tools.Project import *
+    from scilab.tools.project import *
 else:
     from Project import *
     
+def stems(file):
+    return file.name.rstrip(''.join(file.suffixes))
 
-def get_data_name(file_name):
-    ## Handle Names    
-    name = os.path.basename(file_name)
-    if 'csv' in file_name:
-        name = name.replace('.steps.tracking.csv', '.csv')
-        name = name.replace('.steps.trends.csv', '.csv') # temp holder
+if not hasattr(Path,'stems'): 
+    Path.stems = stems
+
+def load_data_path(testpath, datadir="../../test-data/uts", dbg=None):
     
-    name = os.path.splitext(name)[0]
+    datapath = testpath.parent.joinpath(datadir).resolve()
+    testname = re.sub('(_[\w\d]+)$', '', testpath.parent.stems()) + '.json'
     
-    ## Get Test ID 
-    match = re.match(r'(.+)\((.+)-(.+)\)[-]*(.+?)-(.+?)-(.+?)-(\w+)(?:-(.+))*', name)
-        
-    testDate, sample, section, orientation, zone, layer, specimen = match.groups()[:7]
+    debug(datapath, testname, testpath, testpath.parent.stems())
+    if not (datapath / testname).exists():
+        raise Exception("No json data for:\n"+'\n\t'.join(map(str,[testpath.stems(),datapath,testname])))
     
-    # strip tests
-    name = '{}({}-{})-{}-{}-{}-{}'.format(testDate, sample, section, orientation, zone, layer, specimen)
+    data = load_json(datapath, json_url=testname)
     
-    nums = lambda s: ''.join( c for c in s if c.isdigit() )
+    return data
+
+def update_data_path(testpath, data, datadir="../../test-data/uts", dbg=None):
     
-    testId = '.'.join(map(nums,sample.split('.')))+'.'+nums(zone+layer+specimen)
+    datapath = testpath.parent.joinpath(datadir).resolve()
+    testname = re.sub('(_\w+)$', '', testpath.parent.stems()) + '.json'
     
-    return (name, testId)
+    debug(datapath, testname)
+    update_json(datapath, data, json_url=testname)
     
+    return 
+
     
 def load_data(parentdir, test_name, dataDir="../../test-data/", dbg=None):
     
@@ -63,10 +69,10 @@ def update_data(parentdir, test_name, data, dataDir="../../test-data/", dbg=None
     
 def load_json(parentdir, json_url="data.json", datatree=False):
     
-    json_path = os.sep.join( [parentdir, json_url, ] )
+    json_path = Path(parentdir) / json_url 
     
     try:
-        with open( json_path ) as json_file:
+        with json_path.open() as json_file:
 
             dt = DataTree()
             def as_datatree(dct):
@@ -84,16 +90,38 @@ def load_json(parentdir, json_url="data.json", datatree=False):
             
             try:
                 # try print json raw
-                with open( json_path ) as json_file:
+                with json_path.open() as json_file:
                     print(''.join(json_file.readlines()))
             except FileNotFoundError as err2:
                 logging.warn("Json File not found: "+json_path)
                 return None
                 
             raise err 
+
+
+import numpy 
+
+class CustomJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            if isinstance(obj, numpy.ndarray):
+                return obj.tolist() 
+            elif isinstance(obj, numpy.generic):
+                return numpy.asscalar(obj)
+            elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+                return dict(**zip(obj._fields,obj))
+            else:
+                return super().default(obj)
+        except TypeError as err:
+            print("Json TypeError:"+str(type(obj))+" obj: "+str(obj))
+            raise err
+
+def write_json(parentdir,json_data, json_url="data.json", dbg=None, cls=CustomJsonEncoder):
+
+    json_path = Path(parentdir) / json_url 
     
-def write_json(parentdir,json_data, json_url="data.json", dbg=None):
-    json_path = os.sep.join( [parentdir, json_url, ] )
+    if dbg:
+        debug(json_path, parentdir, json_path)
     
     with tempfile.NamedTemporaryFile('w',delete=False) as tempFile:
     
@@ -103,12 +131,12 @@ def write_json(parentdir,json_data, json_url="data.json", dbg=None):
     
         # with open( tempFile, 'w' ) as json_file:
         # with tempFile as json_file:
-        json.dump(json_data, tempFile, indent=4)
+        json.dump(json_data, tempFile, indent=4,cls=CustomJsonEncoder)
 
             # update json file
             # debug(tempFile.name)
     
-    os.rename(tempFile.name, json_path)
+    os.rename(tempFile.name, str(json_path))
     
     return
 
@@ -116,10 +144,10 @@ def write_json(parentdir,json_data, json_url="data.json", dbg=None):
 def update_json(parentdir, update_data, json_url="data.json", dbg=None):
     """ Simple update method. Needs to handle merging better.  """
     
-    json_data = load_json(parentdir)
+    json_data = load_json(parentdir,json_url=json_url)
     json_to_write = jsonmerge.merge(json_data, update_data)
     
-    write_json(parentdir, json_to_write, dbg=dbg)
+    write_json(parentdir, json_to_write, json_url=json_url, dbg=dbg)
     
     return
     

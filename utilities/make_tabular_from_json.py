@@ -1,4 +1,4 @@
-#!/opt/local/bin/python3.3
+#!/usr/bin/env python3 
 
 import shutil, re, sys, os, itertools, argparse, json, glob, collections, functools
 import subprocess, urllib
@@ -8,28 +8,61 @@ import subprocess, urllib
 # from openpyxl import load_workbook
 import os.path as path
 
-import ntm.Tools.ScriptRunner as ScriptRunner
-from ntm.Tools.ScriptRunner import RESEARCH, RAWDATA, debug
+import scilab.tools.scriptrunner as ScriptRunner
+from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
 
 import logging
 
-from ntm.Tools.Excel import *
-from ntm.Tools.Tables import ImageTable, mdHeader, mdBlock, MarkdownTable
-from ntm.Tools.Project import *
+from scilab.tools.excel import *
+from scilab.tools.tables import ImageTable, mdHeader, mdBlock, MarkdownTable
+from scilab.tools.project import *
 
-import ntm.Tools.Json as Json
+import scilab.tools.json as Json
 
 from itertools import islice, zip_longest
+
+
+TestName = collections.namedtuple("TestName","dt sample knee wedge orientation zone layer specimen other")
+def parse_test_name(name):
+    
+    ## Get Test ID 
+    # nov08(gf7.1-llm)-tr-z1-l1-x1.steps.tracking.csv
+    pattern = re.compile(r"""
+        (.+)            # date
+        \((.+)-(.+)\)   # set & knee
+        -(w[1-6a-fA-F]) # zone/wedge section
+        -(lg|tr)      # long/transverse
+        -(z\d+)         # zone
+        -(l\d+)         # layer
+        -(x\d+)         # sample 
+        (?:_(r\d+))*      # runs
+        """, re.X)
+    match = re.match(pattern, name)
+    
+    if not match:
+        raise Exception("Could not match name: {name}".format(name=name))
+    
+    attribs = TestName(*match.groups()[:9])
+    
+    nums = lambda s: ''.join( c for c in s if c.isdigit() )
+    testId = "" 
+    testId += attribs.sample
+    testId += '.'+str( 100+ord(attribs.knee[1])-ord('l') + (ord(attribs.wedge[-1])-ord('a')+1) )
+    testId += '.'+nums(attribs.zone)+nums(attribs.layer)+nums(attribs.specimen)
+    
+    return (attribs, testId)
+
 
 def table_setup(args, **kwargs):
     
     args.state.jsonColumns = jsonColumns = collections.OrderedDict([
-        ('set', 'info.set'), 
-        ('sample','info.sample'),
-        ('gauge','gauge.length'),
+        # ('set', 'info.set'), 
+        # ('sample','info.sample'),
+        ('gauge','gauge.value'),
         ('area','measurements.area.value'),
-        ('E_dyn Amp','dyn_modulus.amp'),
-        ('E_dyn Phase','dyn_modulus.phase'),
+        ('Linear Modulus','linear_modulus.value'),
+        ('Slope Strain','linear_modulus.slope_strain'),
+        ('Slope Stress','linear_modulus.slope_stress'),
         ])
 
     if args.summary_has_uts:
@@ -40,11 +73,11 @@ def table_setup(args, **kwargs):
             ('max stress','calculations.maxes.stress.value'),
             ])
         
-    if args.summary_time_to_load:
-        jsonColumns.update([('time to load', 'calculations.time-to-first-loading.time_value')])
+    # if args.summary_time_to_load:
+    #     jsonColumns.update([('time to load', 'calculations.time-to-first-loading.time_value')])
     
         
-    args.state.summaryTable = MarkdownTable(headers=jsonColumns.keys())
+    args.state.summaryTable = MarkdownTable(tablefmt='pipe', floatfmt="0.2", headers=['Id', 'Name', 'Orientation']+list(jsonColumns.keys()))
     
     args.state.testDetails = collections.OrderedDict()
     args.state.testImages = collections.OrderedDict()
@@ -52,9 +85,9 @@ def table_setup(args, **kwargs):
     return
 
 
-def handler(file_name, file_object, file_path, file_parent, args):
-    testFolder = path.basename(file_parent)
-    data_json = Json.load_data(file_parent, file_name)
+def handler(test:Path, args:dict):
+    
+    data_json = Json.load_data_path(test)
 
     ## Details 
     
@@ -63,9 +96,14 @@ def handler(file_name, file_object, file_path, file_parent, args):
                         for column in args.state.jsonColumns.values() 
                         for part in [attributesAccessor(data_json, column)] ]
 
-    testName = "%s - %s (%s)"%(detailValues[0], detailValues[1], testFolder)
+    testName = "Test {}".format(test.stems())
     
-    # debug(detailValues)
+    if 'n/a' in detailValues:
+        debug(detailValues)
+        logging.error("Skipping:"+testName+" due to missing details: "+repr(detailValues))
+        return
+    
+    
     
     ### details table
     detailsTable = MarkdownTable(headers=['Detail', 'Value'])
@@ -77,11 +115,12 @@ def handler(file_name, file_object, file_path, file_parent, args):
     ## Overview Images
     
     ### test overview images 
-    testOverviewImages = ImageTable().addImageGlob(file_parent, 'img', '*.png')\
-        .addImageGlob(file_parent, "img","overview","*Stress*last*.png")\
-        .addImageGlob(file_parent, "img","overview","*Stress*all*.png")\
-        .addImageGlob(file_parent, "img","trends","*Stress*all*.png")\
-        .addImageGlob(file_parent, "img","trends","*Stress*last*.png")
+    testOverviewImages = ImageTable()\
+        .addImageGlob(str(test.parent), 'img', '*.png')\
+        .addImageGlob(str(test.parent), "img","overview","*Stress*last*.png")\
+        .addImageGlob(str(test.parent), "img","overview","*Stress*all*.png")\
+        .addImageGlob(str(test.parent), "img","trends","*Stress*all*.png")\
+        .addImageGlob(str(test.parent), "img","trends","*Stress*last*.png")
 
     ### add details and images to test section
     args.state.testImages[testName] = testOverviewImages
@@ -90,16 +129,17 @@ def handler(file_name, file_object, file_path, file_parent, args):
     
     ### summary details
     # debug(detailValues)
-    args.state.summaryTable.add_row(detailValues)
+    attribs, testId = parse_test_name(test.parent.stems())
+    args.state.summaryTable.add_row([testId, test.parent.stems(), attribs.orientation]+detailValues)
     
     ## all test images
-    allImagesTable = ImageTable().addImageGlob(file_parent, 'img', '**/*.png')
-    allImages = allImagesTable.generateTable(columns=2, directory=file_parent).format()
+    allImagesTable = ImageTable().addImageGlob(str(test.parent), 'img', '**/*.png')
+    allImages = allImagesTable.generateTable(columns=2, directory=str(test.parent)).format()
     
     testDetails = [ mdHeader(2, 'Test: '+testName), mdBlock(details), 
                     mdHeader(2, 'All Images'), allImages ]
                     
-    writeImageTable(file_parent, 'Test Images ({}).md'.format(testName), testDetails)    
+    writeImageTable(test.parent, 'Test Images ({}).md'.format(testName), testDetails)
     
     # print 
     print("## CSV Data")
@@ -108,15 +148,19 @@ def handler(file_name, file_object, file_path, file_parent, args):
     return
 
 
-def writeImageTable(directory, fileName, sections):
-    filePath = os.path.join(directory, fileName)
+def writeImageTable(directory, fileName, sections, writemode='w'):
+    filePath = directory / fileName
+    
+    debug(filePath)
+    
     print("**Writing**:", '`{}`'.format(fileName))
-    print('"{}"'.format(os.path.abspath(filePath)))
+    print('"{}"'.format(filePath))
     print()
     
-    with open(filePath, 'w') as file:
+    with filePath.open(mode=writemode) as file:
         for section in sections:
             # print(mdHeader(2, header), file=file)
+            print("section:",section.split('\n')[:3])
             print(section, file=file)
             print('.'*3, end='')
         
@@ -128,17 +172,23 @@ def output_table(args):
     
     # if True: return 
     
-    project = os.path.join(RAWDATA, args.project)
+    project = Path(RAWDATA) / args.project
     
     print('\n\n## Summary Table \n\n')
-    print(args.state.summaryTable.generateTable().format())
+    summary_table = args.state.summaryTable.generateTable().format()
+    print(summary_table)
 
     ## Make summary markdown 
     summaryFile = "test_summary_table.md"
+    summarySections = ( 
+        mdHeader(1, "Meniscus Fatigue Expr 1 - Pretrial"), 
+        mdBlock('\n\n\n'), 
+        mdHeader(2, "Summary Table"), 
+        mdBlock(summary_table),
+        mdBlock('\n\nDone...\n\n'),
+         )
 
-    summarySections = [ mdHeader(1, "Summary Table"), args.state.summaryTable.generateTable()]
-
-    writeImageTable(project, summaryFile, summarySections)
+    # writeImageTable(project, summaryFile, summarySections, writemode='w')
 
     ## Make images markdown 
     # imagesMarkdown = os.sep.join(RAWDATA,args.project,"test_all_images.md")
@@ -150,21 +200,23 @@ def output_table(args):
         section = ""
         section += mdHeader(3, "Test: "+test)
         section += mdBlock(details)
-        section += mdBlock(images.generateTable(columns=2, directory=project))
+        section += mdBlock(images.generateTable(columns=2, directory=str(project)))
         return section
         
     testSections = ( makeTestSection(test, details, images) 
                      for (test, details), (_, images) in zip(testDetails.items(), testImages.items()) )
     
-    writeImageTable(project, summaryFile, testSections)
+    import itertools
+    
+    writeImageTable(project, summaryFile, itertools.chain(summarySections, testSections), writemode='w')
         
-    print(subprocess.call( ['open', '-a', 'Marked', os.path.join(project, summaryFile)] ))
+    print(subprocess.call( ['open', '-a', 'Marked', str(project/summaryFile)] ))
     # print(subprocess.call( 'open -a Marked 1'.split() + [imagesMarkdown] ))
 
 
 if __name__ == '__main__':
 
-    parser = ScriptRunner.parser
+    parser = ScriptRunner.parser 
     parser.add_argument("-n", "--name", default="data", type=str)
     parser.add_argument("--summary-has-uts", action='store_true', default=False, help="Run uts ", )  
     parser.add_argument("--summary-time-to-load", action='store_true', default=True, help="Run time-to-load ", )  
@@ -173,29 +225,41 @@ if __name__ == '__main__':
     test_args = []
 
     ## UTS
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)"
-    # test_args += [ "--has-uts", ]
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)"
 
     ## Fatigue
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
-    
-    # fileglob = "{R}/{P}/*/*.tracking.csv".format(R="/Users/elcritch/GDrive/Research/",P=project)
-    fileglob = "{R}/{P}/*/*.xlsx".format(R=RAWDATA,P=project)
-    
-    test_args += ["--glob", fileglob] 
+    projectname = 'NTM-MF/fatigue-failure-expr1/'
+    projectpath = Path(RAWDATA) / projectname
+
+    files = []
+    # files += projectpath.glob('test-data/uts/nov*.json')
+    files += projectpath.glob('02*/nov*/*.tracking.csv')
+
+    test_args = []    
+    # test_args += ["--glob", fileglob]
     # test_args += ['-1'] # only first
+    test_args += [ "--summary-has-uts", ]
     
     args = parser.parse_args( test_args )    
-    args.project = project
+    args.project = projectname
     
     # args = parser.parse_args()
     
     if 'args' not in locals():
         args = parser.parse_args()
         
-    ScriptRunner.process_files_with(args=args, handler=handler, setup=table_setup, post=output_table)
+    # ScriptRunner.process_files_with(args=args, handler=handler, setup=table_setup, post=output_table)
     
+    args.state = DebugData()
+    table_setup(args)
     
+    for test in list(files)[:]:
+        
+        debug(test)
+        
+        handler(test=test, args=args)
+    
+    output_table(args)
 
     
     

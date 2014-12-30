@@ -10,7 +10,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
 sys.path.append(".")
-from ntm.Tools.Project import *
+from scilab.tools.project import *
 
 # from DataToolsPy3 import *
 # from WaveMatrixToolsPy3 import find_max_index_value

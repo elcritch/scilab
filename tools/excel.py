@@ -66,7 +66,7 @@ def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None):
         
         if dbg:
             if __name__ != '__main__':
-                from ntm.Tools.Project import debug
+                from scilab.tools.project import debug
             else:
                 from Project import debug
             debug(k, v, '\n')

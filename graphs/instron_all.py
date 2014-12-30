@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
-from ntm.Tools.Project import *
-from ntm.Tools.Graphing import *
-from ntm.Tools.InstronCSV import *
+from scilab.tools.project import *
+from scilab.tools.graphing import *
+from scilab.tools.instroncsv import *
 
-from ntm.Tools import Project, Excel, Graphing, ScriptRunner, Json
+from scilab.tools.import Project, Excel, Graphing, ScriptRunner, Json
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
@@ -26,7 +26,7 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
-def handler(file_name, file_object, file_path, file_parent, args):
+def handler(file, file_object, file_path, file_parent, args):
     
     all_data = csvread(file_path)
     data_json = Json.load_data(file_parent, file_name)    
@@ -213,8 +213,8 @@ if __name__ == '__main__':
 
     ## Test
     
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)/"
+    project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)/"
     
     
     fileglob = "{R}/{P}/*/*tracking.csv".format(R=RAWDATA,P=project)

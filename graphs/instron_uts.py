@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
 
-import csv
-import sys, os
+import sys, os, glob, logging
+from collections import namedtuple
+from pathlib import Path
 
-from pylab import *
-from scipy.stats import exponweib, weibull_max, weibull_min
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
-import glob, logging
 
-from ntm.Tools.Project import *
-from ntm.Tools.Graphing import DataMax
-
-# from WaveMatrixToolsPy3 import *
-from ntm.Tools.InstronCSV import csvread
-
-import ntm.Tools.Project as Project
-import ntm.Tools.Excel as Excel
-import ntm.Tools.Graphing as Graphing 
-import ntm.Tools.ScriptRunner as ScriptRunner
-import ntm.Tools.Json as Json
-
+from scilab.tools.project import *
+import scilab.tools.scriptrunner as ScriptRunner
+from scilab.tools.instroncsv import csvread
+import scilab.tools.json as Json
+import scilab.tools.project as Project
+import scilab.tools.excel as Excel
+import scilab.tools.graphing as Graphing
+from scilab.tools.graphing import DataMax
+import numpy as np
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
@@ -32,15 +27,18 @@ def data_find_max(data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=None)
 
-def handler(file_name, file_object, file_path, file_parent, args):
+def handler(test:Path, args:object):
     
-    data = csvread(file_path)
-    data_json = Json.load_data(file_parent, file_name)    
+    data = csvread(test)
+    data_json = Json.load_data_path(test)    
+
+    debug(data_json)
 
     # json data
     details = data_json
     
-    debug(data)
+    debug(details)
+    
     data, details = data_cleanup_uts(data, details)
     
     print(" --------- \n")
@@ -53,16 +51,18 @@ def handler(file_name, file_object, file_path, file_parent, args):
     
     debug(maxes)
     
-    Json.update_data(file_parent, file_name, {'calculations': {'maxes':maxes} }, dbg=False )
+    Json.update_data_path(test, {'calculations': {'maxes':maxes} }, dbg=False )
     
-    graph_uts_raw(file_name, file_parent, data, details, args)
-    graph_uts_normalized(file_name, file_parent, data, details, args)
+    graph_uts_raw(test, data, details, args)
+    graph_uts_normalized(test, data, details, args)
     
 
 def data_cleanup_uts(data, details):
 
     if 'load' not in data.keys():
-        data.load = data.loadLoad # choose Honeywell
+        loads = [ l for l in ['loadLinearMissus','loadLinearLoad'] if l in data ]
+        logging.warn("Choosing loads: "+repr(loads))
+        data.load = data[loads[0]]
 
     data.maxes = DataTree()
     data.maxes.displacement = data_find_max(data.displacement.array)
@@ -72,7 +72,7 @@ def data_cleanup_uts(data, details):
     debug(data.maxes)
     
     stress = data.load.array/details.measurements.area.value
-    strain = data.displacement.array/details.gauge.length
+    strain = data.displacement.array/details.gauge.value
 
     # hack    
     data.maxes.stress = data_find_max(stress)
@@ -80,7 +80,7 @@ def data_cleanup_uts(data, details):
     
     data.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
     data.strain = PlotData(array=strain, label="Strain", units="∆", max=None)
-        
+    
     if 'loadLinearLoad1' in data:
         stress1 = data.loadLinearLoad1.array/details.measurements.area.value
         data.stress1 = PlotData(array=stress1, label="Stress Honeywell", units="MPa", max=None)
@@ -92,25 +92,25 @@ def data_cleanup_uts(data, details):
 def makePlotData(column, columnMax=None):
     return PlotData(array=column.array, label=column.label, units=column.units, max=columnMax)
     
-def graph_uts_normalized(file_name, file_parent, data, details, args):
+def graph_uts_normalized(testpath, data, details, args):
     
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.strain, columnMax=data.maxes.strain)
     y = makePlotData(data.stress, columnMax=data.maxes.stress)
     
-    graph_uts(file_name, file_parent, t, x, y, details, args)
+    graph_uts(testpath, t, x, y, details, args)
 
 
-def graph_uts_raw(file_name, file_parent, data, details, args):
+def graph_uts_raw(testpath, data, details, args):
 
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.displacement, columnMax=data.maxes.displacement)
     y = makePlotData(data.load, columnMax=data.maxes.load)
         
-    return graph_uts(file_name, file_parent, t, x, y, details, args)
+    return graph_uts(testpath, t, x, y, details, args)
 
 
-def graph_uts(file_name, file_parent, t, x, y, details, args):
+def graph_uts(test, t, x, y, details, args):
     
     ax1_title = "UTS %s vs %s"%(x.label, y.label)
     
@@ -140,7 +140,7 @@ def graph_uts(file_name, file_parent, t, x, y, details, args):
     ax2.set_title("Individual Channels")
 
     # fig.tight_layout()
-    fig.text(.45, .95, file_name)
+    fig.text(.45, .95, test.name)
 
     if args.only_first:
         plt.show(block=True,  )
@@ -153,9 +153,12 @@ def graph_uts(file_name, file_parent, t, x, y, details, args):
     lgd1 = legend_handles(ax1, x=.1)
     lgd2 = legend_handles(ax2, x=.9)
     
-    base_file_name = "%s (%s)"%(file_name[:file_name.index('.steps')], ax1_title)
-
-    Graphing.fig_save(fig, os.path.join(file_parent, 'img'), name=base_file_name, type='.png', lgd=lgd1, lgd2=lgd2)
+    base_file_name = "%s (%s)"%(test.stems(), ax1_title)
+    imgpath = test.parent / 'img'
+    
+    debug(base_file_name, imgpath)
+    
+    Graphing.fig_save(fig, str(imgpath), name=base_file_name, type='.png', lgd=lgd1, lgd2=lgd2)
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd1, lgd2=lgd2)
     
     plt.close()
@@ -172,13 +175,16 @@ if __name__ == '__main__':
 
     ## Test
     # project = "NTM-MF-PRE (test4, trans, uts)"
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
 
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)"
-    fileglob = "{R}/{P}/*/*.tracking.csv".format(R=RAWDATA,P=project)
+    projectname = 'NTM-MF/fatigue-failure-expr1/'
+    projectpath = Path(RAWDATA) / projectname
     
-    test_args = ["--glob", fileglob] 
-    test_args += ['-1'] # only first
+    trackingfiles = projectpath.glob('04*/*/*.tracking.csv')
+    
+    test_args = [] 
+    # test_args += ["--glob", fileglob]
+    # test_args += ['-1'] # only first
     
     args = parser.parse_args( test_args)
     
@@ -186,6 +192,12 @@ if __name__ == '__main__':
     if 'args' not in locals():
         args = parser.parse_args()
     
-    ScriptRunner.process_files_with(args=args, handler=handler)
-    
+    for trackingtest in list(trackingfiles)[:]:
+        
+        debug(trackingtest)
+        
+        handler(trackingtest, args=args)
+        # def handler(testname:str, testdata:dict, args:object):
+        
+    # ScriptRunner.process_files_with(args=args, handler=handler)
     

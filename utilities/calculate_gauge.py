@@ -9,15 +9,15 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
-from ntm.Tools.Project import *
-# from ntm.Tools.Graphing import *
+from scilab.tools.project import *
+# from scilab.tools.graphing import *
 
-import ntm.Tools.Project as Project
-import ntm.Tools.Excel as Excel
-import ntm.Tools.Graphing as Graphing 
-import ntm.Tools.ScriptRunner as ScriptRunner
-import ntm.Tools.Json as Json
-from ntm.Tools.InstronCSV import csvread
+import scilab.tools.project as Project
+import scilab.tools.excel as Excel
+import scilab.tools.graphing as Graphing 
+import scilab.tools.scriptrunner as ScriptRunner
+import scilab.tools.json as Json
+from scilab.tools.instroncsv import csvread
 from pprint import pprint
 
 import pandas as pd
@@ -45,7 +45,7 @@ def calculate_gauge(file_name, file_object, file_path, file_parent, args):
     return    
 
 
-def handler(file_name, file_object, file_path, file_parent, args):
+handler(file=file,file_object=file_obect, args=args)
     
     calculate_gauge(file_name, file_object, file_path, file_parent, args)
 
@@ -60,8 +60,8 @@ if __name__ == '__main__':
     parser.add_argument("--normed", action='store_true', default=False,help="Run normalized ", )  
 
     ## Test
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)"
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)"
+    project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
     
     fileglob = "{R}/{P}/*/*tracking.csv".format(R=RAWDATA,P=project)
     test_args = ["--glob", fileglob] 

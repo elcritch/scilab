@@ -10,7 +10,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
 sys.path.append(".")
-from ntm.Tools.Project import *
+from scilab.tools.project import *
 
 # from DataToolsPy3 import *
 # from WaveMatrixToolsPy3 import find_max_index_value
@@ -20,12 +20,13 @@ from ntm.Tools.Project import *
 import distutils.dir_util 
 import collections
 
-def fig_save(fig, FigureDir, name, lgd=None, lgd2=None, type=".png"):
+def fig_save(fig, FigureDir, name, lgd=None, lgd2=None, type=".png", dbg=None):
     
-    debug(FigureDir)
+    if dbg: debug(FigureDir)
     
     figname = os.sep.join([FigureDir,name+type])
-    print("Saving figure:", figname)
+    
+    if dbg: print("Saving figure:", figname)
     
     distutils.dir_util.mkpath(FigureDir)
 
@@ -38,6 +39,8 @@ def fig_save(fig, FigureDir, name, lgd=None, lgd2=None, type=".png"):
     
     # fig.savefig(FigureDir+name+".png", bbox_inches='tight', pad_inches=0.2  )
     # fig.savefig('samplefigure', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    
+    return (figname)
 
 
 def reduce_data(test, x_name, y_name):

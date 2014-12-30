@@ -12,7 +12,7 @@ from collections import namedtuple
 import collections, json
 
 if __name__ != '__main__':
-    from ntm.Tools.Project import *
+    from scilab.tools.project import *
 else:
     from Project import *
 

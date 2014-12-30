@@ -2,19 +2,20 @@
 
 
 import shutil, re, sys, os, itertools, argparse, json
+from pathlib import Path
 
 import openpyxl
 from openpyxl import load_workbook
 
-import ntm.Tools.ScriptRunner as ScriptRunner
-from ntm.Tools.ScriptRunner import RESEARCH, RAWDATA, debug
+import scilab.tools.scriptrunner as ScriptRunner
+from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
 
 import logging
 
-from ntm.Tools.Excel import *
-from ntm.Tools.Project import DataTree
+from scilab.tools.excel import *
+from scilab.tools.project import DataTree
 
-import ntm.Tools.Json as Json
+import scilab.tools.json as Json
     
 ## Main
     
@@ -106,13 +107,18 @@ def parse_data_from_worksheet(file_name, file_path, file_parent, args):
     return
     
 
-def handler(file_name, file_object, file_path, file_parent, args):
+def handler(file, args):
     
-    print("Excel notebooks:", file_name)
+    print("Excel notebooks:", file.name)
     print()
     
-    parse_data_from_worksheet(file_name, file_path, file_parent, args)
-
+    parse_data_from_worksheet(
+        file_name=str(test.name), 
+        file_path=str(test.resolve()), 
+        file_parent=str(test.parent), 
+        args=args)
+    
+    return
 
 if __name__ == '__main__':
 
@@ -122,14 +128,13 @@ if __name__ == '__main__':
 
     ## Test
 
-    # project = "NTM-MF-PRE (test4, trans, uts)"
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)"
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)"
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
+    projectname = 'NTM-MF/fatigue-failure-expr1/'
+    projectpath = Path(RAWDATA) / projectname
     
-    fileglob = "{R}/{P}/*/*.xlsx".format(R=RAWDATA,P=project)
-    
-    test_args = ["--glob", fileglob] 
+    files = projectpath.glob('test-data/uts/nov*.xlsx')
+
+    test_args = []
+    # test_args = ["--glob", fileglob]
     # test_args += ['-1'] # only first
     
     args = parser.parse_args( test_args )    
@@ -138,7 +143,13 @@ if __name__ == '__main__':
     if 'args' not in locals():
         args = parser.parse_args()
     
-    ScriptRunner.process_files_with(args=args, handler=handler)
+    # ScriptRunner.process_files_with(args=args, handler=handler)
+    
+    for test in list(files)[:]:
+        
+        debug(test)
+        
+        handler(file=test, args=args)
     
     
     

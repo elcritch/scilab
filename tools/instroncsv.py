@@ -7,7 +7,7 @@ import collections, itertools, logging
 from collections import OrderedDict, namedtuple
 
 if __name__ != '__main__':
-    from ntm.Tools.Project import *
+    from scilab.tools.project import *
 else:
     from Project import *
 
@@ -176,7 +176,7 @@ import time
 def csvread(fileName):
     
     
-    with open(fileName, 'rb') as fileObject:
+    with open(str(fileName), 'rb') as fileObject:
         t0 = time.time()
         # this must be done to properly read the instron generated csv file which is iso-8859-1 encoded
         # it appears to be a numpy bug in np.genfromtxt that doesn't allow/follow different codecs

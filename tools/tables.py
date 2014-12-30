@@ -1,7 +1,7 @@
-#!/opt/local/bin/python3.3
+#!/usr/local/bin/python3
 
 import shutil, re, sys, os
-import argparse, json, glob, logging
+import argparse, glob, logging
 import subprocess, urllib, tempfile, hashlib, time
 import functools, itertools, collections
 import os.path as path
@@ -10,10 +10,12 @@ import os.path as path
 # import prettytable
 from itertools import islice, zip_longest
 
-if __name__ != '__main__':
-    from ntm.Tools.Project import *
-else:
-    from Project import *
+from scilab.tools.project import *
+
+try:
+    from scilab.tools.project import *
+except:
+    from project import *
 
 ## Tabulate
 ## <https://pypi.python.org/pypi/tabulate>
@@ -219,6 +221,10 @@ def mdHeader(level, text, postfix=True):
 
 class TableValue(collections.namedtuple('_TableValue', 'table sources')):
     def format(self):
+        
+        if not self.table:
+            return '\n\n'
+        
         return '\n' + str(self.table) + '\n\n' + '\n'.join(self.sources) + '\n'
 
     def __str__(self):
@@ -238,7 +244,7 @@ class MarkdownTable(object):
     # grid     | grid
     # orgtbl   | org_tbl
     
-    tablefmts = ["plain", "simple", "grid", "pipe", "orgtbl", "rst", "mediawiki", "latex", "latex_booktabs"]
+    tablefmts = ["plain", "simple", "grid", "pipe", "orgtbl", "rst", "mediawiki", "latex", "latex_booktabs", "html"]
     
     @classmethod
     def tableTemplate(cls, data, tablefmt='simple', headers=[], numalign="right", floatfmt=".2f", **kwargs):
@@ -257,12 +263,12 @@ class MarkdownTable(object):
     def add_rows(self, data):
         """docstring for add_rows"""
         for row in data: 
-            self.data.append(row)        
+            self.add_row(row)        
         return self
         
     def add_items(self, *items):
         """docstring for addRow"""
-        self.data.append(items)        
+        self.add_row(items)        
         return self
         
     def _options(self, headers, columns, **kwargs):
@@ -303,8 +309,14 @@ class ImageTable(MarkdownTable):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.images = list()
+        self.data = []
         
+    def add_row(self, data):
+        data = [ self.parseImagePath(d.as_posix()) if isinstance(d,Path) else d 
+                    for d in data ]
+        # print("data:", data)
+        self.data += data
+        return self
 
     def addImageGlob(self, *pathGlob):
         pathGlob = os.sep.join(pathGlob) 
@@ -314,7 +326,7 @@ class ImageTable(MarkdownTable):
     def addImages(self, images):
         """ add images from which to generate images. """        
         for imgPath in images:
-            self.images.append(self.parseImagePath(str(imgPath)))
+            self.data.append(self.parseImagePath(str(imgPath)))
         return self
         
     def parseImagePath(self, imgPath):
@@ -327,16 +339,19 @@ class ImageTable(MarkdownTable):
     def mdFormat(self, imageInfo, baseDirectory, prefix, suffix):
         """ Format link and source into mdformat """
         
-        # assert baseDirectory[-1] == os.sep
-        name = "{}{}{}".format(prefix, imageInfo.name, suffix)
+        if isinstance(imageInfo, self.ImageInfo):            
+            # assert baseDirectory[-1] == os.sep
+            name = "{}{}{}".format(prefix, imageInfo.name, suffix)
         
-        # debug(imageInfo.imgUrl, baseDirectory, '')
-        path = imageInfo.imgUrl.replace(baseDirectory, '')
+            # debug(imageInfo.imgUrl, baseDirectory, '')
+            path = imageInfo.imgUrl.replace(baseDirectory, '')
         
-        mdLink = "![{name}]".format(name=name)
-        mdSource = "[{name}]: {path}".format(name=name, path=path)
+            mdLink = "![{name}]".format(name=name)
+            mdSource = "[{name}]: {path}".format(name=name, path=path)
         
-        return (mdLink, mdSource)
+            return (mdLink, mdSource)
+        else:
+            return (imageInfo, '')
         
     def setTabulateOptions(self, **kwargs):
         self.tabulateOptions.update(kwargs)
@@ -355,18 +370,18 @@ class ImageTable(MarkdownTable):
         base = urllib.parse.quote(path.abspath(directory))+os.sep if directory else ''
         
         mdFormatFunc = functools.partial(self.mdFormat, prefix=prefix, suffix=suffix, baseDirectory=base)
-        # debug(self.images)
+        # debug(self.data)
         
-        if not self.images:
-            return ('', '')
+        if not self.data:
+            return TableValue('', '')
         
-        imgLinks, imgSources = zip( *map(mdFormatFunc, self.images) )
+        imgLinks, imgSources = zip( *map(mdFormatFunc, self.data) )
 
         sources = list(imgSources)
         table = self.tableTemplate( grouper(columns, imgLinks, ''), **tabulateOptions)
             
         return TableValue(table, sources)
-        
+
 
 def main():
     """main function"""
@@ -431,6 +446,17 @@ def main():
 
         htb1 = hashlib.md5(str(tb1.table).strip().encode('utf-8')).hexdigest()
         print("md5sum", htb1)
+        # assert str(htb1) == '91d450220849f08889c8c6cebf6cd01c'
+        
+        ##
+        print("\n###", "Mixed Data and Image Tables Grid")
+        it1 = ImageTable()  
+        for i, img in enumerate(imgs):
+            it1.add_row( ('Data '+str(i), Path(img) ) )
+        
+        tb1 = it1.generateTable(headers=['Name', 'Images'], tablefmt='grid', prefix='grid')
+        print(tb1.format())
+
         # assert str(htb1) == '91d450220849f08889c8c6cebf6cd01c'
         
 

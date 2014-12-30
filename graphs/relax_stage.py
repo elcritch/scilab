@@ -8,23 +8,23 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
-from ntm.Tools.Project import *
-from ntm.Tools.Graphing import DataMax
+from scilab.tools.project import *
+from scilab.tools.graphing import DataMax
 
 # from WaveMatrixToolsPy3 import *
-from ntm.Tools.InstronCSV import csvread
+from scilab.tools.instroncsv import csvread
 
-import ntm.Tools.Project as Project
-import ntm.Tools.Excel as Excel
-import ntm.Tools.Graphing as Graphing 
-import ntm.Tools.ScriptRunner as ScriptRunner
-import ntm.Tools.Json as Json
+import scilab.tools.project as Project
+import scilab.tools.excel as Excel
+import scilab.tools.graphing as Graphing 
+import scilab.tools.scriptrunner as ScriptRunner
+import scilab.tools.json as Json
 
 import collections
 
 # sys.path.append("../../03_DataReduction/libraries/")
-import ntm.Tools.DynamicModulus as DynamicModulus
-# from ntm.Tools.DynamicModulus import find_index
+import scilab.tools.dynamicmodulus as DynamicModulus
+# from scilab.tools.dynamicmodulus import find_index
 # from DataToolsPy3 import find_index
 
 PlotData = namedtuple('PlotData', 'array label units max')
@@ -41,7 +41,7 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
-def handler(file_name, file_object, file_path, file_parent, args):
+handler(file=file,file_object=file_obect, args=args)
     
     data = csvread(file_path)
     data_json = Json.load_data(file_parent, file_name)
@@ -203,10 +203,10 @@ def main():
     
     ## Test
 
-    # project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
+    # project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
     # test_args += ['--step', '0'] # only first
 
-    project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)/"
+    project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)/"
     test_args += ['--step', '1'] # only first
     
     test_args += ['--begin', '80.30'] # only first

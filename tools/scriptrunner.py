@@ -3,9 +3,10 @@
 import argparse, re, os, glob, sys
 import inspect
 import logging
+from pathlib import Path
 
 if __name__ != '__main__':
-    from ntm.Tools.Project import *
+    from scilab.tools.project import *
 else:
     from Project import *
 
@@ -48,7 +49,7 @@ args = None
 
 # process_files_with
 
-def process_files_with(*, args, handler, setup=None, post=None):
+def process_files_with(*, args, handlers, setup=None, post=None):
     """ Process files defined on the command line. Handler should be a function accepting a fileName, file, and args. """
 
     args.state = DataTree()
@@ -74,18 +75,18 @@ def process_files_with(*, args, handler, setup=None, post=None):
     
     errors = {}
     
-    for file in all_files:
+    for testName in all_files:
         try:
             ## Handle Files!!
-            file_path = os.path.abspath(file.name)
-            file_parent, file_name = os.path.split(file_path)
+            testpath = Path(fileObject.name)
+            fileObject.close()
                         
             if args.verbose > 0:
-                print("\n## Processing File:", file_name, 'in', " \"%s\" "%file_parent.replace(RESEARCH, '$RESEARCH') , "\n")
+                print("\n## Processing File:", file.name, 'in', " \"%s\" "%file.parent.replace(RESEARCH, '$RESEARCH') , "\n")
             if args.verbose > 1:
                 print("> File Object:", str(file), "\n")
                 
-            handler(file_name=file_name, file_object=file, args=args, file_path=file_path, file_parent=file_parent)
+            # process_handlers(handlers=handlers, testpath=file, args=args)
                         
         except Exception as err:
             # logging.exception(err)
@@ -96,7 +97,20 @@ def process_files_with(*, args, handler, setup=None, post=None):
         post(args)
     
     return 
-    
+
+def process_handlers(handlers, path, args):
+
+    csvFiles = path.glob('*.csv')
+
+    dataMap = {}
+    for csvFile in csvFiles:
+        csv = instroncsv.csvread()
+        dataMap[csvFile.name] = csv
+        
+        for handler in handlers:
+            handler(path=csvFile, file=csv, args=args)
+
+
 def parse_args():
     assert(sys.version_info[0] == 3)
     args = parser.parse_args()
