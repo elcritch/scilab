@@ -16,6 +16,7 @@ from scilab.tools.excel import *
 from scilab.tools.project import DataTree
 
 import scilab.tools.json as Json
+from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
     
 ## Main
     
@@ -39,7 +40,6 @@ def parse_fatigue_data_sheet_v1(ws):
     measurements.depth.units = 'mm'
     measurements.area.units = 'mm^2'
     
-    data['measurements'] = measurements
     
     # Process all the values in these rows
     other = DataTree()
@@ -74,49 +74,92 @@ def parse_fatigue_data_sheet_v1(ws):
     data['notes'] = notes
     
     return data
-
-def parse_data_from_worksheet(file_name, file_path, file_parent, args):
+    
+def parse_data_from_worksheet(testpath:Path, testinfo:UtsTestInfo, args):
 
     try:
-        abs_file_path = os.path.realpath(file_path)
-        wb = load_workbook(abs_file_path, data_only=True)
+        wb = load_workbook(testpath.absolute().as_posix(), data_only=True)
     except (Exception) as err:
-        logging.warn("Cannot open file:\n\t"+file_path+"\n\t vs \n\t"+abs_file_path)
+        logging.warn("Cannot open file:\n\t"+str(testpath)+"\n\t vs \n\t"+testpath.absolute().as_posix())
         raise err
         
     ## Process Excel Sheets
     ws = wb.worksheets[0]
-    data = parse_fatigue_data_sheet_v1(ws)    
-    
-    ## Handle Names    
-    data['name'] = os.path.splitext(file_name)[0]
-    debug(data['name'])
-    
-    ## Get Test ID 
-    match = re.match(r'(.+)\((.+)-(.+)\)[-]*(.+?)-(.+?)-(.+?)-(\w+)(?:-(.+))*', data['name'])
+    return parse_fatigue_data_sheet_v1(ws)    
+
+
+def process_image_measurements(testfile, testinfo, imgdata):
         
-    testDate, sample, section, orientation, zone, layer, specimen = match.groups()[:7]
-    nums = lambda s: ''.join( c for c in s if c.isdigit() )
+    data = {}
+    data['info'] = DataTree()
+    data['info'].update( testinfo.as_dict() )
+    data['info']['set'] = testinfo.name
     
-    data['id'] = '.'.join(map(nums,sample.split('.')))+'.'+nums(zone+layer+specimen)
+    measurements = DataTree(width=DataTree(), depth=DataTree(), area=DataTree())
+    measurements.width.value = imgdata.front.widths.average.mean
     
-    debug(data['id'])
+    if not 'side' in imgdata:
+        logging.warn("Could not find side measurement for: "+str(testinfo))
+        measurements.depth.value = 1.00
+        measurements.depth.stdev = -0.01
+    else:
+        measurements.depth.value = imgdata.side.widths.average.mean
+        measurements.depth.stdev = imgdata.side.widths.average.std
+        
+    measurements.area.value = float(measurements.width.value)*float(measurements.depth.value)
     
-    Json.write_json(file_parent, data, json_url=data['name']+'.json', dbg=True)
+    measurements.width.stdev = imgdata.front.widths.average.std
     
-    return
+    measurements.width.units = 'mm'
+    measurements.depth.units = 'mm'
+    measurements.area.units = 'mm^2'
+    
+    data['measurements'] = measurements
+    
+    return data
+
+    
+def parse_from_image_measurements(testfile, testinfo, args):
+
+    imgMeasureFile = args.experJson / (testinfo.name+'.measurements.json')
+    imgMeasureFile = imgMeasureFile.resolve()
+    
+    imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
+    
+    # debug(imgMeasurements)
+    
+    data = process_image_measurements(testfile, testinfo, imgMeasurements)
+
+    return data
     
 
 def handler(file, args):
     
     print("Excel notebooks:", file.name)
-    print()
+
+    testinfo = UtsTestInfo(name=file.with_suffix('').name)
+    print(str(testinfo))
     
-    parse_data_from_worksheet(
-        file_name=str(test.name), 
-        file_path=str(test.resolve()), 
-        file_parent=str(test.parent), 
+    data = parse_from_image_measurements(
+        testfile=file, 
+        testinfo=testinfo,
         args=args)
+    
+    # parse_data_from_worksheet(
+    #     testpath=file,
+    #     testinfo=testinfo,
+    #     args=args)
+    
+    ## Handle Names    
+    data['name'] = testinfo.name
+    debug(data['name'])
+        
+    data['id'] = testinfo.short()
+    data['info'] = testinfo.as_dict()
+    
+    debug(data['id'])
+    
+    Json.write_json(args.experJson, data, json_url=data['name']+'.calculated.json', dbg=False)
     
     return
 
@@ -131,7 +174,11 @@ if __name__ == '__main__':
     projectname = 'NTM-MF/fatigue-failure-expr1/'
     projectpath = Path(RAWDATA) / projectname
     
-    files = projectpath.glob('test-data/uts/nov*.xlsx')
+    experData = projectpath / 'test-data'/'uts (expr-1)'
+    experExcel = experData/'01 Excel' 
+    experJson = experData/'00 JSON'
+    
+    files = experExcel.glob('*.xlsx')
 
     test_args = []
     # test_args = ["--glob", fileglob]
@@ -142,6 +189,10 @@ if __name__ == '__main__':
     
     if 'args' not in locals():
         args = parser.parse_args()
+    
+    args.projectpath = projectpath
+    args.experData = experData
+    args.experJson = experJson 
     
     # ScriptRunner.process_files_with(args=args, handler=handler)
     

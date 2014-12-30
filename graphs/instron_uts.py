@@ -19,6 +19,8 @@ import numpy as np
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
+from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+
 def get_max(data):
     idx, value = np.argmax(data)
     return dict(idx=idx, value=value)
@@ -27,10 +29,9 @@ def data_find_max(data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=None)
 
-def handler(test:Path, args:object):
+def handler(test:Path, testinfo:UtsTestInfo, data_json:DataTree, args:object):
     
     data = csvread(test)
-    data_json = Json.load_data_path(test)    
 
     debug(data_json)
 
@@ -39,7 +40,7 @@ def handler(test:Path, args:object):
     
     debug(details)
     
-    data, details = data_cleanup_uts(data, details)
+    data, details = data_cleanup_uts(testinfo, data, details)
     
     print(" --------- \n")
     debug(data.maxes)
@@ -51,28 +52,43 @@ def handler(test:Path, args:object):
     
     debug(maxes)
     
-    Json.update_data_path(test, {'calculations': {'maxes':maxes} }, dbg=False )
+    Json.write_json(args.experJson.as_posix(), {'calculations': {'maxes':maxes} }, json_url=testinfo.name+'.uts.calculations.json', dbg=False )
     
     graph_uts_raw(test, data, details, args)
     graph_uts_normalized(test, data, details, args)
     
 
-def data_cleanup_uts(data, details):
+def data_cleanup_uts(testinfo:UtsTestInfo, data, details):
 
     if 'load' not in data.keys():
-        loads = [ l for l in ['loadLinearMissus','loadLinearLoad'] if l in data ]
+
+        if testinfo.orientation == 'tr':
+            loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
+        if testinfo.orientation == 'lg':
+            loads = [ l for l in ['loadLinearLoad'] if l in data ]
+        
         logging.warn("Choosing loads: "+repr(loads))
         data.load = data[loads[0]]
 
     data.maxes = DataTree()
     data.maxes.displacement = data_find_max(data.displacement.array)
     data.maxes.load = data_find_max(data.load.array)
-    
-    
+        
     debug(data.maxes)
     
     stress = data.load.array/details.measurements.area.value
-    strain = data.displacement.array/details.gauge.value
+    
+    ### START HACK!!! ###
+    ### TODO: REMOVE !!! ###
+    if testinfo.orientation == 'lg':
+        gauge = 14.0
+    elif testinfo.orientation == 'tr':
+        gauge = 8.0
+    else:
+        gauge = details.gauge.value
+    ### END HACK ###
+    
+    strain = data.displacement.array/gauge
 
     # hack    
     data.maxes.stress = data_find_max(stress)
@@ -81,11 +97,11 @@ def data_cleanup_uts(data, details):
     data.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
     data.strain = PlotData(array=strain, label="Strain", units="∆", max=None)
     
-    if 'loadLinearLoad1' in data:
-        stress1 = data.loadLinearLoad1.array/details.measurements.area.value
-        data.stress1 = PlotData(array=stress1, label="Stress Honeywell", units="MPa", max=None)
-        data.maxes.stress1 = data_find_max(stress1)
-        data.maxes.loadLoad1 = data_find_max(data.loadLinearLoad1.array)
+    # if testinfo.orientation == 'tr':
+    #     stress1 = data.loadLinearLoad1.array/details.measurements.area.value
+    #     data.stress1 = PlotData(array=stress1, label="Stress Honeywell", units="MPa", max=None)
+    #     data.maxes.stress1 = data_find_max(stress1)
+    #     data.maxes.loadLoad1 = data_find_max(data.loadLinearLoad1.array)
         
     return (data, details)
 
@@ -180,7 +196,12 @@ if __name__ == '__main__':
     projectname = 'NTM-MF/fatigue-failure-expr1/'
     projectpath = Path(RAWDATA) / projectname
     
-    trackingfiles = projectpath.glob('04*/*/*.tracking.csv')
+    experData = projectpath / 'test-data'/'uts (expr-1)'
+    experUtsCsv = projectpath / '04 (uts) uts-test' 
+    experExcel = experData/'01 Excel' 
+    experJson = experData/'00 JSON'
+    
+    testfiles = experExcel.glob('*.xlsx')
     
     test_args = [] 
     # test_args += ["--glob", fileglob]
@@ -192,12 +213,42 @@ if __name__ == '__main__':
     if 'args' not in locals():
         args = parser.parse_args()
     
-    for trackingtest in list(trackingfiles)[:]:
+    args.experJson = experJson
+    
+    
+    for testfile in list(testfiles)[:]:
         
-        debug(trackingtest)
+        try:            
+            debug(testfile)            
+            testinfo = UtsTestInfo(name=testfile.stem)
+            debug(testinfo)
+            
+            jsonfile = experJson / testfile.with_suffix('.calculated.json').name
+            jsonfile = jsonfile.resolve()
+            
+            data_json = Json.load_json(jsonfile.parent, json_url=jsonfile.name)
         
-        handler(trackingtest, args=args)
-        # def handler(testname:str, testdata:dict, args:object):
+            def findTestCsv(csvTestParent, testfile):
+                testfiles = [ t for t in csvTestParent.glob(testfile.stem+'*') if t.is_dir() ]
+                if not testfiles:
+                    raise Exception("Cannot find matching csv test folder: "+testfile.stem+" "+csvTestParent.as_posix())
+                elif len(testfiles) > 1:
+                    testfile = sorted(testfiles, key=lambda x: x.stem )[0]
+                    logging.warn("Multiple csv test files match, choosing: "+testfile.name)
+                    return testfile
+                else:
+                    return testfiles[0]
+                
+                        
+            trackingtest = findTestCsv(experUtsCsv, testfile)
+            trackingtest = next(trackingtest.glob('*.tracking.csv'))
+            debug(trackingtest)
+            
+            handler(trackingtest, testinfo, data_json, args=args)
+            
+        except Exception as err:
+            logging.warn(err)
+            # raise err
         
     # ScriptRunner.process_files_with(args=args, handler=handler)
     
