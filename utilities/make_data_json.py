@@ -123,7 +123,7 @@ def process_image_measurements(testfile, testinfo, imgdata):
 
 def parse_from_image_measurements(testfile, testinfo, args):
 
-    imgMeasureFile = args.experJson / (testinfo.name+'.measurements.json')
+    imgMeasureFile = args.experJson / 'measurements' / (testinfo.name+'.measurements.json')
     imgMeasureFile = imgMeasureFile.resolve()
     
     imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
@@ -143,11 +143,7 @@ def handler(file, args):
 
     print(str(testinfo), file=args.report)
     
-    # data = parse_from_image_measurements(
-    #     testfile=file,
-    #     testinfo=testinfo,
-    #     args=args)
-    
+    ## Update with Excel Values    
     data = parse_data_from_worksheet(
         testpath=file,
         testinfo=testinfo,
@@ -168,7 +164,16 @@ def handler(file, args):
     
     debug(data['id'])
     
-    Json.write_json(args.experJson, data, json_url=data['name']+'.calculated.json', dbg=False)
+    Json.update_json(args.experJson, data, json_url=testinfo.name+'.calculated.json', dbg=False)
+    
+    ## Update with Image Measurements
+    data = parse_from_image_measurements(
+        testfile=file,
+        testinfo=testinfo,
+        args=args)
+    
+    Json.update_json(args.experJson, data, json_url=testinfo.name+'.calculated.json', dbg=False)
+    
     
     return
 
