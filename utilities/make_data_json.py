@@ -103,7 +103,7 @@ def process_image_measurements(testfile, testinfo, imgdata):
     if not 'side' in imgdata:
         logging.warn("Could not find side measurement for: "+str(testinfo))
         measurements.depth.value = 1.00
-        measurements.depth.stdev = -0.01
+        measurements.depth.stdev = -1.0
     else:
         measurements.depth.value = imgdata.side.widths.average.mean
         measurements.depth.stdev = imgdata.side.widths.average.std
@@ -115,6 +115,11 @@ def process_image_measurements(testfile, testinfo, imgdata):
     measurements.width.units = 'mm'
     measurements.depth.units = 'mm'
     measurements.area.units = 'mm^2'
+    
+    measurements.image = DataTree(other={})
+    
+    for k in 'front side fail'.split():
+        measurements.image.other[k] = imgdata[k].other if k in imgdata else {}
     
     data['measurements'] = measurements
     

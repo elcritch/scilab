@@ -178,12 +178,12 @@ def graph_uts(test, t, x, y, details, args):
     lgd1 = legend_handles(ax1, x=.1)
     lgd2 = legend_handles(ax2, x=.9)
     
-    base_file_name = "%s (%s)"%(test.stems(), ax1_title)
-    imgpath = test.parent / 'img'
+    imgpath = args.experReportGraphs / str(testinfo)
     
-    debug(base_file_name, imgpath)
+    debug(imgpath)
     
-    Graphing.fig_save(fig, str(imgpath), name=base_file_name, type='.png', lgd=lgd1, lgd2=lgd2)
+    
+    Graphing.fig_save(fig, str(imgpath), name=imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd1, lgd2=lgd2)
     
     plt.close()
@@ -202,16 +202,20 @@ if __name__ == '__main__':
     # project = "NTM-MF-PRE (test4, trans, uts)"
     # project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
 
-    projectname = 'NTM-MF/fatigue-failure-expr1/'
-    projectpath = Path(RAWDATA) / projectname
+    projectspath = Path(RESEARCH) / '07_Experiments'
+    projectpath = projectspath/'fatigue failure (UTS, exper1)'
     
-    experData = projectpath / 'test-data'/'uts (expr-1)'
     experUtsCsv = projectpath / '04 (uts) uts-test' 
+    experUtsPreconds = projectpath / '02 (uts) preconditions' 
+    experData = projectpath / 'test-data'/'uts (expr-1)'
     experExcel = experData/'01 Excel' 
     experJson = experData/'00 JSON'
+    experReport = experData/'02 Reports'
+    experReportGraphs = experData/'03 Graphs'
     experJsonCalc = experJson / 'calculated'
     
-    testfiles = experExcel.glob('*.xlsx')
+    files = experExcel.glob('*.xlsx')
+    
     
     test_args = [] 
     # test_args += ["--glob", fileglob]
@@ -226,7 +230,7 @@ if __name__ == '__main__':
     [ setattr(args,e,v) for e,v in locals().items() if e.startswith('exper' )]
     
     
-    for testfile in list(testfiles)[:]:
+    for testfile in list(files)[:]:
         
         try:            
             debug(testfile)            
@@ -258,7 +262,7 @@ if __name__ == '__main__':
             
         except Exception as err:
             logging.warn(err)
-            # raise err
+            raise err
         
     # ScriptRunner.process_files_with(args=args, handler=handler)
     

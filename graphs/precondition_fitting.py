@@ -257,9 +257,11 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     if args.only_first:
         plt.show(block=True, )
         
-    debug(base_file_name, imgpath)
+    imgpath = args.experReportGraphs / str(testinfo)
     
-    Graphing.fig_save(fig, str(imgpath), name=base_file_name, type='.png', lgd=lgd1, lgd2=lgd2)
+    debug(imgpath)
+    
+    Graphing.fig_save(fig, str(imgpath), name=imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd, lgd2=lgd2)
     
     plt.close()
@@ -279,8 +281,8 @@ def main():
     test_args = []
     
     ## Test
-    projectname = 'NTM-MF/fatigue-failure-expr1/'
-    projectpath = Path(RAWDATA) / projectname
+    projectspath = Path(RESEARCH) / '07_Experiments'
+    projectpath = projectspath/'fatigue failure (UTS, exper1)'
     
     # files = []
     # files += projectpath.glob('02*/nov*/*.tracking.csv')
@@ -292,6 +294,7 @@ def main():
     experJson = experData/'00 JSON'
     experReport = experData/'02 Reports'
     experReportGraphs = experData/'03 Graphs'
+    experJsonCalc = experJson / 'calculated'
     
     files = experExcel.glob('*.xlsx')
     
