@@ -18,39 +18,10 @@ from scilab.tools.tables import ImageTable, mdHeader, mdBlock, MarkdownTable
 from scilab.tools.project import *
 
 import scilab.tools.json as Json
+from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
 from itertools import islice, zip_longest
-
-
-TestName = collections.namedtuple("TestName","dt sample knee wedge orientation zone layer specimen other")
-def parse_test_name(name):
-    
-    ## Get Test ID 
-    # nov08(gf7.1-llm)-tr-z1-l1-x1.steps.tracking.csv
-    pattern = re.compile(r"""
-        (.+)            # date
-        \((.+)-(.+)\)   # set & knee
-        -(w[1-6a-fA-F]) # zone/wedge section
-        -(lg|tr)      # long/transverse
-        -(z\d+)         # zone
-        -(l\d+)         # layer
-        -(x\d+)         # sample 
-        (?:_(r\d+))*      # runs
-        """, re.X)
-    match = re.match(pattern, name)
-    
-    if not match:
-        raise Exception("Could not match name: {name}".format(name=name))
-    
-    attribs = TestName(*match.groups()[:9])
-    
-    nums = lambda s: ''.join( c for c in s if c.isdigit() )
-    testId = "" 
-    testId += attribs.sample
-    testId += '.'+str( 100+ord(attribs.knee[1])-ord('l') + (ord(attribs.wedge[-1])-ord('a')+1) )
-    testId += '.'+nums(attribs.zone)+nums(attribs.layer)+nums(attribs.specimen)
-    
-    return (attribs, testId)
 
 
 def table_setup(args, **kwargs):

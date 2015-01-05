@@ -137,43 +137,50 @@ def parse_from_image_measurements(testfile, testinfo, args):
 
 def handler(file, args):
     
-    
     testinfo = UtsTestInfo(name=file.with_suffix('').name)
     print(mdHeader(2, "Test: "+testinfo.name), file=args.report)
 
+    def updateMetaData(data):
+        ## Handle Names    
+        data['name'] = testinfo.name        
+        data['id'] = testinfo.short()
+        data['info'] = testinfo.as_dict()
+    
+    
     print(str(testinfo), file=args.report)
     
     ## Update with Excel Values    
-    data = parse_data_from_worksheet(
-        testpath=file,
-        testinfo=testinfo,
-        args=args)
+    # data = parse_data_from_worksheet(
+        # testpath=file,
+        # testinfo=testinfo,
+        # args=args)
     
-    if True:
-        import json
-        print(mdBlock("Excel Sheet Data:"),file=args.report)
-        print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
-
+    # print(mdBlock("Excel Sheet Data:"),file=args.report)
+    # print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
+    # updateMetaData(data)
     
-    ## Handle Names    
-    data['name'] = testinfo.name
-    debug(data['name'])
-        
-    data['id'] = testinfo.short()
-    data['info'] = testinfo.as_dict()
     
-    debug(data['id'])
+    # Json.write_json(
+    #     args.experJsonCalc.as_posix(),
+    #     data,
+    #     json_url=testinfo.name+'.excel.calculated.json',
+    #     dbg=False)
     
-    Json.update_json(args.experJson, data, json_url=testinfo.name+'.calculated.json', dbg=False)
     
     ## Update with Image Measurements
+    
     data = parse_from_image_measurements(
         testfile=file,
         testinfo=testinfo,
         args=args)
     
-    Json.update_json(args.experJson, data, json_url=testinfo.name+'.calculated.json', dbg=False)
-    
+    updateMetaData(data)
+
+    Json.write_json(
+        args.experJsonCalc.as_posix(), 
+        data, 
+        json_url=testinfo.name+'.measurements.calculated.json', 
+        dbg=False)    
     
     return
 
@@ -185,8 +192,8 @@ if __name__ == '__main__':
 
     ## Test
 
-    projectname = 'NTM-MF/fatigue-failure-expr1/'
-    projectpath = Path(RAWDATA) / projectname
+    projectspath = Path(RESEARCH) / '07_Experiments'
+    projectpath = projectspath/'fatigue failure (UTS, exper1)'
     
     experData = projectpath / 'test-data'/'uts (expr-1)'
     experExcel = experData/'01 Excel' 
@@ -200,17 +207,19 @@ if __name__ == '__main__':
     # test_args += ['-1'] # only first
     
     args = parser.parse_args( test_args )    
-    # args = parser.parse_args()
+    args = parser.parse_args( test_args )    
+
+    experUtsCsv = projectpath / '04 (uts) uts-test' 
+    experUtsPreconds = projectpath / '02 (uts) preconditions' 
+    experData = projectpath / 'test-data'/'uts (expr-1)'
+    experExcel = experData/'01 Excel' 
+    experJson = experData/'00 JSON'
+    experReport = experData/'02 Reports'
+    experReportGraphs = experData/'03 Graphs'
+    experJsonCalc = experJson / 'calculated'
+    [ setattr(args,e,v) for e,v in locals().items() if e.startswith('exper' )]
     
-    if 'args' not in locals():
-        args = parser.parse_args()
-    
-    args.projectpath = projectpath.resolve()
-    args.experData = experData.resolve()
-    args.experJson = experJson.resolve()
-    args.experReport = experReport.resolve() 
-    
-    # ScriptRunner.process_files_with(args=args, handler=handler)
+    files = experExcel.glob('*.xlsx')    
     
     with (args.experReport/'Temp Reports'/'Excel Data Sheet Results.md').open('w') as report:
         

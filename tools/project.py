@@ -135,7 +135,7 @@ print ("Research (Project) Directory:", RESEARCH, RAWDATA)
 sys.path.append(RESEARCH+"/06_Methods/05_Code/03_DataReduction/libraries/")
 
 
-def debug(*args, LF='',fmt='{} ',sep='->'):
+def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
     try:
         st = inspect.stack()[1]
         funcName = st[3]
@@ -147,7 +147,7 @@ def debug(*args, LF='',fmt='{} ',sep='->'):
         for n, v in zip(varnames, args):
             v_str = str(v)
             v_str = "`%s`"%v_str if v_str.count('\n') == 0 else v_str
-            print(fmt.format(n.strip())+sep, v_str, LF)
+            print(fmt.format(n.strip())+sep, v_str, end=end, file=file)
         
     except Exception as err:
         print('debug(...error...)')

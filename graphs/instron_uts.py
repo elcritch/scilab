@@ -4,6 +4,9 @@ import sys, os, glob, logging
 from collections import namedtuple
 from pathlib import Path
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 
@@ -52,7 +55,12 @@ def handler(test:Path, testinfo:UtsTestInfo, data_json:DataTree, args:object):
     
     debug(maxes)
     
-    Json.write_json(args.experJson.as_posix(), {'calculations': {'maxes':maxes} }, json_url=testinfo.name+'.uts.calculations.json', dbg=False )
+    print("Writing: "+args.experJsonCalc.as_posix()+testinfo.name+'.uts.calculated.json')
+    Json.write_json(
+        args.experJsonCalc.as_posix(), 
+        {'calculations': {'maxes':maxes} },
+        json_url=testinfo.name+'.uts.calculated.json', 
+        dbg=False )
     
     graph_uts_raw(test, data, details, args)
     graph_uts_normalized(test, data, details, args)
@@ -78,16 +86,17 @@ def data_cleanup_uts(testinfo:UtsTestInfo, data, details):
     
     stress = data.load.array/details.measurements.area.value
     
-    ### START HACK!!! ###
-    ### TODO: REMOVE !!! ###
-    if testinfo.orientation == 'lg':
-        gauge = 14.0
-    elif testinfo.orientation == 'tr':
-        gauge = 8.0
-    else:
-        gauge = details.gauge.value
-    ### END HACK ###
+    # ### START HACK!!! ###
+    # ### TODO: REMOVE !!! ###
+    # if testinfo.orientation == 'lg':
+    #     gauge = 14.0
+    # elif testinfo.orientation == 'tr':
+    #     gauge = 8.0
+    # else:
+    #     gauge = details.gauge.value
+    # ### END HACK ###
     
+    gauge = details.gauge.value
     strain = data.displacement.array/gauge
 
     # hack    
@@ -200,6 +209,7 @@ if __name__ == '__main__':
     experUtsCsv = projectpath / '04 (uts) uts-test' 
     experExcel = experData/'01 Excel' 
     experJson = experData/'00 JSON'
+    experJsonCalc = experJson / 'calculated'
     
     testfiles = experExcel.glob('*.xlsx')
     
@@ -213,7 +223,7 @@ if __name__ == '__main__':
     if 'args' not in locals():
         args = parser.parse_args()
     
-    args.experJson = experJson
+    [ setattr(args,e,v) for e,v in locals().items() if e.startswith('exper' )]
     
     
     for testfile in list(testfiles)[:]:
@@ -223,7 +233,7 @@ if __name__ == '__main__':
             testinfo = UtsTestInfo(name=testfile.stem)
             debug(testinfo)
             
-            jsonfile = experJson / testfile.with_suffix('.calculated.json').name
+            jsonfile = experJsonCalc / testfile.with_suffix('.calculated.json').name
             jsonfile = jsonfile.resolve()
             
             data_json = Json.load_json(jsonfile.parent, json_url=jsonfile.name)

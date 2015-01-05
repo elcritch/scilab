@@ -67,7 +67,7 @@ def update_data(parentdir, test_name, data, dataDir="../../test-data/", dbg=None
 #
 #         return json_data
     
-def load_json(parentdir, json_url="data.json", datatree=False):
+def load_json(parentdir, json_url="data.json", datatree=False, default=None):
     
     json_path = Path(parentdir) / json_url 
     
@@ -93,7 +93,10 @@ def load_json(parentdir, json_url="data.json", datatree=False):
                 with json_path.open() as json_file:
                     print(''.join(json_file.readlines()))
             except FileNotFoundError as err2:
-                logging.warn("Json File not found: "+json_path)
+                if default:
+                    return default
+                    
+                logging.warn("Json File not found: "+str(json_path))
                 return None
                 
             raise err 
@@ -141,10 +144,10 @@ def write_json(parentdir,json_data, json_url="data.json", dbg=None, cls=CustomJs
     return
 
     
-def update_json(parentdir, update_data, json_url="data.json", dbg=None):
+def update_json(parentdir, update_data, json_url="data.json", default=None, dbg=None):
     """ Simple update method. Needs to handle merging better.  """
     
-    json_data = load_json(parentdir,json_url=json_url)
+    json_data = load_json(parentdir,json_url=json_url, default=default)
     json_to_write = jsonmerge.merge(json_data, update_data)
     
     write_json(parentdir, json_to_write, json_url=json_url, dbg=dbg)

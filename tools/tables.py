@@ -211,7 +211,7 @@ add colons as above.
 """
 
 def mdBlock(text):
-    return "\n{text}\n\n\n".format(text=str(text).strip())
+    return "\n{text}\n".format(text=str(text).strip())
 
 def mdHeader(level, text, postfix=True):
     tag = '#'*level
@@ -312,7 +312,7 @@ class ImageTable(MarkdownTable):
         self.data = []
         
     def add_row(self, data):
-        data = [ self.parseImagePath(d.as_posix()) if isinstance(d,Path) else d 
+        data = [ self.parseImagePath(d)  
                     for d in data ]
         # print("data:", data)
         self.data += data
@@ -329,12 +329,12 @@ class ImageTable(MarkdownTable):
             self.data.append(self.parseImagePath(str(imgPath)))
         return self
         
-    def parseImagePath(self, imgPath):
-    
-        name = path.splitext(path.basename(imgPath))[0]
-        absPath = path.abspath(imgPath)
-        imgUrl = urllib.parse.quote(imgPath)
-        return self.ImageInfo(name=name, imgUrl=imgUrl, absPath=absPath)
+    def parseImagePath(self, item):
+        if isinstance(item,Path):
+            imgUrl = urllib.parse.quote(str(item))
+            return self.ImageInfo(name=item.stem, imgUrl=imgUrl, absPath=item.absolute())
+        else:
+            return item
     
     def mdFormat(self, imageInfo, baseDirectory, prefix, suffix):
         """ Format link and source into mdformat """
