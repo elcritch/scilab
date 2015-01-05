@@ -85,17 +85,7 @@ def data_cleanup_uts(testinfo:UtsTestInfo, data, details):
     debug(data.maxes)
     
     stress = data.load.array/details.measurements.area.value
-    
-    # ### START HACK!!! ###
-    # ### TODO: REMOVE !!! ###
-    # if testinfo.orientation == 'lg':
-    #     gauge = 14.0
-    # elif testinfo.orientation == 'tr':
-    #     gauge = 8.0
-    # else:
-    #     gauge = details.gauge.value
-    # ### END HACK ###
-    
+        
     gauge = details.gauge.value
     strain = data.displacement.array/gauge
 
@@ -183,7 +173,7 @@ def graph_uts(test, t, x, y, details, args):
     debug(imgpath)
     
     
-    Graphing.fig_save(fig, str(imgpath), name=imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
+    Graphing.fig_save(fig, str(imgpath), name='UTS - '+imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd1, lgd2=lgd2)
     
     plt.close()

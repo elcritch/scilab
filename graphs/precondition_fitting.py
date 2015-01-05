@@ -122,20 +122,37 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, data_json, args
     force = data.load()[npslice]
     stress = data.stress.array[npslice]
     strain = data.strain.array[npslice]
-        
-    elapsedCycles = getElapsedStarts(data, npslice)        
+    
+    
+    graph = DataTree()
+    
+    ## Expr Data 
+    graph.time = time
+    graph.disp = disp
+    graph.force = force
+    graph.stress = stress
+    graph.strain = strain
+    
+    ## Expr Fits
+    modulus_fits = fit_modulus_regions(
+            testinfo = testinfo,
+            details = details, 
+            args = args, 
+            data = data, 
+            time = time, 
+            disp = disp, 
+            force = force, 
+            stress = stress, 
+            strain = strain,
+            npslice = npslice,
+            )
+    
+    graph.modulus_fits = modulus_fits
+    
+    return (graph, details)
 
-    debug( elapsedCycles )
-    
-    startCycle, endCycle = 19, 20
-    
-    # Do fits -> Last Three
-    ckeys = [ k for k in elapsedCycles.keys() ]
-    debug(ckeys)
-    cycle_a,cycle_b = elapsedCycles[ckeys[startCycle]], elapsedCycles[ckeys[endCycle]]
-    cycle_a,cycle_b = elapsedCycles[ckeys[startCycle]], elapsedCycles[ckeys[endCycle]]
-    lastCycles = np.s_[cycle_a.index:cycle_b.index]
-    debug(cycle_a, cycle_b, lastCycles)
+def fit_modulus(region, data, time, disp, force, stress, strain, startCycle, endCycle, elapsedCycles, lastCycles, **kwargs):
+
 
     # ==================
     # = Linear Modulus =
@@ -180,45 +197,73 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, data_json, args
     # = Save Data =
     # =============
 
-    # save dyn mod
-    data_json['linear_modulus'] = { 
+    # save dyn mod    
+    modulus = DataTree(fits=DataTree())
+    
+    modulus.s_ls1 = ls1
+    modulus.s_cycles = lastCycles
+    
+    ## Expr Fits
+    modulus.fits.strain_linear = strain_linear
+    modulus.fits.stress_linear = stress_linear
+    modulus.fits.linear_modulus = linear_modulus
+    
+    modulus.data_json = { 
             'value':linear_modulus, 
             'slope_stress':stress_linear.data.slope, 
             'slope_strain':strain_linear.data.slope, 
             }
     
-    debug(data_json['linear_modulus'])
+    return modulus
+
+def fit_modulus_regions(testinfo, details, args, data, npslice, **kwargs):
+
+    elapsedCycles = getElapsedStarts(data, npslice) 
+
+    debug( elapsedCycles )
+    
+    startCycle, endCycle = 18, 20
+    
+    # Do fits -> Last Three
+    ckeys = [ k for k in elapsedCycles.keys() ]
+    debug(ckeys)
+    cycle_a,cycle_b = elapsedCycles[ckeys[startCycle]], elapsedCycles[ckeys[endCycle]]
+    cycle_a,cycle_b = elapsedCycles[ckeys[startCycle]], elapsedCycles[ckeys[endCycle]]
+    lastCycles = np.s_[cycle_a.index:cycle_b.index]
+    debug(cycle_a, cycle_b, lastCycles)
+
+    region = DataTree()
+    
+    toe_modulus = fit_modulus(region, 
+            data=data,
+            startCycle=startCycle, 
+            endCycle=endCycle, 
+            elapsedCycles=elapsedCycles, 
+            lastCycles=lastCycles,
+            **kwargs)
+
+    modulus_fits = DataTree()
+
+    modulus_fits.toe_modulus = toe_modulus
+    
+    debug(modulus_fits)
     # Json.update_json(testpath=test, data=data_json, dbg=False)
     Json.write_json(
         (args.experJson / 'calculated').as_posix(), 
-        {'linear_modulus': data_json['linear_modulus']}, 
+        { k:v.data_json for k,v in modulus_fits.items() }, 
         json_url=testinfo.name+'.preconds.calculated.json', 
         dbg=False,
         )
     
-    graph = DataTree()
-    
-    # graph.time = time
-    graph.time = time
-    graph.s_ls1 = ls1
-    graph.s_cycles = lastCycles
-    
-    ## Expr Data 
-    graph.disp = disp
-    graph.force = force
-    graph.stress = stress
-    graph.strain = strain
-    
-    ## Expr Fits
-    graph.strain_linear = strain_linear
-    graph.stress_linear = stress_linear
-    graph.linear_modulus = linear_modulus
-    
-    return (graph, details)
+    return modulus_fits
 
 def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     
-    s_cycles = data.s_cycles
+    debug(data.modulus_fits)
+    
+    modulus = data.modulus_fits.toe_modulus
+    
+    s_cycles = modulus.s_cycles
     
     fig, (ax1,ax2) = plt.subplots(2, sharex=True, figsize=(14,8))
     # ax2 = ax1.twinx() # <http://stackoverflow.com/questions/14762181/adding-a-y-axis-label-to-secondary-y-axis-in-matplotlib>
@@ -227,18 +272,20 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     ax1.plot(data.time[s_cycles], data.strain[s_cycles], label="Stress|DynaCell [MPa]")
     ax2.plot(data.time[s_cycles], data.stress[s_cycles], label="Strain|Stretch Ratio [λ]", )
 
-    s_ls1 = data.s_ls1
+    
+    s_ls1 = modulus.s_ls1
     ax1.plot(data.time[s_cycles], data.strain[s_cycles], label="Linear Stress")
     ax2.plot(data.time[s_cycles], data.stress[s_cycles], label="Linear Stretch Ratio", )
-    ax2.plot(data.time[s_ls1], data.stress_linear( data.time[s_ls1]), '-', 
-                label='Linear Modulus {:.2f}'.format(data.stress_linear.rsquared) )
+    
+    ax2.plot(data.time[s_ls1], modulus.fits.stress_linear( data.time[s_ls1]), '-', 
+                label='Linear Modulus {:.2f}'.format(modulus.fits.stress_linear.rsquared) )
 
     ax1.set_ylabel('$Stretch Ratio [\lambda]$')
     ax2.set_ylabel('$Stress [MPa]$')
 
 
-    ax1.set_title("Linear Modulus Strain/Stress Fit (%.1f%% of %.2f mm)"%(data.linear_modulus, details.gaugeLength))
-    message1 = "Linear Modulus:%5.2f"%data.linear_modulus
+    ax1.set_title("Linear Modulus Strain/Stress Fit (%.1f%% of %.2f mm)"%(modulus.fits.linear_modulus, details.gaugeLength))
+    message1 = "Linear Modulus:%5.2f"%modulus.fits.linear_modulus
 
     handles, labels = ax1.get_legend_handles_labels()
     lgd1 = ax1.legend(handles, labels) #, bbox_to_anchor=(0.4,-1.09))
@@ -261,7 +308,7 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     
     debug(imgpath)
     
-    Graphing.fig_save(fig, str(imgpath), name=imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
+    Graphing.fig_save(fig, str(imgpath), name="Precondition Fitting - "+imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd, lgd2=lgd2)
     
     plt.close()
@@ -343,10 +390,10 @@ def main():
                 if self.fd1: self.fd1.flush()
                 self.fd2.flush()
 
-        save_stdout = sys.stdout
-        save_stderr = sys.stderr
-        sys.stdout = tee(save_stdout, report)
-        sys.stderr = tee(save_stderr, report)
+        # save_stdout = sys.stdout
+        # save_stderr = sys.stderr
+        # sys.stdout = tee(save_stdout, report)
+        # sys.stderr = tee(save_stderr, report)
 
         
         print(mdHeader(1, "Graphing: Preconditions (UTS Test Expr1)"))
@@ -385,7 +432,7 @@ def main():
 
             except Exception as err:
                 logging.error(err)
-                # raise err
+                raise err
 
 
         sys.stdout = save_stdout
