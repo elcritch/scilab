@@ -145,6 +145,7 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, data_json, args
             stress = stress, 
             strain = strain,
             npslice = npslice,
+            graph = graph,
             )
     
     graph.modulus_fits = modulus_fits
@@ -169,8 +170,9 @@ def fit_modulus(region, data, time, disp, force, stress, strain, startCycle, end
         ## Ugggh, this is ugly, but it's working. :) 
         # time = data.totalTime.array[npslice]
         # lag = 0.08 # seconds # estimate of viscoelastic lag....
-        t1 = + e1.time + quarterPeriod*(0.00 + lag)
-        t2 = + e1.time + quarterPeriod*(0.50 + lag)
+        
+        t1 = + e1.time + quarterPeriod*(region.start + lag)
+        t2 = + e1.time + quarterPeriod*(region.stop + lag)
         
         debug(e1, e2, cyclePeriod, lag, quarterPeriod, e1.time, t1, t2, find_index(t2, time))
         print()
@@ -201,7 +203,6 @@ def fit_modulus(region, data, time, disp, force, stress, strain, startCycle, end
     modulus = DataTree(fits=DataTree())
     
     modulus.s_ls1 = ls1
-    modulus.s_cycles = lastCycles
     
     ## Expr Fits
     modulus.fits.strain_linear = strain_linear
@@ -216,7 +217,7 @@ def fit_modulus(region, data, time, disp, force, stress, strain, startCycle, end
     
     return modulus
 
-def fit_modulus_regions(testinfo, details, args, data, npslice, **kwargs):
+def fit_modulus_regions(testinfo, details, args, data, npslice, graph, **kwargs):
 
     elapsedCycles = getElapsedStarts(data, npslice) 
 
@@ -232,9 +233,44 @@ def fit_modulus_regions(testinfo, details, args, data, npslice, **kwargs):
     lastCycles = np.s_[cycle_a.index:cycle_b.index]
     debug(cycle_a, cycle_b, lastCycles)
 
-    region = DataTree()
-    
-    toe_modulus = fit_modulus(region, 
+    _modulus_toe = fit_modulus(
+            region=DataTree(start=0.05, stop=0.50), 
+            data=data,
+            startCycle=startCycle, 
+            endCycle=endCycle, 
+            elapsedCycles=elapsedCycles, 
+            lastCycles=lastCycles,
+            **kwargs)
+
+    _modulus_lin = fit_modulus(
+            region=DataTree(start=0.5, stop=0.95), 
+            data=data,
+            startCycle=startCycle, 
+            endCycle=endCycle, 
+            elapsedCycles=elapsedCycles, 
+            lastCycles=lastCycles,
+            **kwargs)
+
+    _modulus_1third = fit_modulus(
+            region=DataTree(start=0.05, stop=0.33), 
+            data=data,
+            startCycle=startCycle, 
+            endCycle=endCycle, 
+            elapsedCycles=elapsedCycles, 
+            lastCycles=lastCycles,
+            **kwargs)
+
+    _modulus_2thirds = fit_modulus(
+            region=DataTree(start=0.33, stop=0.66), 
+            data=data,
+            startCycle=startCycle, 
+            endCycle=endCycle, 
+            elapsedCycles=elapsedCycles, 
+            lastCycles=lastCycles,
+            **kwargs)
+
+    _modulus_3third = fit_modulus(
+            region=DataTree(start=0.66, stop=0.95), 
             data=data,
             startCycle=startCycle, 
             endCycle=endCycle, 
@@ -243,14 +279,21 @@ def fit_modulus_regions(testinfo, details, args, data, npslice, **kwargs):
             **kwargs)
 
     modulus_fits = DataTree()
-
-    modulus_fits.toe_modulus = toe_modulus
+    
+    ## careful... hacky ##
+    ## assign modulii to dict
+    for k,v in locals().items():
+        if k.startswith('_modulus'): 
+            modulus_fits[k.lstrip('_modulus_')] = v
+            # modulus_fits.straight_modulus = straight_modulus
+    
+    graph.s_cycles = lastCycles
     
     debug(modulus_fits)
     # Json.update_json(testpath=test, data=data_json, dbg=False)
     Json.write_json(
         (args.experJson / 'calculated').as_posix(), 
-        { k:v.data_json for k,v in modulus_fits.items() }, 
+        DataTree(dynmodfits={ k:v.data_json for k,v in modulus_fits.items() }), 
         json_url=testinfo.name+'.preconds.calculated.json', 
         dbg=False,
         )
@@ -261,24 +304,22 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     
     debug(data.modulus_fits)
     
-    modulus = data.modulus_fits.toe_modulus
-    
-    s_cycles = modulus.s_cycles
+    s_cycles = data.s_cycles
     
     fig, (ax1,ax2) = plt.subplots(2, sharex=True, figsize=(14,8))
     # ax2 = ax1.twinx() # <http://stackoverflow.com/questions/14762181/adding-a-y-axis-label-to-secondary-y-axis-in-matplotlib>
     fig.subplots_adjust(hspace=0.07)
 
     ax1.plot(data.time[s_cycles], data.strain[s_cycles], label="Stress|DynaCell [MPa]")
-    ax2.plot(data.time[s_cycles], data.stress[s_cycles], label="Strain|Stretch Ratio [λ]", )
-
+    ax1.plot(data.time[s_cycles], data.strain[s_cycles], ) #label="Linear Stress")
     
-    s_ls1 = modulus.s_ls1
-    ax1.plot(data.time[s_cycles], data.strain[s_cycles], label="Linear Stress")
-    ax2.plot(data.time[s_cycles], data.stress[s_cycles], label="Linear Stretch Ratio", )
+    ax2.plot(data.time[s_cycles], data.stress[s_cycles], ) #label="Strain|Stretch Ratio [λ]", )
+    ax2.plot(data.time[s_cycles], data.stress[s_cycles], ) #label="Linear Stretch Ratio", )
     
-    ax2.plot(data.time[s_ls1], modulus.fits.stress_linear( data.time[s_ls1]), '-', 
-                label='Linear Modulus {:.2f}'.format(modulus.fits.stress_linear.rsquared) )
+    for name, modulus in data.modulus_fits.items():
+        s_ls1 = modulus.s_ls1
+        ax2.plot(data.time[s_ls1], modulus.fits.stress_linear( data.time[s_ls1]), '-', 
+                    label='{}:{:.2f} R²:{:.1f}'.format(name, modulus.fits.linear_modulus, modulus.fits.stress_linear.rsquared) )
 
     ax1.set_ylabel('$Stretch Ratio [\lambda]$')
     ax2.set_ylabel('$Stress [MPa]$')
@@ -289,6 +330,7 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
 
     handles, labels = ax1.get_legend_handles_labels()
     lgd1 = ax1.legend(handles, labels) #, bbox_to_anchor=(0.4,-1.09))
+    
     #
     fig.text(.45, -.04, '\n'.join([message1])) #, message2, message3]))
     
@@ -296,7 +338,6 @@ def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
     handles, labels = ax2.get_legend_handles_labels()
     lgd2 = ax2.legend(handles, labels ) #, bbox_to_anchor=(0.9,-0.09))
 
-    base_file_name = "%s (%s)"%(testinfo.name, "modulus")
     imgpath = args.experReportGraphs / testinfo.name 
     
     fig.text(.45, .95, testinfo.name)
@@ -435,8 +476,8 @@ def main():
                 raise err
 
 
-        sys.stdout = save_stdout
-        sys.stderr = save_stderr
+        # sys.stdout = save_stdout
+        # sys.stderr = save_stderr
         
     # ScriptRunner.process_files_with(args=args, handler=handler)
     

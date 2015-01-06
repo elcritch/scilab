@@ -3,10 +3,7 @@
 
 import os, sys, functools, itertools, collections, re, logging
 from pathlib import *
-from tabulate import *
 
-
-import numpy as np
 
 def mapTo(func, iterable,*args,**kwargs):
     return [ (i, func(i,*args,**kwargs)) for i in iterable ]
@@ -17,7 +14,6 @@ def argmax(y,idx):
 def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """
     
-    np.set_printoptions(threshold=10)
     def debugger_wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -29,7 +25,6 @@ def debugger(func, debug=False):
     return debugger_wrapper    
 
 
-
 def flatten(d, parent_key='', sep='_'):
     items = []
     for k, v in d.items():
@@ -39,10 +34,6 @@ def flatten(d, parent_key='', sep='_'):
         else:
             items.append((new_key, v))
     return dict(items)
-        
-
-def PIL2array(img):
-    return np.array(img.getdata(), np.uint8).reshape(img.size[1], img.size[0], 3)
 
 
 def main():

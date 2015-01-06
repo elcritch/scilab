@@ -4,14 +4,11 @@
 import shutil, re, sys, os, itertools, collections
 from pathlib import Path
 
-
-import scilab, scilab.tools.graphing, scilab.tools.json 
+import scilab.tools.json as Json 
 from scilab.tools.project import *
-from scilab.expers.mechanical.fatigue.uts import *
-from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
-from functools import partial 
+from scilab.tools.helpers import *
 
-class UtsTestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
+class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
     reTestName = re.compile(r"(\w+\d+)\((..[\d\.]+)-(..m)\)-w([a-f])-(tr|lg)-l(\d+)-x(\d+)(?:-(.+))?")
     
@@ -60,42 +57,44 @@ class UtsTestInfo(collections.namedtuple('TestInfo', 'name date set side wedge o
     def __str__(self):
         return "{name} ({short})".format(name=self.name, short=self.short())
 
-class ImageSet(collections.namedtuple('TestSet', 'front, side, fail')):
+class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
     
-class ImageData(collections.namedtuple('TestData', 'info, parent, full, cropped, cleaned')):
-    pass
+
 
 class FileStructure(DataTree):
     
-    def __init__(self, projectName:str, experimentName:str, expersOverride:dict={}):
+    def __init__(self, project_name:str, experiment_name:str, expers_override:dict={}):
         
         self.valid_experiments = {
             'fatigue failure (UTS, exper1)': ('uts (expr-1)'),
             }
             
-        self.valid_experiments.update(expersOverride)
+        self.valid_experiments.update(expers_override)
         
-        self.projectName = projectName
-        self.experimentName = experimentName
+        self.project_name = project_name
+        self.experiment_name = experiment_name
 
         self.projects = Path(RESEARCH) / '07_Experiments'
         self.project  = projectspath / self.projectName
     
+        self.instron = DataTree()
         self.instron.preload_csv    = project / '01 (uts) preloads' 
         self.instron.preconds_csv   = project / '02 (uts) preconditions' 
         self.instron.uts_csv        = project / '04 (uts) uts-test' 
     
-        self.exper.data           = projectpath / 'test-data'/ self.experimentName
+        self.exper_data             = projectpath / 'test-data'/ self.experimentName
         
+        self.expers = DataTree()
         self.expers.excel          = exper_data / '01 Excel' 
         self.expers.json           = exper_data / '00 JSON'
         self.expers.report         = exper_data / '02 Reports'
         self.expers.reportgraphs   = exper_data / '03 Graphs'
         self.expers.jsoncalc       = exper_json / 'calculated'
-        self.expers.specimenimages = projectpath / '05 Specimen Images' / '02 Test Images'
-
+        self.expers.specimenimages = exper_data / '05 Specimen Images' / '02 Test Images'
     
+    def exists(self):
+        return { n:d.exists() for n,d in  }
 
 def main():
     
