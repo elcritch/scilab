@@ -17,29 +17,29 @@ from scilab.tools.project import *
 # from WaveMatrixToolsPy3 import *
 # import DefaultGraphsPy3
 
-import distutils.dir_util 
-import collections
+import distutils.dir_util
+import collections, pathlib
 
 def fig_save(fig, FigureDir, name, lgd=None, lgd2=None, type=".png", dbg=None):
-    
+
     if dbg: debug(FigureDir)
-    
-    figname = os.sep.join([FigureDir,name+type])
-    
+
+    figname = pathlib.Path(str(FigureDir)) / (name+type)
+
     if dbg: print("Saving figure:", figname)
-    
+
     distutils.dir_util.mkpath(FigureDir)
 
     bbox_extra_artists = [ l for l in [lgd, lgd2] if l]
-    
+
     # fig.tight_layout()
     fig.subplots_adjust(hspace=1.2, )
-    
-    fig.savefig(figname, bbox_inches='tight', pad_inches=0.2, bbox_extra_artists=bbox_extra_artists,  )
-    
+
+    fig.savefig(str(figname), bbox_inches='tight', pad_inches=0.2, bbox_extra_artists=bbox_extra_artists,  )
+
     # fig.savefig(FigureDir+name+".png", bbox_inches='tight', pad_inches=0.2  )
     # fig.savefig('samplefigure', bbox_extra_artists=(lgd,), bbox_inches='tight')
-    
+
     return (figname)
 
 

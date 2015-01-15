@@ -8,6 +8,10 @@ from tabulate import *
 
 import numpy as np
 
+
+def findFilesIn(testfolder, pattern='*', kind='png'):
+    return list( testfolder.glob('{pattern}.{kind}'.format(**locals())))
+
 def mapTo(func, iterable,*args,**kwargs):
     return [ (i, func(i,*args,**kwargs)) for i in iterable ]
 

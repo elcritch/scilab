@@ -10,13 +10,32 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
+base = "/Users/jaremycreechley/cloud/bsu/02_Lab/01_Projects/01_Active/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
+sys.path.insert(0,base)
+
 from scilab.tools.project import *
 from scilab.tools.graphing import *
 from scilab.tools.instroncsv import *
 
-from scilab.tools.import Project, Excel, Graphing, ScriptRunner, Json
+import scilab.tools.project as Project
+import scilab.tools.excel as Excel
+import scilab.tools.graphing as Graphing
+import scilab.tools.scriptrunner as ScriptRunner
+import scilab.tools.json as Json
+
+from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
+
+from scilab.expers.mechanical.fatigue.cycles import FileStructure
+from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
+from scilab.expers.mechanical.fatigue.helpers import *
+import scilab.tools.json as Json
+
+from scilab.expers.mechanical.fatigue.cycles import TestInfo
 
 PlotData = namedtuple('PlotData', 'array label units max')
+
+
+
 
 def get_max(data):
     idx, value = np.argmax(data)
@@ -26,19 +45,24 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
-def handler(file, file_object, file_path, file_parent, args):
+def handler(trackingtest, testinfo, data_tracking, details, args):
     
-    all_data = csvread(file_path)
-    data_json = Json.load_data(file_parent, file_name)    
+    print("## Test: "+testinfo.name,"\n")
+    debug(trackingtest)
+    
+    all_data = data_tracking
+    # all_data = csvread(file_path)
+    # data_json = Json.load_data(file_parent, file_name)
+    data_json = None
 
     debug(all_data.keys())
     
     indicies = all_data._getslices('step')
     
-    all_data, details = data_cleanup_uts(all_data, data_json)
+    all_data, details = data_cleanup_uts(testinfo, all_data, data_json)
 
     # steps    
-    graph_raw(file_name, file_parent, all_data, details, 'all', np.s_[:], args)
+    graph_raw(testinfo,  all_data, details, 'all', np.s_[:], args)
 
     # debug(data_json.other)
     
@@ -48,34 +72,49 @@ def handler(file, file_object, file_path, file_parent, args):
     for stepIdx, stepSlice in enumerate(indicies):
         debug(stepIdx, stepSlice)
 
-        graph_raw(file_name, file_parent, all_data, details, stepIdx, stepSlice, args)
+        graph_raw(testinfo,  all_data, details, stepIdx, stepSlice, args)
 
     if data_json:
-        graph_normalized(file_name, file_parent, all_data, details, 'all', np.s_[:], args)
+        graph_normalized(testinfo,  all_data, details, 'all', np.s_[:], args)
         for stepIdx, stepSlice in enumerate(indicies):
             debug(stepIdx, stepSlice)
-            graph_normalized(file_name, file_parent, all_data, details, stepIdx, stepSlice, args)
+            graph_normalized(testinfo,  all_data, details, stepIdx, stepSlice, args)
 
     totalLength = len(all_data.totalTime.array)
     initialPeriod = 10000
     initialPeriodPlot = 6000
-    if totalLength >= initialPeriod:
-        graph_normalized(file_name, file_parent, all_data, details, 'initial', np.s_[:initialPeriodPlot], args)
+        
+    # if totalLength >= initialPeriod:
+    graph_raw(testinfo,  all_data, details, 'initial', np.s_[:initialPeriodPlot], args)
+    graph_raw(testinfo,  all_data, details, 'last', np.s_[totalLength-5000:], args)
+        
         
     if data_json:
-        graph_normalized(file_name, file_parent, all_data, details, 'last', np.s_[totalLength-1000:], args)
+        if totalLength >= initialPeriod:
+            graph_normalized(testinfo,  all_data, details, 'initial', np.s_[:initialPeriodPlot], args)
+        graph_normalized(testinfo,  all_data, details, 'last', np.s_[totalLength-5000:], args)
     
-def data_cleanup_uts(data, details):
+def data_cleanup_uts(testinfo, data, details):
+
+    # if 'load' not in data.keys():
+    #     data.load = data.loadLinearLoad # choose Instron
 
     if 'load' not in data.keys():
-        data.load = data.loadLinearLoad # choose Instron
+
+        if testinfo.orientation == 'tr':
+            loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
+        if testinfo.orientation == 'lg':
+            loads = [ l for l in ['loadLinearLoad'] if l in data ]
+
+        logging.warn("Choosing loads: "+repr(loads))
+        data.load = data[loads[0]]
 
     data.maxes = DataTree()
     data.maxes.displacement = np.argmax(data.displacement.array)
     data.maxes.load = data_find_max('load', data.load.array)    
     
-    if 'loadLinearLoad1' in data:
-        data.maxes.loadLoad1 = data_find_max('loadLoad1', data.loadLinearLoad1.array)
+    # if 'loadLinearLoad1' in data:
+        # data.maxes.loadLoad1 = data_find_max('loadLoad1', data.loadLinearLoad1.array)
     
     debug(data.maxes)
     
@@ -97,7 +136,7 @@ def data_cleanup_uts(data, details):
         
     return (data, details)
 
-def graph_normalized(file_name, file_parent, data, details, stepIdx, npslice, args):
+def graph_normalized(testinfo,  data, details, stepIdx, npslice, args):
     
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.strain, columnMax=data.maxes.strain)
@@ -107,26 +146,26 @@ def graph_normalized(file_name, file_parent, data, details, stepIdx, npslice, ar
     if 'stress1' in data.keys():
         y = makePlotData(data.stress1, columnMax=data.maxes.stress1)
         
-    return graph(file_name, file_parent, t, x, y, z, details, stepIdx, npslice, args)
+    return graph(testinfo,  t, x, y, z, details, stepIdx, npslice, args)
 
 def makePlotData(column, columnMax=None):
     longLabel = column.label
     if hasattr(column, 'details'): longLabel += " "+column.details
     return PlotData(array=column.array, label=longLabel, units=column.units, max=columnMax)
 
-def graph_raw(file_name, file_parent, data, details, stepIdx, npslice, args):
+def graph_raw(testinfo,  data, details, stepIdx, npslice, args):
 
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.displacement, columnMax=data.maxes.displacement)
     y = makePlotData(data.load, columnMax=data.maxes.load)
     
     z = None
-    if 'loadLinearLoad1' in data.keys():
-        y = makePlotData(data.loadLinearLoad1, columnMax=data.maxes.loadLoad1)
+    # if 'loadLinearLoad1' in data.keys():
+    #     y = makePlotData(data.loadLinearLoad1, columnMax=data.maxes.loadLoad1)
         
-    return graph(file_name, file_parent, t, x, y, z, details, stepIdx, npslice, args)
+    return graph(testinfo, t, x, y, z, details, stepIdx, npslice, args)
 
-def graph(file_name, file_parent, t, x, y, z, details, stepIdx, npslice, args):
+def graph(testinfo, t, x, y, z, details, stepIdx, npslice, args):
 
     debug(x.label)
     ax1_title = "Overview - (%s vs %s) [step %s]"%(x.label, y.label, stepIdx)
@@ -179,7 +218,7 @@ def graph(file_name, file_parent, t, x, y, z, details, stepIdx, npslice, args):
                 (stepIdx, splitLabel(x)[1], splitLabel(y)[-1], )).replace(' ', ' \\  ') )
 
     # fig.tight_layout()
-    fig.text(.45, .95, file_name)
+    fig.text(.45, .95, str(testinfo))
 
     if args.only_first:
         plt.show(block=True,  )
@@ -192,43 +231,99 @@ def graph(file_name, file_parent, t, x, y, z, details, stepIdx, npslice, args):
     lgd1 = legend_handles(ax1, x=.1)
     lgd2 = legend_handles(ax2, x=.9)
     
-    base_file_name = "%s (%s)"%(file_name[:file_name.index('.steps')], ax1_title)
+    # base_file_name = "%s (%s)"%(file_name[:file_name.index('.steps')], ax1_title)
 
-    Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'overview'), name=base_file_name, type='.png', lgd=lgd2)
-    # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd2)
+    imgpath = args.experReportGraphs
+
+    debug(imgpath)
+
+    Graphing.fig_save(fig, str(imgpath), name="%s (%s)"%(ax1_title, testinfo.short()), type='.png', lgd=lgd1, lgd2=lgd2)
+    # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'overview'), name=base_file_name, type='.png', lgd=lgd2)
+    # # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd2)
     
     plt.close()
     
     return
 
+def process_test(testinfo, testfolder):
 
+
+    debug(testinfo, testinfo)
+
+    def findTestCsv(csvTestParent, testfile):
+        debug(csvTestParent, testfile)
+
+        testfiles = [ t for t in csvTestParent.glob(testfile+'*') if t.is_dir() ]
+        if not testfiles:
+            raise Exception("Cannot find matching csv test folder: "+testfile+" "+csvTestParent.as_posix())
+        elif len(testfiles) > 1:
+            testfile = sorted(testfiles, key=lambda x: x.stem )[0]
+            logging.warn("Multiple csv test files match, choosing: "+str(testfile) )
+            return testfile
+        else:
+            return testfiles[0]
+
+
+    # project = "Test4 - transverse fatigue (ntm-mf-pre)/trans-fatigue-trial1/"
+#    test_args += ['--step', '1'] # only first
+
+    # project = "Test4 - transverse fatigue (ntm-mf-pre)/test4(trans-uts)/"
+    # test_args += ['--step', '1'] # only first
+
+#    test_args += ['--begin', '80.30'] # only first
+#    test_args += ['--end', '4.8'] # only first
+
+    args = DataTree()
+    args.experReportGraphs = testfolder.graphs
+    args.experJson = testfolder.jsoncalc
+    args.only_first = False
+
+    data_folder = testfolder.testfs.raws.cycles_lg_csv if testinfo.orientation == 'lg' else testfolder.testfs.raws.cycles_tr_csv
+
+    trackingtestFolder = findTestCsv(data_folder, testinfo.name)
+    trackingtest = next(trackingtestFolder.glob('*.tracking.csv'))
+    debug(trackingtest,trackingtestFolder)
+
+    data_tracking = csvread(trackingtest.as_posix())
+
+    return handler(trackingtest, testinfo, data_tracking=data_tracking, details=None, args=args)
+
+
+def main():
+    
+    
+    fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
+    # Test test images for now
+    test_dir = fs.test_parent.resolve()
+    
+    
+    testitemsd = fs.testitemsd()
+
+    for testinfo, testfile  in testitemsd.items():
+        
+        # debug(type(testinfo), testinfo, testfile)
+        
+        try:
+            ti = TestInfo(name=testfile.name)
+        except:
+            ti = None
+        
+        if not ti:
+            continue
+        
+        testfolder = fs.testfolder(testinfo=ti, ensure_folders_exists=False)
+
+        process_test(ti, testfolder)
+    
 
 if __name__ == '__main__':
 
-    parser = ScriptRunner.parser
-    
-    parser.add_argument("-n", "--name", default="data", type=str)
-    parser.add_argument("--raw", action='store_true', default=True, help="Run raw ", )  
-    parser.add_argument("--normed", action='store_true', default=False,help="Run normalized ", )  
+    main()
 
-    ## Test
-    
-    project = "Test4 - transverse fatigue (scilab.mf.pre)/trans-fatigue-trial1/"
-    # project = "Test4 - transverse fatigue (scilab.mf.pre)/test4(trans-uts)/"
-    
-    
-    fileglob = "{R}/{P}/*/*tracking.csv".format(R=RAWDATA,P=project)
-    test_args = ["--glob", fileglob] 
-    test_args += ['-1'] # only first
-    
-    args = parser.parse_args( test_args)
-    
-    # Parse command line if not running test args.
-    if 'args' not in locals():
-        args = parser.parse_args()
-    
-    ScriptRunner.process_files_with(args=args, handler=handler)
-    
-    
+
+if __name__ == '__main__':
+    main()
+
+
     
 

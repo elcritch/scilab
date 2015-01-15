@@ -90,7 +90,7 @@ def getColumnData(headerLine):
                     units=c.units, 
                     idx=c.idx)
 
-                logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
+                # logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
             
                 # debug(uniqueCol)
                 # print("assert failed: %s already in %s"%(uniqueCol.name, [ k for k in allColumns.keys()] ))
