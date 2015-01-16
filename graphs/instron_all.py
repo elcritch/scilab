@@ -70,8 +70,7 @@ def handler(trackingtest, testinfo, data_tracking, details, args):
         # return
 
     for stepIdx, stepSlice in enumerate(indicies):
-        debug(stepIdx, stepSlice)
-
+        # debug(stepIdx, stepSlice)
         graph_raw(testinfo,  all_data, details, stepIdx, stepSlice, args)
 
     if data_json:
@@ -165,9 +164,9 @@ def graph_raw(testinfo,  data, details, stepIdx, npslice, args):
         
     return graph(testinfo, t, x, y, z, details, stepIdx, npslice, args)
 
-def graph(testinfo, t, x, y, z, details, stepIdx, npslice, args):
+def graph(testinfo, t, x, y, z, details, stepIdx, npslice, args, inStep=False):
 
-    debug(x.label)
+    # debug(x.label)
     ax1_title = "Overview - (%s vs %s) [step %s]"%(x.label, y.label, stepIdx)
     
     fig, ax1 = plt.subplots(ncols=1, figsize=(14,6))
@@ -278,14 +277,25 @@ def process_test(testinfo, testfolder):
     args.experJson = testfolder.jsoncalc
     args.only_first = False
 
-    data_folder = testfolder.testfs.raws.cycles_lg_csv if testinfo.orientation == 'lg' else testfolder.testfs.raws.cycles_tr_csv
+    # data_folder = testfolder.testfs.raws.cycles_lg_csv if testinfo.orientation == 'lg' else testfolder.testfs.raws.cycles_tr_csv
+    
+    if testinfo.orientation == 'lg':
+        trackingtest = testfolder.raws.cycles_lg_csv.tracking
+    else:
+        trackingtest = testfolder.raws.cycles_lg_csv.tracking
 
-    trackingtestFolder = findTestCsv(data_folder, testinfo.name)
-    trackingtest = next(trackingtestFolder.glob('*.tracking.csv'))
-    debug(trackingtest,trackingtestFolder)
+    debug(trackingtest)
+    
+    # trackingtestFolder = findTestCsv(data_folder, testinfo.name)
+    # trackingtest = next(trackingtestFolder.glob('*.tracking.csv'))
+    # debug(trackingtest,trackingtestFolder)
 
-    data_tracking = csvread(trackingtest.as_posix())
-
+    if trackingtest:
+        data_tracking = csvread(trackingtest.as_posix())
+    else:
+        print("ERROR: instron_all.py: Could not find tracking test csv file for: ", testinfo)
+        return None
+        
     return handler(trackingtest, testinfo, data_tracking=data_tracking, details=None, args=args)
 
 
