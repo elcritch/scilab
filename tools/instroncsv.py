@@ -9,7 +9,7 @@ from collections import OrderedDict, namedtuple
 if __name__ != '__main__':
     from scilab.tools.project import *
 else:
-    from Project import *
+    from project import *
 
 
 InstronColumnData = namedtuple('InstronColumnData', 'array name label details units idx')
@@ -121,7 +121,7 @@ def get_index_slices(data):
 
     # debug(indices_begin, indices_end)
 
-    return [ np.s_[i:j:1] for i,j in zip(indices_begin, indices_end) ]
+    return collections.OrderedDict( (data[i], np.s_[i:j:1]) for i,j in zip(indices_begin, indices_end) )
     
 class InstronMatrixData(DataTree):
     def __init__(self, *args, **kwdargs):

@@ -65,3 +65,10 @@ def get_data_find_max(name, data):
     value_max = DataMax(idx=idx, value=arr[idx], name=name)
     return value_max
 
+def get_max(data):
+    idx, value = np.argmax(data)
+    return DataTree(idx=idx, value=value)
+
+def data_find_max(data):
+    idx = np.argmax(data)
+    return DataMax(idx=idx, value=data[idx], name=None)

@@ -22,19 +22,27 @@ import numpy as np
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
-from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+from scilab.expers.mechanical.fatigue.cycles import TestInfo
 
 def get_max(data):
     idx, value = np.argmax(data)
-    return dict(idx=idx, value=value)
+    return DataTree(idx=idx, value=value)
 
 def data_find_max(data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=None)
 
-def handler(test:Path, testinfo:UtsTestInfo, data_json:DataTree, args:object):
+def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
     
-    data = csvread(test)
+    excelfile = data.datasheet
+    
+    debug(excelfile)
+    handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+    
+
+def handler(testinfo:TestInfo, testfolder:FileStructure, config:DataTree, alldata:DataTree, args:DataTree):
+    
+    data = alldata.trackingdata
 
     debug(data_json)
 
@@ -48,7 +56,7 @@ def handler(test:Path, testinfo:UtsTestInfo, data_json:DataTree, args:object):
     print(" --------- \n")
     debug(data.maxes)
     
-    maxes = {}
+    maxes = adDataTree()
     for m,v in data.maxes.items():
         debug(m,v, type(v.idx))
         maxes[m] = {'idx':int(v.idx), 'value':v.value}

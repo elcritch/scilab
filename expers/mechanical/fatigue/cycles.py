@@ -31,8 +31,8 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         s = self
         strToOrd = lambda s: ''.join(str(ord(c.lower())-ord('a')+1) for c in s)
         batch, batchNumber = map(int,s.set[2:].split('.'))
-        return "{0}{1:02d}{5}-{2}{3:02d}{4}".format(
-                batch, batchNumber, strToOrd(s.wedge),int(s.layer),s.sample, s.orientation.upper())
+        return "{0}{1:02d}-{2}{5}-{3:d}{4:02d}".format(
+                batch, batchNumber, strToOrd(s.wedge),int(s.layer),int(s.sample), s.orientation.upper())
 
     def as_dict(self):
         return { f:v for f,v in zip(self._fields, self[:])}
@@ -102,13 +102,15 @@ class FileStructure(DataTree):
             return list( testfolder.glob('{pattern}.{kind}'.format(**locals())) )
 
         folder = DataTree()
+        folder.project_dir = self.project
         folder.testfs = self
         folder.graphs         = test_dir / 'graphs'
         folder.json           = test_dir / 'json'
         folder.jsoncalc       = folder.json / 'calculated'
         folder.images         = test_dir / 'images'
         folder.raws           = self.findRaws(testinfo)
-            
+        folder.datasheet      = next(test_dir.glob('data_sheet*.xlsx'), None)
+    
         if ensure_folders_exists:
             for v in sorted(folder.values(), key=lambda x: str(x)):
                 if not v.exists():
@@ -126,18 +128,19 @@ class FileStructure(DataTree):
 
     def testitemsd(self):
 
-        folders = [ (f, self.infoOrNone(f.name))
+        folders = [ (self.infoOrNone(f.name), f)
                         for f in self.test_parent.glob('*')
                             if f.is_dir() ]
-
-        folderd = { i:f for f,i in folders if i }
+        folders = [ (i,f) for i,f in folders if i ]
+        folders = sorted(folders, key=lambda item: item[0].short() )
+        folderd = collections.OrderedDict(folders)
 
         return folderd
 
 
     def infoOrNone(self, item):
         try:
-            return str(TestInfo(name=str(item)))
+            return TestInfo(name=str(item))
         except Exception as err:
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None

@@ -50,13 +50,19 @@ def parse_fatigue_data_sheet_v1(ws):
     ## read next definition column (4 excel columns over)
     process_definitions_column(ws, other, 'D', 7, end, dbg=True)
 
+    debug(other)
+    
     # gauge
     data['gauge'] = gauge = DataTree()
     gauge.units = 'mm' # default
     
     if 'gauge' in other:
         gauge.value = other.pop('gauge')
+    
+    if 'init_position' in other:
         gauge.preloaded = other.pop('init_position')
+    elif 'gauge_init' in other:
+        gauge.preloaded = other.pop('gauge_init')
     
     if 'gauge_base' in other:
         gauge.base = other.pop('gauge_base')
@@ -77,10 +83,14 @@ def parse_fatigue_data_sheet_v1(ws):
     
     return data
     
-def parse_data_from_worksheet(testpath:Path, testinfo:UtsTestInfo, args):
+def parse_data_from_worksheet(testinfo, testfolder, args, **kwargs):
 
     try:
-        wb = load_workbook(testpath.absolute().as_posix(), data_only=True)
+        excelfile = testfolder.datasheet 
+        excelfile = excelfile.resolve()
+        debug(excelfile)
+        
+        wb = load_workbook(excelfile.absolute().as_posix(), data_only=True)
     except (Exception) as err:
         logging.warn("Cannot open file:\n\t"+str(testpath)+"\n\t vs \n\t"+testpath.absolute().as_posix())
         raise err
@@ -90,7 +100,7 @@ def parse_data_from_worksheet(testpath:Path, testinfo:UtsTestInfo, args):
     return parse_fatigue_data_sheet_v1(ws)    
 
 
-def process_image_measurements(testfile, testinfo, imgdata):
+def process_image_measurements(testinfo, imgdata):
         
     data = {}
     data['info'] = DataTree()
@@ -98,19 +108,19 @@ def process_image_measurements(testfile, testinfo, imgdata):
     data['info']['set'] = testinfo.name
     
     measurements = DataTree(width=DataTree(), depth=DataTree(), area=DataTree())
-    measurements.width.value = imgdata.front.widths.average.mean
+    measurements.width.value = imgdata.front.mm.summaries.widths.average.mean
     
     if not 'side' in imgdata:
         logging.warn("Could not find side measurement for: "+str(testinfo))
         measurements.depth.value = 1.00
         measurements.depth.stdev = -1.0
     else:
-        measurements.depth.value = imgdata.side.widths.average.mean
-        measurements.depth.stdev = imgdata.side.widths.average.std
+        measurements.depth.value = imgdata.side.mm.summaries.widths.average.mean
+        measurements.depth.stdev = imgdata.side.mm.summaries.widths.average.std
         
     measurements.area.value = float(measurements.width.value)*float(measurements.depth.value)
     
-    measurements.width.stdev = imgdata.front.widths.average.std
+    measurements.width.stdev = imgdata.front.mm.summaries.widths.average.std
     
     measurements.width.units = 'mm'
     measurements.depth.units = 'mm'
@@ -119,30 +129,37 @@ def process_image_measurements(testfile, testinfo, imgdata):
     measurements.image = DataTree(other={})
     
     for k in 'front side fail'.split():
-        measurements.image.other[k] = imgdata[k].other if k in imgdata else {}
+        measurements.image.other[k] = imgdata[k].mm.other if k in imgdata else {}
     
     data['measurements'] = measurements
     
     return data
 
 
-def parse_from_image_measurements(testfile, testinfo, args):
+def parse_from_image_measurements(testinfo, testfolder, args):
 
-    imgMeasureFile = args.experJson / 'measurements' / (testinfo.name+'.measurements.json')
+    # imgMeasureFile = testfolder.image / 'processed' / (testinfo.name + '.measurements.json')
+    imgMeasureFile = testfolder.images / 'processed' / 'data.json'
     imgMeasureFile = imgMeasureFile.resolve()
     
     imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
-    
     # debug(imgMeasurements)
     
-    data = process_image_measurements(testfile, testinfo, imgMeasurements)
+    data = process_image_measurements(testinfo, imgMeasurements)
 
     return data
 
-
-def handler(file, args):
+def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
     
-    testinfo = UtsTestInfo(name=file.with_suffix('').name)
+    excelfile = data.datasheet
+    
+    debug(excelfile)
+    handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+    
+
+def handler(testinfo, testfolder, excelfile, args):
+    
+    
     print(mdHeader(2, "Test: "+testinfo.name), file=args.report)
 
     def updateMetaData(data):
@@ -152,40 +169,43 @@ def handler(file, args):
         data['info'] = testinfo.as_dict()
     
     
+    debug(testfolder.jsoncalc.as_posix())
+    
     print(str(testinfo), file=args.report)
     
     ## Update with Excel Values    
-    # data = parse_data_from_worksheet(
-        # testpath=file,
-        # testinfo=testinfo,
-        # args=args)
-    
-    # print(mdBlock("Excel Sheet Data:"),file=args.report)
-    # print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
-    # updateMetaData(data)
-    
-    
-    # Json.write_json(
-    #     args.experJsonCalc.as_posix(),
-    #     data,
-    #     json_url=testinfo.name+'.excel.calculated.json',
-    #     dbg=False)
-    
+    data = parse_data_from_worksheet(
+        testpath=excelfile,
+        testinfo=testinfo,
+        testfolder=testfolder,
+        args=args)
+
+    print(mdBlock("Excel Sheet Data:"),file=args.report)
+    print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
+    updateMetaData(data)
+
+
+    Json.write_json(
+        testfolder.jsoncalc.as_posix(),
+        data,
+        json_url=testinfo.name+'.excel.calculated.json',
+        dbg=False)
+
     
     ## Update with Image Measurements
     
     data = parse_from_image_measurements(
-        testfile=file,
         testinfo=testinfo,
+        testfolder=testfolder,
         args=args)
     
     updateMetaData(data)
 
     Json.write_json(
-        args.experJsonCalc.as_posix(), 
-        data, 
-        json_url=testinfo.name+'.measurements.calculated.json', 
-        dbg=False)    
+        testfolder.jsoncalc.as_posix(),
+        data,
+        json_url=testinfo.name+'.measurements.calculated.json',
+        dbg=False)
     
     return
 

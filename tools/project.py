@@ -35,6 +35,11 @@ def attributesAccessor(node, path):
     except KeyError:
         return 'n/a'
 
+
+from addict import Dict 
+
+from inspect import isgenerator
+
 # Helpers
 class DataTree(collections.defaultdict):
     """Default dictionary where keys can be accessed as attributes and
@@ -76,28 +81,12 @@ class DataTree(collections.defaultdict):
     def __str__(self):
         return pprint.pformat(self)
 
-class DataTreeMaker(DataTree):
-    """Default dictionary where keys can be accessed as attributes and
-    new entries recursively default to be this class. This means the following
-    code is valid:
+class addict(DataTree):
     
-    >>> mytree = jsontree()
-    >>> mytree.something.there = 3
-    >>> mytree['something']['there'] == 3
-    True
-    """
     def __init__(self, *args, **kwdargs):
         super().__init__(*args, **kwdargs)
 
-    def __getattribute__(self, name):
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            if name in self.__dict__:
-                return self[name]
-            else:
-                object.__setattr__(self, name, DataTree())
-                return self.__getattribute__(name)
+
 
 class DebugData(DataTree):
 

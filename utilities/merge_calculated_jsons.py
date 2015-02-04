@@ -38,11 +38,15 @@ def doSavePrevous(json_current, json_updated):
     json_updated['previous'] = previous
 
 
-def handler(testfile, testinfo, args, savePrevious=True):
+def graphs2_handler(testinfo, testfolder, data, args, savePrevious=True):
+
+    return handler(testinfo=testinfo, testfolder=testfolder, args=args, savePrevious=savePrevious)
+
+def handler(testinfo, testfolder, args, savePrevious=True):
     
-    testcalc = (args.experJsonCalc / (testinfo.name + '.calculated.json')).resolve()
+    testcalc = (testfolder.json / (testinfo.name + '.calculated.json'))
     
-    subcalcs = args.experJsonCalc.glob(testinfo.name+'.*.calculated.json')
+    subcalcs = testfolder.jsoncalc.glob(testinfo.name+'.*.calculated.json')
 
     def getJson(subcalc):
         debug(subcalc.name)
