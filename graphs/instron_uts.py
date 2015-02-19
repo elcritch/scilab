@@ -63,7 +63,7 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
         json_url=testinfo.name+'.uts.calculated.json', 
         dbg=False )
     
-    graph_uts_raw(testinfo, data, details, args)
+    # graph_uts_raw(testinfo, data, details, args)
     graph_uts_normalized(testinfo, data, details, args)
     
 
@@ -114,7 +114,7 @@ def graph_uts_normalized(testinfo:TestInfo, data, details, args):
     x = makePlotData(data.strain, columnMax=data.maxes.strain)
     y = makePlotData(data.stress, columnMax=data.maxes.stress)
     
-    graph_uts(testinfo, t, x, y, details, args)
+    graph_uts(testinfo, t, x, y, details, args, data=data)
 
 
 def graph_uts_raw(testinfo:TestInfo, data, details, args):
@@ -126,11 +126,11 @@ def graph_uts_raw(testinfo:TestInfo, data, details, args):
     return graph_uts(testinfo, t, x, y, details, args)
 
 
-def graph_uts(testinfo:TestInfo, t, x, y, details, args):
+def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
     
     ax1_title = "UTS %s vs %s"%(x.label, y.label)
     
-    fig, (ax1,ax2) = plt.subplots(ncols=2, figsize=(14,6))
+    fig, (ax1,ax2) = plt.subplots(ncols=2, figsize=(14,6))    
     # ax2 = ax1.twinx() # <http://stackoverflow.com/questions/14762181/adding-a-y-axis-label-to-secondary-y-axis-in-matplotlib>
 
     # First Plot
@@ -153,6 +153,8 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args):
     
     ax1.legend(loc=0, fontsize=10)
     ax1.set_title(ax1_title)
+    
+    # Strain plot
     
     # Second Plot
     ax2.plot(t.array, x.array, label=x.label+' '+x.units)
@@ -183,9 +185,51 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args):
     debug(imgpath)
     
     # Graphing.fig_save(fig, str(imgpath), name='graph_uts - %s'%str(testinfo), type='.png', lgd=lgd2)
-    
     fig.subplots_adjust(hspace=1.2, )
-    fig.savefig(str(imgpath), bbox_inches='tight', pad_inches=0.2,  )
+    
+    if data:
+        # Make some room at the bottom
+        fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.95)
+        
+        def set_labels(axes, xx, xp, ax_dir='x',side='bottom', convertfunc=lambda x: 1.0*x):
+            ax1twiny = axes.twiny() if ax_dir=='x' else axes.twinx()
+    
+            Gax1twiny = lambda s: getattr(ax1twiny, s.format(x=ax_dir))
+            Gaxes = lambda s: getattr(axes, s.format(x=ax_dir))
+            
+            oldaxvalues = np.array(Gaxes('get_{x}ticks')())
+            oldbounds = np.array(Gaxes('get_{x}lim')())
+            newbounds = convertfunc(oldbounds)
+            # ax1Xlabels = np.array(Gax1twiny('get_{x}ticklabels')())
+            # ax1Idxs = xx.array.searchsorted(ax1Xs)
+            # ticks_cycles = np.linspace(newbounds[0], newbounds[-1], len(ax1Xs))
+            ticks_cycles = convertfunc(oldaxvalues)
+            debug(ticks_cycles, oldbounds, newbounds, oldaxvalues)
+            # debug(ax_dir, xx.array[::100], ax1Xs, ax1Idxs, ax1Xs.shape, xp.array.shape, ticks_cycles)
+    
+            Gax1twiny('set_{x}ticks')      ( ticks_cycles )
+            Gax1twiny('set_{x}bound')      ( newbounds )
+            Gax1twiny('set_{x}ticklabels') ( [ "{:.2f}".format(i) for i in ticks_cycles ])
+            Gax1twiny('set_{x}label')      ( xp.label+' [%s]'%xp.units)
+
+            Gax1twiny('set_frame_on')(True)
+            Gax1twiny('patch').set_visible(False)
+            Gax1twiny('{x}axis').set_ticks_position(side)
+            Gax1twiny('{x}axis').set_label_position(side)
+            Gax1twiny('spines')[side].set_position(('outward', 40))
+        
+        set_labels(ax1, xx=data.strain, xp=data.displacement, 
+                    convertfunc=lambda x: x*details.gauge.value)
+        
+        set_labels(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='left',
+                    convertfunc=lambda x: x*details.measurements.area.value)
+        
+
+        # I'm guessing you want them both on the bottom...    
+    
+    
+    fig.savefig(str(imgpath))
+    # fig.savefig(str(imgpath), bbox_inches='tight', pad_inches=0.2,  )
     
     plt.close()
     
