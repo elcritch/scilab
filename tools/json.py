@@ -67,10 +67,11 @@ def update_data(parentdir, test_name, data, dataDir="../../test-data/", dbg=None
 #
 #         return json_data
 
-def load_json(parentdir, json_url="data.json", datatree=False, default=None):
+    
+def load_json_from(json_path, datatree=False, default=None):
 
-    json_path = Path(parentdir) / json_url
-
+    json_path = Path(str(json_path))
+    
     try:
         with json_path.open() as json_file:
 
@@ -101,6 +102,10 @@ def load_json(parentdir, json_url="data.json", datatree=False, default=None):
 
             raise err
 
+def load_json(parentdir, json_url="data.json", **kwargs):
+    json_path = Path(str(parentdir)) / json_url
+    return load_json_from(json_path, **kwargs)
+    
 
 import numpy
 

@@ -22,7 +22,8 @@ import numpy as np
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
-from scilab.expers.mechanical.fatigue.cycles import TestInfo
+from scilab.expers.mechanical.fatigue.uts import TestInfo
+from scilab.expers.mechanical.fatigue.uts import FileStructure
 
 def get_max(data):
     idx, value = np.argmax(data)
@@ -32,31 +33,23 @@ def data_find_max(data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=None)
 
-def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
     
-    excelfile = data.datasheet
-    
-    debug(excelfile)
-    handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+    handler(testinfo, testfolder, details=testdata.details, testdata=testdata, args=args, )
     
 
-def handler(testinfo:TestInfo, testfolder:FileStructure, config:DataTree, alldata:DataTree, args:DataTree):
+def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
-    data = alldata.trackingdata
+    data = testdata.tracking
 
-    debug(data_json)
-
-    # json data
-    details = data_json
-    
     debug(details)
     
-    data, details = data_cleanup_uts(testinfo, data, details)
+    data = data_cleanup_uts(testinfo, data, details)
     
     print(" --------- \n")
     debug(data.maxes)
     
-    maxes = adDataTree()
+    maxes = DataTree()
     for m,v in data.maxes.items():
         debug(m,v, type(v.idx))
         maxes[m] = {'idx':int(v.idx), 'value':v.value}
@@ -70,11 +63,11 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, config:DataTree, alldat
         json_url=testinfo.name+'.uts.calculated.json', 
         dbg=False )
     
-    graph_uts_raw(test, data, details, args)
-    graph_uts_normalized(test, data, details, args)
+    graph_uts_raw(testinfo, data, details, args)
+    graph_uts_normalized(testinfo, data, details, args)
     
 
-def data_cleanup_uts(testinfo:UtsTestInfo, data, details):
+def data_cleanup_uts(testinfo:TestInfo, data, details):
 
     if 'load' not in data.keys():
 
@@ -110,30 +103,30 @@ def data_cleanup_uts(testinfo:UtsTestInfo, data, details):
     #     data.maxes.stress1 = data_find_max(stress1)
     #     data.maxes.loadLoad1 = data_find_max(data.loadLinearLoad1.array)
         
-    return (data, details)
+    return data
 
 def makePlotData(column, columnMax=None):
     return PlotData(array=column.array, label=column.label, units=column.units, max=columnMax)
     
-def graph_uts_normalized(testpath, data, details, args):
+def graph_uts_normalized(testinfo:TestInfo, data, details, args):
     
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.strain, columnMax=data.maxes.strain)
     y = makePlotData(data.stress, columnMax=data.maxes.stress)
     
-    graph_uts(testpath, t, x, y, details, args)
+    graph_uts(testinfo, t, x, y, details, args)
 
 
-def graph_uts_raw(testpath, data, details, args):
+def graph_uts_raw(testinfo:TestInfo, data, details, args):
 
     t = makePlotData(data.totalTime, columnMax=None)
     x = makePlotData(data.displacement, columnMax=data.maxes.displacement)
     y = makePlotData(data.load, columnMax=data.maxes.load)
         
-    return graph_uts(testpath, t, x, y, details, args)
+    return graph_uts(testinfo, t, x, y, details, args)
 
 
-def graph_uts(test, t, x, y, details, args):
+def graph_uts(testinfo:TestInfo, t, x, y, details, args):
     
     ax1_title = "UTS %s vs %s"%(x.label, y.label)
     
@@ -163,7 +156,7 @@ def graph_uts(test, t, x, y, details, args):
     ax2.set_title("Individual Channels")
 
     # fig.tight_layout()
-    fig.text(.45, .95, test.name)
+    fig.text(.45, .95, testinfo.name)
 
     if args.only_first:
         plt.show(block=True,  )
@@ -176,12 +169,11 @@ def graph_uts(test, t, x, y, details, args):
     lgd1 = legend_handles(ax1, x=.1)
     lgd2 = legend_handles(ax2, x=.9)
     
-    imgpath = args.experReportGraphs / str(testinfo)
+    imgpath = args.experReportGraphs.resolve() 
     
     debug(imgpath)
     
-    
-    Graphing.fig_save(fig, str(imgpath), name='UTS - '+imgpath.name, type='.png', lgd=lgd1, lgd2=lgd2)    
+    Graphing.fig_save(fig, str(imgpath), name='graph_uts - %s'%str(testinfo), type='.png', lgd=lgd1, lgd2=lgd2)    
     # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd1, lgd2=lgd2)
     
     plt.close()
@@ -232,7 +224,7 @@ if __name__ == '__main__':
         
         try:            
             debug(testfile)            
-            testinfo = UtsTestInfo(name=testfile.stem)
+            testinfo = TestInfo(name=testfile.stem)
             debug(testinfo)
             
             jsonfile = experJsonCalc / testfile.with_suffix('.calculated.json').name

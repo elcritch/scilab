@@ -54,6 +54,13 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
+def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+    
+    excelfile = data.datasheet
+    
+    debug(excelfile)
+    handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+
 def handler(trackingtest, testinfo, data_tracking, details, args):
     
     print(mdHeader(2," Test: "+str(testinfo)))

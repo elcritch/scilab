@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 # coding: utf-8
 
@@ -10,6 +11,8 @@ import matplotlib.pyplot as plt
 import scilab, scilab.tools.graphing, scilab.tools.json
 from scilab.tools.project import *
 from scilab.expers.mechanical.fatigue.uts import *
+
+from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
 from scilab.expers.mechanical.fatigue.image_measurements_auto import DIMS, crop, process
 import PIL
@@ -26,6 +29,7 @@ def get_cropped(imgurl:Path, dims=DataTree(xr=(2000,3000), yr=(1000,2000))):
         img = PIL.Image.open(str(imgurl))
         imgcrop = img.crop((dims.xr[0], dims.yr[0], dims.xr[1], dims.yr[1]))
         imgcrop.save(str(imgpng))
+        return imgpng
 
 def processSpecimenImages(testinfo, testfolder, testimages):
 
@@ -85,6 +89,12 @@ def process_tests(experfiles:FileStructure, tests):
         testinfo = TestInfo(name=test.name, date='', set='gf10.10', side='llm', wedge='wa', orientation='lg', layer='4', sample='1',run='1')
         process_test(testinfo, experfiles.testfolder(testinfo, ensure_folders_exists=True))
 #        process_test(TestInfo(name=str(test)), experfiles.testfolder(testinfo))
+
+def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+    
+    print("run_image_measure:graphs2_handler:",testinfo.name)
+    return process_test(testinfo, testfolder)
+
 
 def main():
 

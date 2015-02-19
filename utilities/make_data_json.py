@@ -16,7 +16,8 @@ from scilab.tools.excel import *
 from scilab.tools.project import *
 
 import scilab.tools.json as Json
-from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+# from scilab.expers.mechanical.fatigue.uts import TestInfo
+from scilab.expers.mechanical.fatigue.helpers import flatten
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
     
 ## Main
@@ -27,7 +28,7 @@ def parse_fatigue_data_sheet_v1(ws):
 
     data = {}
     data['info'] = DataTree()
-    data['info'].update( dictFrom(rng('A1:D1')) )
+    data['info'].update( dictFrom(rng('A1:B1')) )
     
     measurements = DataTree(withProperties='width depth area')
     measurements.width.value = ws['B6'].value
@@ -60,9 +61,9 @@ def parse_fatigue_data_sheet_v1(ws):
         gauge.value = other.pop('gauge')
     
     if 'init_position' in other:
-        gauge.preloaded = other.pop('init_position')
+        gauge.init_position = other.pop('init_position')
     elif 'gauge_init' in other:
-        gauge.preloaded = other.pop('gauge_init')
+        gauge.init_position = other.pop('gauge_init')
     
     if 'gauge_base' in other:
         gauge.base = other.pop('gauge_base')
@@ -92,13 +93,46 @@ def parse_data_from_worksheet(testinfo, testfolder, args, **kwargs):
         
         wb = load_workbook(excelfile.absolute().as_posix(), data_only=True)
     except (Exception) as err:
-        logging.warn("Cannot open file:\n\t"+str(testpath)+"\n\t vs \n\t"+testpath.absolute().as_posix())
+        logging.warn("Cannot open file:\n\t"+str(excelfile)+"\n\t vs \n\t"+excelfile.absolute().as_posix())
         raise err
         
     ## Process Excel Sheets
     ws = wb.worksheets[0]
     return parse_fatigue_data_sheet_v1(ws)    
 
+def process_image_measurements_v1(testinfo, imgdata):
+    """ UTS based v1 """
+    data = {}
+    data['info'] = DataTree()
+    data['info'].update( testinfo.as_dict() )
+    data['info']['set'] = testinfo.name
+    
+    # debug('\n'.join(map(str,flatten(imgdata,sep='.').items())))
+    
+    measurements = DataTree(width=DataTree(), depth=DataTree(), area=DataTree())
+    measurements.width.value = imgdata.front.widths.average.mean
+    
+    if not 'side' in imgdata:
+        logging.warn("Could not find side measurement for: "+str(testinfo))
+        measurements.depth.value = 1.00
+        measurements.depth.stdev = -1.0
+    else:
+        measurements.depth.value = imgdata.side.widths.average.mean
+        measurements.depth.stdev = imgdata.side.widths.average.std
+        
+    measurements.area.value = float(measurements.width.value)*float(measurements.depth.value)
+    
+    measurements.width.stdev = imgdata.front.widths.average.std
+    
+    measurements.width.units = 'mm'
+    measurements.depth.units = 'mm'
+    measurements.area.units = 'mm^2'
+    
+    measurements.image = DataTree(other={})
+    
+    data['measurements'] = measurements
+    
+    return data
 
 def process_image_measurements(testinfo, imgdata):
         
@@ -106,6 +140,8 @@ def process_image_measurements(testinfo, imgdata):
     data['info'] = DataTree()
     data['info'].update( testinfo.as_dict() )
     data['info']['set'] = testinfo.name
+    
+    # debug('\n'.join(map(str,flatten(imgdata,sep='.').items())))
     
     measurements = DataTree(width=DataTree(), depth=DataTree(), area=DataTree())
     measurements.width.value = imgdata.front.mm.summaries.widths.average.mean
@@ -140,12 +176,15 @@ def parse_from_image_measurements(testinfo, testfolder, args):
 
     # imgMeasureFile = testfolder.image / 'processed' / (testinfo.name + '.measurements.json')
     imgMeasureFile = testfolder.images / 'processed' / 'data.json'
-    imgMeasureFile = imgMeasureFile.resolve()
+    imgMeasureFile = imgMeasureFile.resolve()        
     
     imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
     # debug(imgMeasurements)
     
-    data = process_image_measurements(testinfo, imgMeasurements)
+    try:
+        data = process_image_measurements(testinfo, imgMeasurements)
+    except:
+        data = process_image_measurements_v1(testinfo, imgMeasurements)
 
     return data
 
@@ -154,7 +193,11 @@ def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
     excelfile = data.datasheet
     
     debug(excelfile)
-    handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+    try:
+        handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+    except FileNotFoundError as err:
+        logging.error("FileNotFoundError:", testinfo.name, err)
+    
     
 
 def handler(testinfo, testfolder, excelfile, args):
