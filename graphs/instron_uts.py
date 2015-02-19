@@ -140,7 +140,14 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args):
     
     debug(y.max)
     uts_label = "UTS: %4.2f %s at %4.2f %s"%(y.max.value, y.units, x.array[y.max.idx], x.units, )
-    ax1.plot(x.array[y.max.idx], y.max.value, 'or', label=uts_label)
+    uts_peak = (x.array[y.max.idx], y.max.value)
+    
+    ax1.scatter(uts_peak[0], uts_peak[1])
+    
+    ax1.annotate(uts_label, xy=uts_peak, xytext=(+30, +10), 
+                    bbox=dict(boxstyle="round", fc="0.9"),
+                    textcoords='offset points', 
+                    arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 
     debug(uts_label)
     
@@ -166,15 +173,19 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args):
         lgd = ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(x,y))
         return lgd
     
-    lgd1 = legend_handles(ax1, x=.1)
+    # lgd1 = legend_handles(ax1, x=.1)
+    lgd1 = None
     lgd2 = legend_handles(ax2, x=.9)
     
-    imgpath = args.experReportGraphs.resolve() 
+    imgname = 'graph_uts - %s.png'%str(testinfo)
+    imgpath = args.experReportGraphs.resolve() / imgname 
     
     debug(imgpath)
     
-    Graphing.fig_save(fig, str(imgpath), name='graph_uts - %s'%str(testinfo), type='.png', lgd=lgd1, lgd2=lgd2)    
-    # Graphing.fig_save(fig, os.path.join(file_parent, 'img', 'eps'), name=base_file_name, type='.eps', lgd=lgd1, lgd2=lgd2)
+    # Graphing.fig_save(fig, str(imgpath), name='graph_uts - %s'%str(testinfo), type='.png', lgd=lgd2)
+    
+    fig.subplots_adjust(hspace=1.2, )
+    fig.savefig(str(imgpath), bbox_inches='tight', pad_inches=0.2,  )
     
     plt.close()
     
