@@ -36,7 +36,7 @@ def attributesAccessor(node, path):
         return 'n/a'
 
 
-from addict import Dict 
+# from addict import Dict
 
 from inspect import isgenerator
 

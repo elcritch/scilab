@@ -25,6 +25,8 @@ PlotData = namedtuple('PlotData', 'array label units max')
 from scilab.expers.mechanical.fatigue.uts import TestInfo
 from scilab.expers.mechanical.fatigue.uts import FileStructure
 
+# from addict import Dict 
+
 def get_max(data):
     idx, value = np.argmax(data)
     return DataTree(idx=idx, value=value)
@@ -48,18 +50,19 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     print(" --------- \n")
     debug(data.maxes)
+    debug(data.balances)
     
     maxes = DataTree()
     for m,v in data.maxes.items():
-        debug(m,v, type(v.idx))
+        # debug(m,v, type(v.idx))
         maxes[m] = {'idx':int(v.idx), 'value':v.value}
     
-    debug(maxes)
+    # debug(maxes)
     
     print("Writing: "+args.experJsonCalc.as_posix()+testinfo.name+'.uts.calculated.json')
     Json.write_json(
         args.experJsonCalc.as_posix(), 
-        {'calculations': {'maxes':maxes} },
+        {'calculations': {'maxes':maxes, 'balances': data.balances } },
         json_url=testinfo.name+'.uts.calculated.json', 
         dbg=False )
     
@@ -68,9 +71,8 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
 
 def data_cleanup_uts(testinfo:TestInfo, data, details):
-
+    
     if 'load' not in data.keys():
-
         if testinfo.orientation == 'tr':
             loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
         if testinfo.orientation == 'lg':
@@ -79,23 +81,43 @@ def data_cleanup_uts(testinfo:TestInfo, data, details):
         logging.warn("Choosing loads: "+repr(loads))
         data.load = data[loads[0]]
 
+    def dovalues(val, sl):
+        xx = val.array[sl]
+        return DataTree(mean=xx.mean(),std=xx.std(),mins=min(xx),maxs=max(xx))
+
+    s0_sl = data._getslices('step')[1]
+    
+    data.balances = DataTree()
+    data.balances.slices = repr(s0_sl)
+    data.balances.load =  dovalues(data.load, s0_sl)
+    data.balances.displacement =  dovalues(data.displacement, s0_sl)
+    
+    data.balances.offset = DataTree(load=data.balances.load.mean)
+    
+    # data.load_orig = data.load
+    data.load = PlotData(array=data.load.array - data.balances.load.mean,
+                        label=data.load.label, units=data.load.label, max=None)
+    
     data.maxes = DataTree()
     data.maxes.displacement = data_find_max(data.displacement.array)
     data.maxes.load = data_find_max(data.load.array)
-        
+    data.maxes.load_peak_displacement = DataTree(idx=data.maxes.load.idx, value=data.displacement.array[data.maxes.load.idx])
+    
     debug(data.maxes)
     
     stress = data.load.array/details.measurements.area.value
         
     gauge = details.gauge.value
     strain = data.displacement.array/gauge
-
-    # hack    
-    data.maxes.stress = data_find_max(stress)
+    
     data.maxes.strain = data_find_max(strain)
+    data.maxes.stress = data_find_max(stress)
+    data.maxes.stress_peak_strain = DataTree(idx=data.maxes.stress.idx, value=data.displacement.array[data.maxes.stress.idx])
     
     data.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
     data.strain = PlotData(array=strain, label="Strain", units="∆", max=None)
+    
+    # [ get_initial_values(name) for name in 'strain stress'.split()]
     
     # if testinfo.orientation == 'tr':
     #     stress1 = data.loadLinearLoad1.array/details.measurements.area.value
@@ -117,16 +139,16 @@ def graph_uts_normalized(testinfo:TestInfo, data, details, args):
     graph_uts(testinfo, t, x, y, details, args, data=data)
 
 
-def graph_uts_raw(testinfo:TestInfo, data, details, args):
+# def graph_uts_raw(testinfo:TestInfo, data, details, args):
+#
+#     t = makePlotData(data.totalTime, columnMax=None)
+#     x = makePlotData(data.displacement, columnMax=data.maxes.displacement)
+#     y = makePlotData(data.load, columnMax=data.maxes.load)
+#
+#     return graph_uts(testinfo, t, x, y, details, args)
 
-    t = makePlotData(data.totalTime, columnMax=None)
-    x = makePlotData(data.displacement, columnMax=data.maxes.displacement)
-    y = makePlotData(data.load, columnMax=data.maxes.load)
-        
-    return graph_uts(testinfo, t, x, y, details, args)
 
-
-def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
+def graph_uts(testinfo:TestInfo, t, x, y, details, args, data):
     
     ax1_title = "UTS %s vs %s"%(x.label, y.label)
     
@@ -138,16 +160,23 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
     ax1.set_xlabel(x.label)
     ax1.set_ylabel(y.label)
     
-    debug(y.max)
-    uts_label = "UTS: %4.2f %s at %4.2f %s"%(y.max.value, y.units, x.array[y.max.idx], x.units, )
+    ax1.hlines(data.balances.offset.load/details.measurements.area.value, x.array[0],x.array[-1], linestyles='dashed')
+        
+    uts_label = "UTS: (%.2f, %.2f) [%s,%s]"%(y.max.value, x.array[y.max.idx], y.units, x.units, )
     uts_peak = (x.array[y.max.idx], y.max.value)
+    
+    limiter = lambda v, d: ( (1.0-d)*min(v),(1.0+d)*max(v) )
+    labeler = lambda x: "{label} [{units}]".format(**x.__dict__)
+    
+    ax1.set(xlim=limiter(x.array, 0.05), ylim=limiter(y.array, 0.05))
     
     ax1.scatter(uts_peak[0], uts_peak[1])
     
-    ax1.annotate(uts_label, xy=uts_peak, xytext=(+30, +10), 
+    ax1.annotate(uts_label, xy=uts_peak, xytext=(+30, -20), 
                     bbox=dict(boxstyle="round", fc="0.9"),
                     textcoords='offset points', 
-                    arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
+                    arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"),
+                    )
 
     debug(uts_label)
     
@@ -157,15 +186,16 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
     # Strain plot
     
     # Second Plot
-    ax2.plot(t.array, x.array, label=x.label+' '+x.units)
-    ax2.plot(t.array, y.array, label=y.label+' '+y.units)
+    ax2.plot(t.array, x.array, label=labeler(x))
+    ax2.plot(t.array, y.array, label=labeler(y))
     ax2.set_xlabel(t.label)
 
     ax2.legend(loc=0,fontsize=10, )
     ax2.set_title("Individual Channels")
 
     # fig.tight_layout()
-    fig.text(.45, .95, testinfo.name)
+    # fig.text(.45, .95, testinfo.name)
+    fig.suptitle('UTS Failure: '+str(testinfo))
 
     if args.only_first:
         plt.show(block=True,  )
@@ -185,13 +215,14 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
     debug(imgpath)
     
     # Graphing.fig_save(fig, str(imgpath), name='graph_uts - %s'%str(testinfo), type='.png', lgd=lgd2)
-    fig.subplots_adjust(hspace=1.2, )
+    fig.subplots_adjust(hspace=1.4, )
     
     if data:
         # Make some room at the bottom
-        fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.95)
+        fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
         
-        def set_labels(axes, xx, xp, ax_dir='x',side='bottom', convertfunc=lambda x: 1.0*x):
+        def set_labels(axes, xx, xp, ax_dir='x',side='bottom', 
+                        convertfunc=lambda x: 1.0*x, position=('outward',40)):
             ax1twiny = axes.twiny() if ax_dir=='x' else axes.twinx()
     
             Gax1twiny = lambda s: getattr(ax1twiny, s.format(x=ax_dir))
@@ -204,31 +235,31 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args, data=None):
             # ax1Idxs = xx.array.searchsorted(ax1Xs)
             # ticks_cycles = np.linspace(newbounds[0], newbounds[-1], len(ax1Xs))
             ticks_cycles = convertfunc(oldaxvalues)
-            debug(ticks_cycles, oldbounds, newbounds, oldaxvalues)
+            # debug(ticks_cycles, oldbounds, newbounds, oldaxvalues)
             # debug(ax_dir, xx.array[::100], ax1Xs, ax1Idxs, ax1Xs.shape, xp.array.shape, ticks_cycles)
     
             Gax1twiny('set_{x}ticks')      ( ticks_cycles )
             Gax1twiny('set_{x}bound')      ( newbounds )
-            Gax1twiny('set_{x}ticklabels') ( [ "{:.2f}".format(i) for i in ticks_cycles ])
+            Gax1twiny('set_{x}ticklabels') ( [ "{:.0f}".format(i) for i in ticks_cycles ], rotation='vertical')
             Gax1twiny('set_{x}label')      ( xp.label+' [%s]'%xp.units)
 
             Gax1twiny('set_frame_on')(True)
             Gax1twiny('patch').set_visible(False)
             Gax1twiny('{x}axis').set_ticks_position(side)
             Gax1twiny('{x}axis').set_label_position(side)
-            Gax1twiny('spines')[side].set_position(('outward', 40))
+            Gax1twiny('spines')[side].set_position(position)
         
         set_labels(ax1, xx=data.strain, xp=data.displacement, 
                     convertfunc=lambda x: x*details.gauge.value)
         
-        set_labels(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='left',
-                    convertfunc=lambda x: x*details.measurements.area.value)
+        set_labels(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='right',
+                    convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
         
 
         # I'm guessing you want them both on the bottom...    
     
     
-    fig.savefig(str(imgpath))
+    fig.savefig(str(imgpath), bbox_inches='tight',)
     # fig.savefig(str(imgpath), bbox_inches='tight', pad_inches=0.2,  )
     
     plt.close()

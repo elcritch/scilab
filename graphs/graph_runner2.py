@@ -175,7 +175,7 @@ def main():
     
     with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
     
-        for testinfo, testfile  in testitems[ :1 ]:
+        for testinfo, testfile  in testitems[ : ]:
         # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 
