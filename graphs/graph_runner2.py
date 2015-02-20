@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 import glob, logging
 
+from addict import Dict as addict
 
 base1 = "/Users/jaremycreechley/cloud/bsu/02_Lab/01_Projects/01_Active/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
 base2 = "/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
@@ -65,19 +66,21 @@ def process_uts_tests(testinfo, testfolder, handlers, reportfile):
     args.experJson = testfolder.jsoncalc
     args.experJsonCalc = testfolder.jsoncalc
     args.only_first = False
-    args.report = reportfile
+    args.report = reportfile    
+    args.step = 2
+    args.begin = 80.3
+    args.end = 4.8
     
     data = DataTree()
+    data.tests = DataTree()
     
     trackingtest = testfolder.raws.csv_step04_uts.tracking
+    trackingdata = csvread(trackingtest.as_posix())
+    data.tracking = trackingdata
     
-    if trackingtest:
-        debug(trackingtest)
-        data.tracking = csvread(trackingtest.as_posix())            
-    else:
-        logging.error("ERROR: Could not find tracking test csv file for: "+str(testinfo))
-        return None
-    
+    data.tests.uts = DataTree(tracking=trackingdata)
+    debug(testfolder.raws.csv_step02_precond.tracking)
+    data.tests.preconds = DataTree(tracking = csvread( testfolder.raws.csv_step02_precond.tracking ))    
     data.datasheet = testfolder.datasheet
     
     data.details = Json.load_json_from(testfolder.details)
@@ -131,6 +134,7 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
     import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
     import scilab.graphs.instron_uts as graphs_instron_uts
+    import scilab.graphs.precondition_fitting as precondition_fitting 
     
     cycle_handlers = [ 
             make_data_json.graphs2_handler, 
@@ -139,9 +143,11 @@ def process_test(testinfo, testfolder, reportfile):
     
     uts_handlers = [
             # run_image_measure.graphs2_handler,
-            make_data_json.graphs2_handler,
+            # make_data_json.graphs2_handler,
+            # merge_calculated_jsons.graphs2_handler,
+            # graphs_instron_uts.graphs2_handler,
+            precondition_fitting.graphs2_handler,
             merge_calculated_jsons.graphs2_handler,
-            graphs_instron_uts.graphs2_handler,
         ]
     
     # return process_cycle_tests(testinfo, testfolder, cycle_handlers, reportfile)
@@ -151,7 +157,6 @@ def process_test(testinfo, testfolder, reportfile):
 # from multiprocessing import Pool
 
 def main():
-    
     
     # fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
     fs = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
@@ -182,8 +187,8 @@ def main():
             # if testinfo.orientation == 'lg':
             # if testinfo.orientation == 'tr':
                 # continue
-            if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
-                continue
+            # if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
+            #     continue
             
             testfolder = fs.testfolder(testinfo=testinfo, ensure_folders_exists=False)
             

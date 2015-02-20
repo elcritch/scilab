@@ -41,7 +41,9 @@ def attributesAccessor(node, path):
 from inspect import isgenerator
 
 # Helpers
-class DataTree(collections.defaultdict):
+# class DataTree(collections.OrderedDict):
+# class DataTree(collections.defaultdict):
+class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
     new entries recursively default to be this class. This means the following
     code is valid:
@@ -150,7 +152,7 @@ if __name__ == '__main__':
         foolist = ["a","b"]
 
         debug(foobar, foolist)
-        debug(foobar, foolist, LF='\n', fmt='{}', sep=':=')
+        debug(foobar, foolist, end='\n', fmt='{}', sep=':=')
 
 
     def test_bindMethod():

@@ -20,7 +20,7 @@ import scilab.tools.graphing as Graphing
 import scilab.tools.scriptrunner as ScriptRunner
 import scilab.tools.json as Json
 
-from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
+from scilab.expers.mechanical.fatigue.uts import TestInfo
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
 import collections
@@ -43,15 +43,30 @@ def data_find_max(name, data):
     return DataMax(idx=idx, value=data[idx], name=name)
 
 
-def handler(trackingtest, testinfo, data_tracking, details, args):
+def handler(testinfo, testfolder, data_tracking, details, args):
 
     print(mdHeader(2, "Test: "+testinfo.name))
 
-    data, details = data_cleanup_relaxation(testinfo, data_tracking, details, args)
+    debug(data_tracking.keys())
+    
+    data = data_cleanup_relaxation(testinfo=testinfo, data=data_tracking, details=details, args=args)
     graph_relaxation(testinfo=testinfo, data=data, details=details, args=args)
 
     return
 
+def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
+    
+    debug(testdata.tests.preconds.keys())
+    
+    testdata.details.gaugeLength = testdata.details['gauge']['value']
+    testdata.details.area = testdata.details['measurements']['area']['value']
+    
+    handler(testinfo      = testinfo, 
+            testfolder    = testfolder, 
+            data_tracking = testdata.tests.preconds.tracking, 
+            details       = testdata.details, 
+            args          = args)
+    
 
 def getElapsedStarts(data, npslice):
     """ get the elapsed cycle times and indicies. """
@@ -63,12 +78,14 @@ def getElapsedStarts(data, npslice):
     elapsedCycles = [ CycleData(index=int(e.start),
                                 elapsedCycle=int(elapsedCycles[e.start]),
                                 time=data.totalTime.array[npslice][e.start])
-                        for e in elapsedIndicies ]
+                        for e in elapsedIndicies.values() ]
 
     return collections.OrderedDict( (e.elapsedCycle, e) for e in elapsedCycles)
 
 
-def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, args):
+def data_cleanup_relaxation(testinfo:TestInfo, data, details, args):
+
+    debug(data.keys())
 
     data.maxes = {}
     data.maxes['displacement'] = data_find_max('displacement', data.displacement.array)
@@ -89,10 +106,9 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, args):
     #     elif 'loadLinearLoad' in data:
     #         data.load = data.loadLinearLoad
 
-    debug(details.area)
-
-    stress = data.load()/details.area
-    strain = data.displacement()/details.gaugeLength
+    # debug(details.area)
+    stress = data.load.array/details.measurements.area.value
+    strain = data.displacement.array/details.gauge.value
 
     data.maxes['stress'] = data_find_max('stress', stress)
     data.maxes['strain'] = data_find_max('strain', strain)
@@ -100,6 +116,7 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, args):
     data.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
     data.strain = PlotData(array=strain, label="Stress", units="∆", max=None)
 
+    debug(data._getslices('step'))
     npslice = data._getslices('step')[args.step]
     debug(args.step, npslice)
 
@@ -137,7 +154,7 @@ def data_cleanup_relaxation(testinfo:UtsTestInfo, data, details, args):
 
     graph.modulus_fits = modulus_fits
 
-    return (graph, details)
+    return graph
 
 def fit_modulus(region, data, time, disp, force, stress, strain, startCycle, endCycle, elapsedCycles, lastCycles, **kwargs):
 
@@ -287,7 +304,7 @@ def fit_modulus_regions(testinfo, details, args, data, npslice, graph, **kwargs)
 
     return modulus_fits
 
-def graph_relaxation(testinfo:UtsTestInfo, data, details, args):
+def graph_relaxation(testinfo:TestInfo, data, details, args):
 
     debug(data.modulus_fits)
 
