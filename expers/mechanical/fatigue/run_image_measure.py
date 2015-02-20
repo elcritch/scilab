@@ -8,6 +8,12 @@ from tabulate import *
 
 import matplotlib.pyplot as plt
 
+base1 = "/Users/jaremycreechley/cloud/bsu/02_Lab/01_Projects/01_Active/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
+base2 = "/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
+base3 = '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (uts, expr1)/05_Code/01_Libraries'
+
+sys.path.insert(0,base3)
+
 import scilab, scilab.tools.graphing, scilab.tools.json
 from scilab.tools.project import *
 from scilab.expers.mechanical.fatigue.uts import *
@@ -19,7 +25,8 @@ import PIL
 
 from fn import _ as __
 
-from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
+# from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
+from scilab.expers.mechanical.fatigue.uts import TestInfo, FileStructure
 
 def get_cropped(imgurl:Path, dims=DataTree(xr=(2000,3000), yr=(1000,2000))):
     imgpng = imgurl.with_suffix('.png')
@@ -82,15 +89,18 @@ def process_test(testinfo, testfolder):
     return processSpecimenImages(testinfo, testfolder, reducedimgs)
 
 
-def process_tests(experfiles:FileStructure, tests):
+def process_tests(experfiles:FileStructure, testfolders):
 
-    for test in tests:
+    tests = collections.OrderedDict()
+    for testfolder in testfolders:
 
-        testinfo = TestInfo(name=test.name, date='', set='gf10.10', side='llm', wedge='wa', orientation='lg', layer='4', sample='1',run='1')
+        testinfo = TestInfo(name=testfolder.stem, date='', set='gf10.10', side='llm', wedge='wa', orientation='lg', layer='4', sample='1',run='1')
+        tests[testinfo.name] = (testinfo, tests)
+    
         process_test(testinfo, experfiles.testfolder(testinfo, ensure_folders_exists=True))
 #        process_test(TestInfo(name=str(test)), experfiles.testfolder(testinfo))
 
-def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
     
     print("run_image_measure:graphs2_handler:",testinfo.name)
     return process_test(testinfo, testfolder)
@@ -98,7 +108,8 @@ def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
 
 def main():
 
-    experfiles = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
+    # experfiles = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
+    experfiles = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
 
     debug(experfiles.test_parent)
 
@@ -113,11 +124,11 @@ def main():
     testsByTime = [ t[0] for t in sorted(testImageTimes, key=__[1]) ]
 
     debug(testsByTime)
-    tests = testsByTime[-2:]
-
+    tests = testsByTime[:1]
+    
     print("Processing tests:")
 
-    process_tests(experfiles, tests)
+    # process_tests(experfiles, tests)
 
 if __name__ == '__main__':
 

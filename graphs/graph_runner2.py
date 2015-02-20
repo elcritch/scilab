@@ -139,9 +139,9 @@ def process_test(testinfo, testfolder, reportfile):
     
     uts_handlers = [
             # run_image_measure.graphs2_handler,
-            # make_data_json.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
-            graphs_instron_uts.graphs2_handler
+            make_data_json.graphs2_handler,
+            merge_calculated_jsons.graphs2_handler,
+            graphs_instron_uts.graphs2_handler,
         ]
     
     # return process_cycle_tests(testinfo, testfolder, cycle_handlers, reportfile)
@@ -182,11 +182,20 @@ def main():
             # if testinfo.orientation == 'lg':
             # if testinfo.orientation == 'tr':
                 # continue
-        
+            if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
+                continue
+            
             testfolder = fs.testfolder(testinfo=testinfo, ensure_folders_exists=False)
-                
-            res = process_test(testinfo, testfolder, reportfile=report)
-            print(res)
+            
+            print(mdHeader(3, testinfo))
+            
+            try:
+                res = process_test(testinfo, testfolder, reportfile=report)
+                print(res)
+            
+            except Exception as err:
+                logging.warn("Error processing tests %s: %s", testinfo, err)
+                raise err
     
 
 if __name__ == '__main__':

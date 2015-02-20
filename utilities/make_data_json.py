@@ -188,9 +188,9 @@ def parse_from_image_measurements(testinfo, testfolder, args):
 
     return data
 
-def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
     
-    excelfile = data.datasheet
+    excelfile = testdata.datasheet
     
     debug(excelfile)
     try:

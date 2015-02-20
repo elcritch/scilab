@@ -160,15 +160,16 @@ def graph_uts(testinfo:TestInfo, t, x, y, details, args, data):
     ax1.set_xlabel(x.label)
     ax1.set_ylabel(y.label)
     
-    ax1.hlines(data.balances.offset.load/details.measurements.area.value, x.array[0],x.array[-1], linestyles='dashed')
+    loadbalance = -data.balances.offset.load/details.measurements.area.value
+    ax1.hlines(loadbalance, x.array[0],x.array[-1], linestyles='dashed')
         
     uts_label = "UTS: (%.2f, %.2f) [%s,%s]"%(y.max.value, x.array[y.max.idx], y.units, x.units, )
     uts_peak = (x.array[y.max.idx], y.max.value)
     
-    limiter = lambda v, d: ( (1.0-d)*min(v),(1.0+d)*max(v) )
+    limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
     labeler = lambda x: "{label} [{units}]".format(**x.__dict__)
     
-    ax1.set(xlim=limiter(x.array, 0.05), ylim=limiter(y.array, 0.05))
+    ax1.set(xlim=limiter(x.array, 0.08), ylim=limiter(y.array, 0.08,oa=loadbalance))
     
     ax1.scatter(uts_peak[0], uts_peak[1])
     
