@@ -110,6 +110,7 @@ class FileStructure(DataTree):
         folder.images         = test_dir / 'images'
         folder.raws           = self.findRaws(testinfo)
         folder.datasheet      = next(test_dir.glob('data_sheet*.xlsx'), None)
+        folder.details        = folder.json / '{testname}.calculated.json'.format(testname=testinfo.name)
     
         if ensure_folders_exists:
             for v in sorted(folder.values(), key=lambda x: str(x)):

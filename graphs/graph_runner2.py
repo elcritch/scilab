@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import csv
-import sys, os
-
-from pylab import *
-from scipy.stats import exponweib, weibull_max, weibull_min
+import sys, os, glob, logging
+import itertools, functools
+from pathlib import Path
 
 import matplotlib
-matplotlib.use('cairo')
-
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
-import glob, logging
 
-from addict import Dict as addict
+curr = Path('.').resolve()
+for path in Path('.').resolve().parents:
+    print("path:",path, (path / 'scilab').exists())
+    if (path / 'scilab').exists():
+        scibase = path
 
-base1 = "/Users/jaremycreechley/cloud/bsu/02_Lab/01_Projects/01_Active/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
-base2 = "/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (cycles, expr1)/05_Code/01_Libraries"
-base3 = '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (uts, expr1)/05_Code/01_Libraries'
-
-sys.path.insert(0,base3)
-# sys.path.insert(0,base2)
-# sys.path.insert(0,base1)
+print("scibase:",scibase)
+sys.path.insert(0,str(scibase))
 
 from scilab.tools.project import *
 from scilab.tools.graphing import *
@@ -36,10 +30,10 @@ import scilab.tools.json as Json
 
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
-# from scilab.expers.mechanical.fatigue.cycles import FileStructure
-# from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
-from scilab.expers.mechanical.fatigue.uts import FileStructure
-from scilab.expers.mechanical.fatigue.uts import TestInfo as TestInfo
+from scilab.expers.mechanical.fatigue.cycles import FileStructure
+from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
+# from scilab.expers.mechanical.fatigue.uts import FileStructure
+# from scilab.expers.mechanical.fatigue.uts import TestInfo as TestInfo
 from scilab.expers.mechanical.fatigue.helpers import *
 import scilab.tools.json as Json
 
@@ -120,11 +114,13 @@ def process_cycle_tests(testinfo, testfolder, handlers, reportfile):
             return None
     
     data.datasheet = testfolder.datasheet
-    
-    return [ handler(testinfo=testinfo, testfolder=testfolder, data=data, args=args)
-                for handler in handlers ]
-    
-    
+    data.details = Json.load_json_from(testfolder.details)
+
+    results = []
+    for handler in handlers:
+        results.append( handler(testinfo=testinfo, testfolder=testfolder, testdata=data, args=args) )
+        
+    return results    
 
 def process_test(testinfo, testfolder, reportfile):
 
@@ -135,10 +131,12 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
     import scilab.graphs.instron_uts as graphs_instron_uts
     import scilab.graphs.precondition_fitting as precondition_fitting 
+    import scilab.graphs.cycle_trends as cycle_trends 
     
     cycle_handlers = [ 
-            make_data_json.graphs2_handler, 
-            merge_calculated_jsons.graphs2_handler, 
+            # make_data_json.graphs2_handler,
+            # merge_calculated_jsons.graphs2_handler,
+            cycle_trends.graphs2_handler,
         ]
     
     uts_handlers = [
@@ -150,16 +148,16 @@ def process_test(testinfo, testfolder, reportfile):
             merge_calculated_jsons.graphs2_handler,
         ]
     
-    # return process_cycle_tests(testinfo, testfolder, cycle_handlers, reportfile)
-    return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
+    return process_cycle_tests(testinfo, testfolder, cycle_handlers, reportfile)
+    # return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
 
 
 # from multiprocessing import Pool
 
 def main():
     
-    # fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
-    fs = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
+    fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
+    # fs = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
     # Test test images for now
     test_dir = fs.test_parent.resolve()
     
@@ -180,7 +178,9 @@ def main():
     
     with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
     
-        for testinfo, testfile  in testitems[ : ]:
+        # for testinfo, testfile  in testitems[ : ]:
+        for testinfo, testfile  in testitems[ :2 ]:
+            
         # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 
