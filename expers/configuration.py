@@ -153,6 +153,22 @@ class FileStructure(DataTree):
         # else:
             # return DataTree()
 
+class TestData(DataTree):
+    
+    # def __init__(self, *args, **kwargs):
+        # super().__init__(*arg, **kwargs)
+        
+    def __str__(self):
+        return "TestData[%s]"%super().__str__()
+    
+class TestDetails(DataTree):
+
+    # def __init__(self, *args, **kwargs):
+        # super().__init__(*arg, **kwargs)
+
+    def __str__(self):
+        return "TestDetails[%s]"%super().__str__()
+    
 
 def main():
 
