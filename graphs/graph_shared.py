@@ -18,8 +18,7 @@ import numpy as np
 
 PlotData = namedtuple('PlotData', 'array label units')
 
-from scilab.expers.configuration import TestInfo
-from scilab.expers.configuration import FileStructure
+from scilab.expers.configuration import FileStructure, TestInfo, TestData, TestDetails
 
 # from addict import Dict 
 
@@ -42,7 +41,7 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
     
     updated = DataTree()
     
-    if 'load' in data.keys():
+    if 'load' in data:
         return updated
 
     if cycles:
@@ -56,20 +55,20 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
     
     if trends:
         if testinfo.orientation == 'tr':
-            if 'load_max' not in data.keys():
+            if 'load_max' not in data:
                 load_max = data.loadLinearLoad1Maximum # choose Honeywell
-            if 'load_min' not in data.keys():
+            if 'load_min' not in data:
                 load_min = data.loadLinearLoad1Minimum # choose Honeywell
         if testinfo.orientation == 'lg':
-            if 'load_max' not in data.keys():
+            if 'load_max' not in data:
                 load_max = data.loadLinearLoad1Maximum # choose 1kN
-            if 'load_min' not in data.keys():
+            if 'load_min' not in data:
                 load_min = data.loadLinearLoad1Minimum # choose 1kN
         
-        if 'disp_max' not in data.keys():
-            disp_max = data.dispLinearDigitalPositionMaximum # choose peak disp
-        if 'disp_min' not in data.keys():
-            disp_min = data.dispLinearDigitalPositionMinimum # choose peak disp
+        if 'disp_max' not in data:
+            disp_max = data.displacementLinearDigitalPositionMaximum # choose peak disp
+        if 'disp_min' not in data:
+            disp_min = data.displacementLinearDigitalPositionMinimum # choose peak disp
         
         updated.load_max = load_max
         updated.load_min = load_min
@@ -114,19 +113,29 @@ def data_stepsummaries(testinfo:TestInfo, data:DataTree, details:DataTree):
 
     return {'stepsummaries':stepsummaries}
 
-def data_normalized(testinfo:TestInfo, data:DataTree, details:DataTree,):
+def data_normalized(testinfo:TestInfo, data:DataTree, details:DataTree, 
+                    loadname='load', dispname='disp',suffix="",
+                    stressname='Stress', strainname='Strain',
+                    stressunits='MPa', strainunits='∆',
+                    ):
 
+    if suffix:
+        loadname += '_' + suffix
+        dispname += '_' + suffix
+        stressname += '_' + suffix
+        strainname += '_' + suffix
+    
+    debug(suffix, loadname)
     normalized = DataTree()
     # data.load_orig = data.load
-    normalized.load = PlotData(array=data.load.array - data.stepsummaries.balance.offset,
-                               label=data.load.label, units=data.load.label, max=None) 
+    normalized[loadname] = PlotData(array=data[loadname].array - data.stepsummaries.balance.offset,
+                               label=data[loadname].label, units=data[loadname].label)
     
-    stress = data.load.array / details.measurements.area.value
-        
-    strain = data.disp.array / details.gauge.value
+    strain = data[dispname].array / details.gauge.value
+    stress = data[loadname].array / details.measurements.area.value
     
-    normalized.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
-    normalized.strain = PlotData(array=strain, label="Strain", units="∆", max=None)    
+    normalized[stressname.lower()] = PlotData(array=stress, label=stressname, units=stressunits)
+    normalized[strainname.lower()] = PlotData(array=strain, label=strainname, units=strainunits)
 
     return normalized
 

@@ -75,8 +75,10 @@ def graph(testinfo:TestInfo, details, args, data):
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
-    data = data_configure_load(testdata=testinfo, data=testdata, details=details, trends=True)
-    data.update( data_normalized(testinfo, data, details) )
+    data = testdata.tests.cycles.trends
+    data = data_configure_load(testinfo=testinfo, data=data, details=details, trends=True)
+    data.update( data_normalized(testinfo, data, details, suffix='maxs') )
+    data.update( data_normalized(testinfo, data, details, suffix='mins') )
     data.update( data_stepsummaries(testinfo, data, details) )
     
     fig, ax = graph(testinfo, data, details, args)
