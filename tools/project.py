@@ -58,23 +58,26 @@ class DataTree(dict):
             defaults = kwdargs['defaults']
             if not type(defaults) == list:
                 defaults = defaults.split() 
-            for arg in defaults: kwdargs[arg] = None
+            for arg in defaults: 
+                kwdargs[arg] = None
         if 'withProperties' in kwdargs:
             defaults = kwdargs.pop('withProperties')
             if not type(defaults) == list:
                 defaults = defaults.split() 
-            for arg in defaults: kwdargs[arg] = DataTree()
+            for arg in defaults: 
+                kwdargs[arg] = DataTree()
         
         super().__init__(*args, **kwdargs)
         
-    def __getattribute__(self, name):
+    def __getattr__(self, name):
+        return self.__getitem__(name)
+    
+    def __getitem__(self, name):
         try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            try:
-                return self[name]
-            except KeyError:
-                raise KeyError("Key '%s' not found in: "%name+', '.join(str(s) for s in self.keys()))
+            return super().__getitem__(name)
+        except KeyError:
+            avail_keys = set(str(s) for s in self.keys())
+            raise KeyError("Key `{}` not found in: {}".format(name,avail_keys))
     
     def __setattr__(self, name, value):
         self[name] = value
@@ -82,12 +85,6 @@ class DataTree(dict):
     
     def __str__(self):
         return pprint.pformat(self)
-
-class addict(DataTree):
-    
-    def __init__(self, *args, **kwdargs):
-        super().__init__(*args, **kwdargs)
-
 
 
 class DebugData(DataTree):
@@ -146,6 +143,7 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
 if __name__ == '__main__':
 
 
+
     def test_debug():
         """ test debug """
         foobar = [1,2,3]
@@ -194,7 +192,41 @@ if __name__ == '__main__':
     #     shutil.rmtree(temp_dir)
     #
 
+    def test_datatree():
+        # creationg
+        d1 = DataTree()
+        
+        # simple assigning
+        d1.a = 1
+        d1['b'] = 2
+        
+        # sub level with another tree
+        d1.c = DataTree(cc="sublevel")
+        
+        d1['a'] = DataTree(aa="sublevel")
+        d1.b = {}
+        
+        # update from another datatree
+        d2 = DataTree()
+        d2.update(d1)
+        d2.a = 3
+        
+        print("d1:",d1)
+        print("d2:",d2)
+        
 
+    test_datatree()
+    
+    # def test_datatree_sub():
+    #
+    #     # empty sub
+    #     d1 = DataTree()
+    #     d1.a.b = 'foobar'
+    #
+    #     print('d1:',d1)
+    #
+    # test_datatree_sub()
+    
     ## Run Tests
     test_debug()
 
