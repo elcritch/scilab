@@ -29,15 +29,12 @@ import scilab.tools.scriptrunner as ScriptRunner
 import scilab.tools.json as Json
 
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
-
-from scilab.expers.mechanical.fatigue.cycles import FileStructure
-from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
-# from scilab.expers.mechanical.fatigue.uts import FileStructure
-# from scilab.expers.mechanical.fatigue.uts import TestInfo as TestInfo
 from scilab.expers.mechanical.fatigue.helpers import *
-import scilab.tools.json as Json
+from scilab.expers.configuration import FileStructure, TestInfo, TestData, TestDetails
 
-from scilab.expers.mechanical.fatigue.cycles import TestInfo
+import scilab.expers.mechanical.fatigue.cycles as fatigue_cycles
+import scilab.expers.mechanical.fatigue.uts as fatigue_uts
+
 
 PlotData = namedtuple('PlotData', 'array label units max')
 
@@ -94,31 +91,27 @@ def process_cycle_tests(testinfo, testfolder, handlers, reportfile):
     args.only_first = False
     args.report = reportfile
     
-    doLoad = DataTree(trackingtest=False)
+    doLoad = DataTree(tracking=False, trends=True)
+    testdata = TestData(tests=TestData())
     
+    # debug(testfolder.raws.csv_step02_precond.tracking)
+    testdata.tests.preconds = DataTree(tracking = csvread( testfolder.raws.preconds_csv.tracking ))    
 
+    cycles_test = 'cycles_{}_csv'.format(testinfo.orientation)
     
-    data = DataTree()
-    
-    if doLoad.trackingtest:
-        if testinfo.orientation == 'lg':
-            trackingtest = testfolder.raws.cycles_lg_csv.tracking
-        else:
-            trackingtest = testfolder.raws.cycles_tr_csv.tracking
-        
-        if trackingtest:
-            debug(trackingtest)
-            data.tracking = csvread(trackingtest.as_posix())            
-        else:
-            logging.error("ERROR: instron_all.py: Could not find tracking test csv file for: "+str(testinfo))
-            return None
-    
-    data.datasheet = testfolder.datasheet
-    data.details = Json.load_json_from(testfolder.details)
+    testdata.tests.cycles = TestData()
+    if doLoad.tracking:
+        csvdata_tracking = csvread(testfolder.raws[cycles_test].tracking.as_posix())
+        testdata.tests.cycles.tracking = csvdata_tracking
+    if doLoad.trends:
+        csvdata_trends = csvread(testfolder.raws[cycles_test].trends.as_posix())
+        testdata.tests.cycles.trends = csvdata_trends
+
+    testdata.details = Json.load_json_from(testfolder.details)
 
     results = []
     for handler in handlers:
-        results.append( handler(testinfo=testinfo, testfolder=testfolder, testdata=data, args=args) )
+        results.append( handler(testinfo=testinfo, testfolder=testfolder, testdata=testdata, args=args) )
         
     return results    
 
@@ -156,8 +149,8 @@ def process_test(testinfo, testfolder, reportfile):
 
 def main():
     
-    fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
-    # fs = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
+    fs = fatigue_cycles.FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
+    # fs = fatigue_uts.FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
     # Test test images for now
     test_dir = fs.test_parent.resolve()
     
