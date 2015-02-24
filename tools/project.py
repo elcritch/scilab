@@ -23,7 +23,7 @@ def flatten(d, parent_key='', sep='_'):
             items.extend(flatten(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
-    return dict(items)
+    return collections.OrderedDict(items)
 
 def debugger_summary(idx, val, prefix='_', depth=0):
     msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))

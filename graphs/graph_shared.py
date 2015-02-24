@@ -77,9 +77,9 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLo
                 load_min = data.loadLinearLoad1Minimum # choose Honeywell
         if testinfo.orientation == 'lg':
             if 'load_max' not in data:
-                load_max = data.loadLinearLoad1Maximum # choose 1kN
+                load_max = data.loadLinearLoadMaximum # choose 1kN
             if 'load_min' not in data:
-                load_min = data.loadLinearLoad1Minimum # choose 1kN
+                load_min = data.loadLinearLoadMinimum # choose 1kN
         
         if 'disp_max' not in data:
             disp_max = data.displacementLinearDigitalPositionMaximum # choose peak disp
@@ -103,7 +103,7 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLo
 def data_datasummaries( testinfo:TestInfo, 
                         data:DataTree, 
                         details:DataTree, 
-                        balancestep=1,
+                        balancestep=None,
                         cols=['load', 'disp']):
     
     datasummaries = DataTree()
@@ -127,8 +127,8 @@ def data_datasummaries( testinfo:TestInfo,
         return balances
         
     for colname in cols:
-        summary=summarize(colname)
-        balance=balances(colname, summary)
+        summary = summarize(colname)
+        balance = balances(colname, summary) if balancestep else {}
         datasummaries[colname] = DataTree(balance=balance,summary=summary)
 
     return datasummaries
@@ -151,10 +151,18 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
     normalized.summaries = DataTree(**data.summaries)
     normalized.summaries.update(data_datasummaries(testinfo, data, details, cols=[loadname, dispname]))
     
+    normalized.summaries[loadname].balance = data.balances.load.offset
+    normalized.summaries[dispname].balance = data.balances.disp.offset
+    
     # data.load_orig = data.load
-    offset_load = data[loadname].array - normalized.summaries[loadname].balance.offset
+    
+    offset_load = data[loadname].array - normalized.summaries[loadname].balance
     normalized[loadname] = data[loadname].set(array=offset_load)
     normalized[dispname] = data[dispname]
+    
+    pre=data_datasummaries(testinfo, data, details, cols=[loadname]),
+    post=data_datasummaries(testinfo, normalized, details, cols=[loadname]),
+    debug(pre, post)
     
     # DataTree(array=data[loadname].array - data.summaries[loadname].balance.offset,
                                # label=data[loadname].label, units=data[loadname].label)
@@ -167,6 +175,9 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
 
     normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
 
+    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
+    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
+    
     return normalized
 
 def data_sliced(testinfo:TestInfo, data:DataTree, details:DataTree, step, cols=['load', 'disp', 'strain', 'stress']):

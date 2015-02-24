@@ -64,6 +64,12 @@ class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
 class TestFileStructure(DataTree):
     pass
 
+    def load(self,name='details'):
+        
+        data = Json.load_json_from(testfolder.self[name])
+        
+        return data
+
     def save_calculated_json(self, name, data, suffix="calculated", field="{name}", **kwargs):
         filename = "{testinfo}.{name}.{suffix}json".format(
                     testinfo=self._testinfo.short(),

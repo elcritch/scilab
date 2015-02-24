@@ -94,11 +94,11 @@ def process_cycle_tests(testinfo, testfolder, handlers, reportfile, doLoad):
     
     testdata = TestData(tests=TestData())
     
-    # debug(testfolder.raws.csv_step02_precond.tracking)
+    debug(testfolder.raws.preconds_csv.tracking)
     testdata.tests.preconds = DataTree(tracking = csvread( testfolder.raws.preconds_csv.tracking ))    
 
     cycles_test = 'cycles_{}_csv'.format(testinfo.orientation)
-    debug(cycles_test)
+    debug(cycles_test, testfolder.raws[cycles_test].tracking)
     testdata.tests.cycles = TestData()
     if doLoad.tracking:
         csvdata_tracking = csvread(testfolder.raws[cycles_test].tracking.as_posix())
@@ -132,15 +132,14 @@ def process_test(testinfo, testfolder, reportfile):
             # merge_calculated_jsons.graphs2_handler,
             # make_data_json.graphs2_handler,
             # merge_calculated_jsons.graphs2_handler,
-            # cycle_trends.graphs2_handler,
-            graphs_graph_all.graphs2_handler,
-            merge_calculated_jsons.graphs2_handler,
+            # graphs_graph_all.graphs2_handler,
+            # merge_calculated_jsons.graphs2_handler,
         ]
     
     cycle_handlers_trends = [ 
             # make_data_json.graphs2_handler,
             # merge_calculated_jsons.graphs2_handler,
-            # cycle_trends.graphs2_handler,
+            cycle_trends.graphs2_handler,
             # graphs_graph_all.graphs2_handler,
         ]
     
@@ -149,8 +148,8 @@ def process_test(testinfo, testfolder, reportfile):
             # make_data_json.graphs2_handler,
             # merge_calculated_jsons.graphs2_handler,
             # graphs_instron_uts.graphs2_handler,
-            precondition_fitting.graphs2_handler,
-            merge_calculated_jsons.graphs2_handler,
+            # precondition_fitting.graphs2_handler,
+            # merge_calculated_jsons.graphs2_handler,
         ]
     
     # doLoadTracking = DataTree(tracking=False, trends=False)
@@ -193,7 +192,8 @@ def main():
     
     with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
     
-        for testinfo, testfile  in testitems[ : ]:
+        # for testinfo, testfile  in testitems[ : ]:
+        for testinfo, testfile  in testitems[ :2 ]:
         # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 

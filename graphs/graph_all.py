@@ -41,14 +41,21 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ## First Plot ##
     ax1_title = "%s vs %s"%(x.label, t.label)
     ax1.plot(t.array, x.array, label=x.label)
-    ax2.plot(t.array, y.array, color='darkgrey', label=y.label)
     ax1.set_xlabel(t.label)
     ax1.set_ylabel(x.label)
     ax2.set_ylabel(y.label)
     
     ax1.legend(loc=2, fontsize=10)
-    ax2.legend(loc=1, fontsize=10)
     ax1.set_title(ax1_title)
+    
+    ax1_bounds = ax1.get_xbound()
+    for step, stepslice in testdata.steps.items():
+        ax1.axvline(x=end_y[1], ymin=ax1_bounds, ymax = max(y.array[npslice]), color='purple')
+        
+    
+    ## y2 Plot ##
+    ax2.legend(loc=1, fontsize=10)
+    ax2.plot(t.array, y.array, color='darkgrey', label=y.label)
     
     # set_secondary_label(ax1, xx=x.strain, xp=data.displacement,
     #             convertfunc=lambda x: x*details.gauge.value)

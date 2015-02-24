@@ -30,6 +30,9 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
     debug(stepslice)
     
+    debug(list(testdata))
+    
+    xname, yname = 'load_max', 'disp_max'
     t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
     # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
     
@@ -43,11 +46,12 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ax1.set_xlabel(t.label)
     ax1.set_ylabel(x.label)
     
-    # stress_max = .stress_max.mean
-    # ax1.hlines(stress_max, x.array[0],x.array[-1], linestyles='dashed')
+    # stress_max = .stress_max.mean    
+    ax1.hlines(-testdata.summaries[xname].balance, *ax1.get_xbound(), linestyles='dashed', label='Offset')
+    ax1.hlines(x.array.mean(), *ax1.get_xbound(), linestyles='dashed', label='Avg. '+x.label)
     
     # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.summary.maxs.idx], x.units, )
-    # debug(label_stress_max)    
+    # debug(label_stress_max)
     # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
     
     # ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(x.array, 0.8))
@@ -82,9 +86,29 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     cyclesdata = testdata.tests.cycles.trends
     
-    data = data_configure_load(testinfo=testinfo, data=cyclesdata, details=details, trends=True)
+    data = data_configure_load(testinfo=testinfo, data=cyclesdata, details=details, doLoad=args.doLoad)
     
     data.elapsedCycles = cyclesdata.elapsedCycles
+    data.balances = DataTree(disp=DataTree(),load=DataTree())
+    
+    
+    
+    # data.balances.stress.summary = details.summaries.stress.summary['2.0']
+    # data.balances.stress.offset = data.balances.stress.summary.mean
+    #
+    # data.balances.strain.summary = details.summaries.strain.summary['2.0']
+    # data.balances.strain.offset = data.balances.strain.summary.mean
+    
+    dictdisplay = lambda x: '\n'+'\n'.join([ "> .... {} -> {}".format(k,v) for k,v in flatten(x,sep='.').items() ])
+
+    debug( dictdisplay(details) )
+    
+    data.balances.disp.summary = details.summaries.disp.summary['2.0']
+    data.balances.disp.offset = data.balances.disp.summary.mean
+    
+    data.balances.load.summary = details.summaries.load.summary['2.0']
+    data.balances.load.offset = data.balances.load.summary.mean
+    
     data.summaries = DataTree()
     
     updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
@@ -94,15 +118,11 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     debug(data.summaries.keys())
     
+    debug( dictdisplay(data.summaries) )
+    
     fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
-    imgname = 'fatigue graphs | name=cycle trends | test=%s | v5 |.png'%str(testinfo)
-    
-    imgpath = testfolder.graphs.resolve() / imgname 
-    debug(imgpath)    
-
     plt.show(block=True)
-    
-    fig.savefig(str(imgpath), bbox_inches='tight',)    
+    testfolder.save_graph(name='cycle_trends', fig=fig)
     plt.close()
     
     return {}
