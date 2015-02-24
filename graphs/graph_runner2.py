@@ -131,7 +131,7 @@ def process_test(testinfo, testfolder, reportfile):
     cycle_handlers_tracking = [ 
             # merge_calculated_jsons.graphs2_handler,
             # make_data_json.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
+            merge_calculated_jsons.graphs2_handler,
             # graphs_graph_all.graphs2_handler,
             # merge_calculated_jsons.graphs2_handler,
         ]
@@ -192,8 +192,8 @@ def main():
     
     with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
     
-        # for testinfo, testfile  in testitems[ : ]:
-        for testinfo, testfile  in testitems[ :2 ]:
+        for testinfo, testfile  in testitems[ : ]:
+        # for testinfo, testfile  in testitems[ :2 ]:
         # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 

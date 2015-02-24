@@ -72,14 +72,14 @@ class TestFileStructure(DataTree):
 
     def save_calculated_json(self, name, data, suffix="calculated", field="{name}", **kwargs):
         filename = "{testinfo}.{name}.{suffix}json".format(
-                    testinfo=self._testinfo.short(),
+                    testinfo=self._testinfo.name,
                     name=name,
                     suffix = suffix+"." if suffix else "",
                     )
         
         json_path = self.jsoncalc / filename
         
-        json_data = {field.format(name=name): data} if field else data
+        json_data = {name: data} if field else data
         
         logging.info("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
         logging.info("Saving json file `{filename}` with fields: {fields}".format(

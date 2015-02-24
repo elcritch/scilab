@@ -28,13 +28,26 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
     stepslice = testdata.steps[5]
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
-    debug(stepslice)
+    # debug(stepslice)
     
-    debug(list(testdata))
+    # debug(list(testdata))
     
-    xname, yname = 'load_max', 'disp_max'
-    t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
-    # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
+    other = testdetails.other
+    
+    xname, yname = 'stress_max', 'strain_max'
+    # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
+    t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
+
+    calc = DataTree()
+    calc[xname] = DataTree()
+    
+    calc[xname].target = other.test_max_force
+    calc[xname].stress_level = int(100*other.stress_level)
+    calc[xname].pred_max = other.uts_stress # *testdetails.measurements.area.value
+    calc[xname].actual = x.array.mean()
+    calc[xname].actual_perc = calc[xname].actual/(calc[xname].pred_max) * 100.0
+    
+    debug(calc)
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))
@@ -43,30 +56,42 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ## First Plot ##
     ax1_title = "%s vs %s"%(x.label, t.label)
     ax1.plot(t.array, x.array)
-    ax1.set_xlabel(t.label)
-    ax1.set_ylabel(x.label)
+    ax2.set_xlabel(labeler(t))
+    ax2.set_ylabel(labeler(x))
     
-    # stress_max = .stress_max.mean    
-    ax1.hlines(-testdata.summaries[xname].balance, *ax1.get_xbound(), linestyles='dashed', label='Offset')
-    ax1.hlines(x.array.mean(), *ax1.get_xbound(), linestyles='dashed', label='Avg. '+x.label)
+    # stress_max = .stress_max.mean
+    ax1.hlines(-testdata.summaries[xname].balance, *ax1.get_xbound(), linestyles='dashed', label='Offset', color='lightgrey')
+    
+    avg_label='Avg. {:3.1f} ({:.0f}%)'.format(calc[xname].actual, calc[xname].actual_perc)    
+    tgt_label='Tgt. {:3.1f} (SL{})'.format(calc[xname].target, calc[xname].stress_level)
+    pred_label='PredMax. {:3.1f} (SL{})'.format(calc[xname].pred_max, calc[xname].stress_level)
+    
+    ax1.hlines(calc[xname].actual, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
+    ax1.hlines(calc[xname].target, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
+    ax1.hlines(calc[xname].pred_max, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
     
     # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.summary.maxs.idx], x.units, )
     # debug(label_stress_max)
     # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
     
     # ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(x.array, 0.8))
-    ax1.legend(loc=0, fontsize=10)
+    ax1.legend(loc=3, fancybox=True, framealpha=0.0, )
     ax1.set_title(ax1_title)
     
     ## Second Plot ##
+    
+    y_target = other.precond_disp    
+    
     ax2_title = "%s vs %s"%(y.label, t.label, )
     
     ax2.plot(t.array, y.array)
-    ax2.set_xlabel(t.label)
-    ax2.set_ylabel(y.label)
+    ax2.set_xlabel(labeler(t))
+    ax2.set_ylabel(labeler(y))
+    
+    ax2.hlines(y_target, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+y.label)
     
     # ax2.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.08))
-    ax2.legend(loc=0, fontsize=10)
+    ax2.legend(loc='best', fontsize=10,fancybox=True, framealpha=0.5)
     ax2.set_title(ax2_title)
 
     fig.subplots_adjust(hspace=1.4, )
@@ -80,7 +105,7 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     # set_secondary_label(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='right',
     #             convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
         
-    return fig, axes
+    return fig, axes, calc
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
@@ -92,7 +117,6 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     data.balances = DataTree(disp=DataTree(),load=DataTree())
     
     
-    
     # data.balances.stress.summary = details.summaries.stress.summary['2.0']
     # data.balances.stress.offset = data.balances.stress.summary.mean
     #
@@ -101,7 +125,7 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     dictdisplay = lambda x: '\n'+'\n'.join([ "> .... {} -> {}".format(k,v) for k,v in flatten(x,sep='.').items() ])
 
-    debug( dictdisplay(details) )
+    # debug( dictdisplay(details) )
     
     data.balances.disp.summary = details.summaries.disp.summary['2.0']
     data.balances.disp.offset = data.balances.disp.summary.mean
@@ -118,12 +142,14 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     debug(data.summaries.keys())
     
-    debug( dictdisplay(data.summaries) )
+    # debug( dictdisplay(data.summaries) )
     
-    fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
+    fig, ax, calc = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
     plt.show(block=True)
     testfolder.save_graph(name='cycle_trends', fig=fig)
     plt.close()
+    
+    testfolder.save_calculated_json(name='stresslevels', data={'stresslevels':calc})
     
     return {}
 

@@ -23,7 +23,7 @@ from scilab.expers.configuration import FileStructure, TestInfo, TestData, TestD
 # from addict import Dict 
 
 limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
-labeler = lambda x: "{label} [{units}]".format(**x.__dict__)
+labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.label)
 
 def get_max(data):
     if not len(data):
