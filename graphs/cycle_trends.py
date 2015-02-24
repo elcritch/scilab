@@ -30,18 +30,16 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
     debug(stepslice)
     
-    # t, x, y = testdata.elapsedCycles, testdata.strain_max, testdata.stress_max
-    # debug(testdata.load_max)
-    t, x, y = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
-    # debug(t,x,y)
+    t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
+    # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
     
-    ax1_title = "%s vs %s"%(t.label, x.label)
-    
+    ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))
     (ax1,ax2) = axes
     
     ## First Plot ##
-    ax1.plot(t.array, y.array)
+    ax1_title = "%s vs %s"%(x.label, t.label)
+    ax1.plot(t.array, x.array)
     ax1.set_xlabel(t.label)
     ax1.set_ylabel(x.label)
     
@@ -52,18 +50,18 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     # debug(label_stress_max)    
     # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
     
-    ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.8))
+    # ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(x.array, 0.8))
     ax1.legend(loc=0, fontsize=10)
     ax1.set_title(ax1_title)
     
     ## Second Plot ##
     ax2_title = "%s vs %s"%(y.label, t.label, )
     
-    ax2.plot(t.array, x.array)
+    ax2.plot(t.array, y.array)
     ax2.set_xlabel(t.label)
     ax2.set_ylabel(y.label)
     
-    ax2.set(xlim=limiter(x.array, 0.08), ylim=limiter(y.array, 0.08))
+    # ax2.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.08))
     ax2.legend(loc=0, fontsize=10)
     ax2.set_title(ax2_title)
 
@@ -91,14 +89,8 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
     
-    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['load_max', 'disp_max']) )
-    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['load_min', 'disp_min']) )
-
     data.update( data_normalize(testinfo, data, details, suffix='max') )
-    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['stress_max', 'strain_max']) )
-
     data.update( data_normalize(testinfo, data, details, suffix='min') )
-    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['stress_min', 'strain_min']) )
     
     fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
     imgname = 'fatigue graphs | name=cycle trends | test=%s | v5 |.png'%str(testinfo)

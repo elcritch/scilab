@@ -40,6 +40,19 @@ def data_find_max(data):
 def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycles=False, trends=False):
     
     updated = DataTree()
+    updated.summaries = DataTree()
+    
+    dataconfig = DataTree(
+        loadname='load', dispname='disp',suffix="",
+        stressname='Stress', strainname='Strain',
+        stressunits='MPa', strainunits='∆',
+        )
+
+
+    updated.config = dataconfig
+    updated.steps = data._getslices('step')
+    updated.steps[-1] = np.s_[0:-1]
+    debug(updated.steps)
     
     if 'load' in data:
         return updated
@@ -52,6 +65,8 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
         
         logging.warn("Choosing loads: "+repr(loads))
         updated.load = data[loads[0]]
+        ds = data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname])
+        updated.summaries.update(ds)
     
     if trends:
         if testinfo.orientation == 'tr':
@@ -75,23 +90,18 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
         updated.disp_max = disp_max
         updated.disp_min = disp_min
         
+        updated.summaries.update(data_datasummaries(
+            testinfo, updated, details, cols=['load_max', 'load_min', 'disp_max', 'disp_min']) )
+        
     if not updated:
         raise ValueExceptioN("Choose something!")
 
-    dataconfig = DataTree(
-        loadname='load', dispname='disp',suffix="",
-        stressname='Stress', strainname='Strain',
-        stressunits='MPa', strainunits='∆',
-        )
-
-    updated.config = dataconfig
-    updated.steps = data._getslices('step')
-    updated.steps[-1] = np.s_[0:-1]
-    debug(updated.steps)
     return updated
 
-@debugger
-def data_datasummaries(testinfo:TestInfo, data:DataTree, details:DataTree, 
+# @debugger
+def data_datasummaries( testinfo:TestInfo, 
+                        data:DataTree, 
+                        details:DataTree, 
                         balancestep=1,
                         cols=['load', 'disp']):
     
@@ -104,7 +114,7 @@ def data_datasummaries(testinfo:TestInfo, data:DataTree, details:DataTree,
         return DataTree(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
     
     @debugger
-    def summarize(colname):    
+    def summarize(colname):
         _summarize = lambda sl: summaryvalues(data[colname], sl).set(slices=sl)
         return DataTree({ key:_summarize(stepslice) for key, stepslice in data.steps.items() })
     
@@ -124,7 +134,7 @@ def data_datasummaries(testinfo:TestInfo, data:DataTree, details:DataTree,
 
 def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree, 
                     loadname='load', dispname='disp',suffix="",
-                    stressname='Stress', strainname='Strain',
+                    stressname='stress', strainname='strain',
                     stressunits='MPa', strainunits='∆',
                     ):
 
@@ -135,9 +145,15 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
         strainname += '_' + suffix
     
     # debug(suffix, loadname)
-    normalized = DataTree()
+    normalized = DataTree(steps=data.steps)
+    
+    normalized.summaries = DataTree()
+    normalized.summaries.update(data_datasummaries(testinfo, data, details, cols=[loadname, dispname]))
+    
     # data.load_orig = data.load
-    normalized[loadname] = data[loadname].set(arra=data[loadname].array - data.summaries[loadname].balance.offset)
+    offset_load = data[loadname].array - normalized.summaries[loadname].balance.offset
+    normalized[loadname] = data[loadname].set(array=offset_load)
+    normalized[dispname] = data[dispname]
     
     # DataTree(array=data[loadname].array - data.summaries[loadname].balance.offset,
                                # label=data[loadname].label, units=data[loadname].label)
@@ -145,13 +161,11 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
     strain = data[dispname].array / details.gauge.value
     stress = data[loadname].array / details.measurements.area.value
     
-    normalized[stressname.lower()] = DataTree(array=stress, label=stressname, units=stressunits)
-    normalized[strainname.lower()] = DataTree(array=strain, label=strainname, units=strainunits)
+    normalized[stressname] = DataTree(array=stress, label=stressname.capitalize(), units=stressunits)
+    normalized[strainname] = DataTree(array=strain, label=strainname.capitalize(), units=strainunits)
 
-    normalized.steps = data.steps
-    
-    debug(normalized.steps)
-    
+    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
+
     return normalized
 
 def data_sliced(testinfo:TestInfo, data:DataTree, details:DataTree, step, cols=['load', 'disp', 'strain', 'stress']):

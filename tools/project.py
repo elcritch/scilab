@@ -27,8 +27,8 @@ def flatten(d, parent_key='', sep='_'):
 
 def debugger_summary(idx, val, prefix='_', depth=0):
     msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))
-    if 'ndarray' in val.__class__.__name__:
-        return msg + "ndarry[shape={}]".format(shape=val.shape)         
+    if 'ndarray' == val.__class__.__name__:
+        return msg + "ndarray: "+str(val.shape)
     elif isinstance(val, dict):
         print('items:', flush=True, file=sys.stderr)
         
