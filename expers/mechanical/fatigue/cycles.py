@@ -88,7 +88,7 @@ class TestFileStructure(DataTree):
         filename = namefmt.format(
                 name=name,
                 testname=self.testfs.test_name,
-                testinfo=self._testinfo,
+                testinfo=self._testinfo.short(),
                 version=self.testfs.version,
                 imgkind=imgkind,
                 )
