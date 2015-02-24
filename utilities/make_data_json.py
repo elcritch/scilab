@@ -190,7 +190,7 @@ def parse_from_image_measurements(testinfo, testfolder, args):
 
 def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
     
-    excelfile = testdata.datasheet
+    excelfile = testfolder.datasheet
     
     debug(excelfile)
     try:
@@ -207,7 +207,7 @@ def handler(testinfo, testfolder, excelfile, args):
 
     def updateMetaData(data):
         ## Handle Names    
-        data['name'] = testinfo.name        
+        data['name'] = testinfo.name
         data['id'] = testinfo.short()
         data['info'] = testinfo.as_dict()
     
@@ -221,17 +221,17 @@ def handler(testinfo, testfolder, excelfile, args):
         testpath=excelfile,
         testinfo=testinfo,
         testfolder=testfolder,
-        args=args)
+        args=args,
+        )
 
     print(mdBlock("Excel Sheet Data:"),file=args.report)
     print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
     updateMetaData(data)
-
-
+    
     Json.write_json(
-        testfolder.jsoncalc.as_posix(),
-        data,
+        testfolder.jsoncalc,
         json_url=testinfo.name+'.excel.calculated.json',
+        data=data,
         dbg=False)
 
     

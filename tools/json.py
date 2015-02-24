@@ -10,6 +10,7 @@ if __name__ != '__main__':
 else:
     from Project import *
 
+
 def stems(file):
     return file.name.rstrip(''.join(file.suffixes))
 
@@ -30,13 +31,13 @@ def load_data_path(testpath, datadir="../../test-data/uts", dbg=None):
     return data
 
 def update_data_path(testpath, data, datadir="../../test-data/uts", dbg=None):
-
+    
     datapath = testpath.parent.joinpath(datadir).resolve()
     testname = re.sub('(_\w+)$', '', testpath.parent.stems()) + '.json'
-
+    
     debug(datapath, testname)
     update_json(datapath, data, json_url=testname)
-
+    
     return
 
 
@@ -118,15 +119,23 @@ class CustomJsonEncoder(json.JSONEncoder):
                 return numpy.asscalar(obj)
             elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
                 return dict(**zip(obj._fields,obj))
+            elif isinstance(obj, slice):
+                return (obj.start, obj.step, obj.stop)
             else:
                 return super().default(obj)
         except TypeError as err:
             print("Json TypeError:"+str(type(obj))+" obj: "+str(obj))
             raise err
 
-def write_json(parentdir,json_data, json_url="data.json", dbg=None, cls=CustomJsonEncoder):
+def write_json(parentdir,json_data, json_url="data.json", **kwargs):
+    json_path = Path(str(parentdir)).resolve() / json_url
+    return write_json_to(json_path=json_path, json_data=json_data, **kwargs)
 
-    json_path = Path(parentdir) / json_url
+
+@debugger
+def write_json_to(json_path, json_data, dbg=None, cls=CustomJsonEncoder):
+
+    json_path = Path(str(json_path))
 
     if dbg:
         debug(json_path, parentdir, json_path)

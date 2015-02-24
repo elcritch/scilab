@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-import shutil, re, sys, os, itertools, collections
+import shutil, re, sys, os, itertools, collections, logging
 from pathlib import Path
 from functools import partial
 
@@ -61,14 +61,52 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
 
+class TestFileStructure(DataTree):
+    pass
 
+    def save_calculated_json(self, name, data, suffix="calculated", field="{name}", **kwargs):
+        filename = "{testinfo}.{name}.{suffix}json".format(
+                    testinfo=self._testinfo.short(),
+                    name=name,
+                    suffix = suffix+"." if suffix else "",
+                    )
+        
+        json_path = self.jsoncalc / filename
+        
+        json_data = {field.format(name=name): data} if field else data
+        
+        logging.info("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
+        logging.info("Saving json file `{filename}` with fields: {fields}".format(
+                filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
+        
+        return Json.write_json_to(json_path=json_path, json_data=data, **kwargs)
+    
+    def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
+        
+        namefmt = "{testname} | name={name} | test={testinfo} | {version}.{imgkind}"
+        
+        filename = namefmt.format(
+                name=name,
+                testname=self.testfs.test_name,
+                testinfo=self._testinfo,
+                version=self.testfs.version,
+                imgkind=imgkind,
+                )
+        
+        imgpath = self.graphs / filename
+        logging.info("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
+        
+        return fig.savefig(str(imgpath), **savefig_kws)
+        
+        
 
 class FileStructure(DataTree):
 
-    def __init__(self, experiment_name:str, test_name):
+    def __init__(self, experiment_name:str, test_name, version="v0"):
 
         self.experiment_name = experiment_name
         self.test_name = test_name
+        self.version = version
 
         self.project = None
         for path in Path('.').resolve().parents:
@@ -101,7 +139,8 @@ class FileStructure(DataTree):
         def findFilesIn(testfolder, pattern='*', kind='png'):
             return list( testfolder.glob('{pattern}.{kind}'.format(**locals())) )
 
-        folder = DataTree()
+        folder = TestFileStructure()
+        folder._testinfo = testinfo
         folder.project_dir = self.project
         folder.testfs = self
         folder.graphs         = test_dir / 'graphs'

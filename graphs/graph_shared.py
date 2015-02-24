@@ -26,25 +26,25 @@ limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) 
 labeler = lambda x: "{label} [{units}]".format(**x.__dict__)
 
 def get_max(data):
+    if not len(data):
+        return DataTree(idx=None, value=None)
     idx = np.argmax(data)
     return DataTree(idx=idx, value=data[idx])
 
 def get_min(data):
+    if not len(data):
+        return DataTree(idx=None, value=None)
     idx = np.argmin(data)
     return DataTree(idx=idx, value=data[idx])
 
-def data_find_max(data):
-    idx = np.argmax(data)
-    return DataMax(idx=idx, value=data[idx], name=None)
-
-def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycles=False, trends=False):
+def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLoad):
     
     updated = DataTree()
     updated.summaries = DataTree()
     
     dataconfig = DataTree(
         loadname='load', dispname='disp',suffix="",
-        stressname='Stress', strainname='Strain',
+        stressname='stress', strainname='strain',
         stressunits='MPa', strainunits='∆',
         )
 
@@ -57,7 +57,7 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
     if 'load' in data:
         return updated
 
-    if cycles:
+    if doLoad.tracking:
         if testinfo.orientation == 'tr':
             loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
         if testinfo.orientation == 'lg':
@@ -65,10 +65,11 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, cycl
         
         logging.warn("Choosing loads: "+repr(loads))
         updated.load = data[loads[0]]
-        ds = data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname])
+        updated.disp = data.displacement
+        ds = data_datasummaries(testinfo, updated, details, cols=[dataconfig.loadname, dataconfig.dispname])
         updated.summaries.update(ds)
     
-    if trends:
+    if doLoad.trends:
         if testinfo.orientation == 'tr':
             if 'load_max' not in data:
                 load_max = data.loadLinearLoad1Maximum # choose Honeywell
@@ -109,7 +110,7 @@ def data_datasummaries( testinfo:TestInfo,
     
     @debugger
     def summaryvalues(val, sl):
-        # debug(sl)
+        # debug(val.array.shape, sl)
         xx = val.array[sl]
         return DataTree(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
     
@@ -147,7 +148,7 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
     # debug(suffix, loadname)
     normalized = DataTree(steps=data.steps)
     
-    normalized.summaries = DataTree()
+    normalized.summaries = DataTree(**data.summaries)
     normalized.summaries.update(data_datasummaries(testinfo, data, details, cols=[loadname, dispname]))
     
     # data.load_orig = data.load
@@ -190,7 +191,7 @@ def graph_annotation_data(ax, label, xy, xytext=(+30, -20)):
     
 
     
-def set_secondary_label(axes, xx, xp, ax_dir='x',side='bottom', tickfmt = "{:.0f}",
+def set_secondary_label(axes, label, ax_dir='x',side='bottom', tickfmt = "{:.0f}",
                         convertfunc=lambda x: 1.0*x, position=('outward',40)):
     axtwins = axes.twiny() if ax_dir=='x' else axes.twinx()
 
@@ -213,7 +214,7 @@ def set_secondary_label(axes, xx, xp, ax_dir='x',side='bottom', tickfmt = "{:.0f
     Gaxtwin('set_{x}ticks')      ( newticks )
     Gaxtwin('set_{x}bound')      ( newbounds )
     Gaxtwin('set_{x}ticklabels') ( [ tickfmt.format(i) for i in newticks ], rotation='vertical')
-    Gaxtwin('set_{x}label')      ( xp.label+' [%s]'%xp.units)
+    Gaxtwin('set_{x}label')      ( label.label+' [%s]'%xp.units)
 
     Gaxtwin('set_frame_on')(True)
     Gaxtwin('patch').set_visible(False)

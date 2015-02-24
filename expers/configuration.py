@@ -5,9 +5,9 @@ import shutil, re, sys, os, itertools, collections
 from pathlib import Path
 from functools import partial
 
-import scilab.tools.json as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
+import scilab.tools.json as Json
 
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 

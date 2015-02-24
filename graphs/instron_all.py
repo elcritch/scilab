@@ -54,9 +54,9 @@ def data_find_max(name, data):
     idx = np.argmax(data)
     return DataMax(idx=idx, value=data[idx], name=name)
 
-def graphs2_handler(testinfo, testfolder, args, data, **kwargs):
+def graphs2_handler(testinfo, testfolder, testdata, args):
     
-    excelfile = data.datasheet
+    excelfile = testdata.datasheet
     
     debug(excelfile)
     handler(testinfo, testfolder, excelfile=excelfile, args=args, )
@@ -210,7 +210,7 @@ def graph(testinfo, t, x, y, z, details, stepIdx, npslice, args, cycles=None, do
         #
         # ax1 = plt.subplot(gs[1])
         # ax2 = plt.subplot(gs[0])
-        # t = cycles
+        # t = cycles 
         
     # First Plot
     

@@ -26,82 +26,58 @@ from scilab.graphs.graph_shared import *
 
 def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
-    stepslice = testdata.steps[5]
+    stepslice = testdata.steps[-1]
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
     debug(stepslice)
     
-    t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
-    # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
+    # t, y, x = testdata.total_time, testdata.disp, testdata.load
+    t, y, x = testdata.total_time, testdata.strain, testdata.stress
     
     ## Setup plot
-    fig, axes = plt.subplots(ncols=2, figsize=(14,6))
-    (ax1,ax2) = axes
+    fig, axes = plt.subplots(ncols=1, figsize=(14,6))
+    ax1 = axes
+    ax2 = ax1.twinx()
     
     ## First Plot ##
     ax1_title = "%s vs %s"%(x.label, t.label)
-    ax1.plot(t.array, x.array)
+    ax1.plot(t.array, x.array, label=x.label)
+    ax2.plot(t.array, y.array, color='darkgrey', label=y.label)
     ax1.set_xlabel(t.label)
     ax1.set_ylabel(x.label)
-    
-    # stress_max = .stress_max.mean
-    # ax1.hlines(stress_max, x.array[0],x.array[-1], linestyles='dashed')
-    
-    # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.summary.maxs.idx], x.units, )
-    # debug(label_stress_max)    
-    # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
-    
-    # ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(x.array, 0.8))
-    ax1.legend(loc=0, fontsize=10)
-    ax1.set_title(ax1_title)
-    
-    ## Second Plot ##
-    ax2_title = "%s vs %s"%(y.label, t.label, )
-    
-    ax2.plot(t.array, y.array)
-    ax2.set_xlabel(t.label)
     ax2.set_ylabel(y.label)
     
-    # ax2.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.08))
-    ax2.legend(loc=0, fontsize=10)
-    ax2.set_title(ax2_title)
-
-    fig.subplots_adjust(hspace=1.4, )
+    ax1.legend(loc=2, fontsize=10)
+    ax2.legend(loc=1, fontsize=10)
+    ax1.set_title(ax1_title)
     
-    # Make some room at the bottom 
-    fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
-    
-    # set_secondary_label(ax1, xx=data.strain, xp=data.displacement,
+    # set_secondary_label(ax1, xx=x.strain, xp=data.displacement,
     #             convertfunc=lambda x: x*details.gauge.value)
-    #
-    # set_secondary_label(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='right',
-    #             convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
-        
+                
     return fig, axes
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
-    cyclesdata = testdata.tests.cycles.trends
+    testname = 'cycles'
+    csvdata = testdata.tests[testname].tracking
     
-    data = data_configure_load(testinfo=testinfo, data=cyclesdata, details=details, trends=True)
+    data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, doLoad=args.doLoad)
     
-    data.elapsedCycles = cyclesdata.elapsedCycles
+    data.total_time = csvdata.totalTime
     data.summaries = DataTree()
     
     updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
     
-    data.update( data_normalize(testinfo, data, details, suffix='max') )
-    data.update( data_normalize(testinfo, data, details, suffix='min') )
+    data.update( data_normalize(testinfo, data, details) )
     
-    fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
-    imgname = 'fatigue graphs | name=cycle trends | test=%s | v5 |.png'%str(testinfo)
+    ## Save Summaries ##
+    testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
     
-    imgpath = testfolder.graphs.resolve() / imgname 
-    debug(imgpath)    
-
+    ## Figure ##
+    fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)    
     plt.show(block=True)
-    
-    fig.savefig(str(imgpath), bbox_inches='tight',)    
+    testfolder.save_graph(name='graph_all_'+testname, fig=fig)
     plt.close()
+    
     
     return {}
 

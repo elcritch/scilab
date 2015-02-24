@@ -83,22 +83,22 @@ def process_uts_tests(testinfo, testfolder, handlers, reportfile):
     
     
 
-def process_cycle_tests(testinfo, testfolder, handlers, reportfile):
+def process_cycle_tests(testinfo, testfolder, handlers, reportfile, doLoad):
     args = DataTree()
     args.experReportGraphs = testfolder.graphs
     args.experJson = testfolder.jsoncalc
     args.experJsonCalc = testfolder.jsoncalc
     args.only_first = False
     args.report = reportfile
+    args.doLoad = doLoad
     
-    doLoad = DataTree(tracking=False, trends=True)
     testdata = TestData(tests=TestData())
     
     # debug(testfolder.raws.csv_step02_precond.tracking)
     testdata.tests.preconds = DataTree(tracking = csvread( testfolder.raws.preconds_csv.tracking ))    
 
     cycles_test = 'cycles_{}_csv'.format(testinfo.orientation)
-    
+    debug(cycles_test)
     testdata.tests.cycles = TestData()
     if doLoad.tracking:
         csvdata_tracking = csvread(testfolder.raws[cycles_test].tracking.as_posix())
@@ -108,7 +108,7 @@ def process_cycle_tests(testinfo, testfolder, handlers, reportfile):
         testdata.tests.cycles.trends = csvdata_trends
 
     testdata.details = Json.load_json_from(testfolder.details)
-
+    
     results = []
     for handler in handlers:
         results.append( handler(testinfo=testinfo, testfolder=testfolder, testdata=testdata, args=args) )
@@ -123,13 +123,25 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
     import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
     import scilab.graphs.instron_uts as graphs_instron_uts
+    import scilab.graphs.instron_all as graphs_instron_all
+    import scilab.graphs.graph_all as graphs_graph_all
     import scilab.graphs.precondition_fitting as precondition_fitting 
     import scilab.graphs.cycle_trends as cycle_trends 
     
-    cycle_handlers = [ 
+    cycle_handlers_tracking = [ 
+            # merge_calculated_jsons.graphs2_handler,
             # make_data_json.graphs2_handler,
             # merge_calculated_jsons.graphs2_handler,
-            cycle_trends.graphs2_handler,
+            # cycle_trends.graphs2_handler,
+            graphs_graph_all.graphs2_handler,
+            merge_calculated_jsons.graphs2_handler,
+        ]
+    
+    cycle_handlers_trends = [ 
+            # make_data_json.graphs2_handler,
+            # merge_calculated_jsons.graphs2_handler,
+            # cycle_trends.graphs2_handler,
+            # graphs_graph_all.graphs2_handler,
         ]
     
     uts_handlers = [
@@ -141,9 +153,19 @@ def process_test(testinfo, testfolder, reportfile):
             merge_calculated_jsons.graphs2_handler,
         ]
     
-    return process_cycle_tests(testinfo, testfolder, cycle_handlers, reportfile)
-    # return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
-
+    # doLoadTracking = DataTree(tracking=False, trends=False)
+    # doLoadTrends   = DataTree(tracking=False, trends=False)
+    
+    doLoadTracking = DataTree(tracking=True, trends=False)
+    doLoadTrends   = DataTree(tracking=False, trends=True)
+    
+    try:
+        process_cycle_tests(testinfo, testfolder, cycle_handlers_tracking, reportfile, doLoadTracking)
+        process_cycle_tests(testinfo, testfolder, cycle_handlers_trends, reportfile, doLoadTrends)
+        # return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
+    except Exception as err:
+        # logging.warn("Error occurred: "+str(err),exc_info=err)
+        raise err
 
 # from multiprocessing import Pool
 
@@ -171,21 +193,23 @@ def main():
     
     with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
     
-        # for testinfo, testfile  in testitems[ : ]:
-        for testinfo, testfile  in testitems[ :2 ]:
-            
+        for testinfo, testfile  in testitems[ : ]:
         # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 
             # if testinfo.orientation == 'lg':
-            # if testinfo.orientation == 'tr':
-                # continue
+            if testinfo.orientation == 'tr':
+                continue
             # if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
             #     continue
             
             testfolder = fs.testfolder(testinfo=testinfo, ensure_folders_exists=False)
             
             print(mdHeader(3, testinfo))
+            
+            # if any( testfolder.jsoncalc.glob('*.summaries.calculated.json') ):
+            #     logging.info("SKIPPING: "+str(testinfo))
+            #     continue
             
             try:
                 res = process_test(testinfo, testfolder, reportfile=report)

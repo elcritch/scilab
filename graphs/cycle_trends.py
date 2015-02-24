@@ -92,6 +92,8 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     data.update( data_normalize(testinfo, data, details, suffix='max') )
     data.update( data_normalize(testinfo, data, details, suffix='min') )
     
+    debug(data.summaries.keys())
+    
     fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
     imgname = 'fatigue graphs | name=cycle trends | test=%s | v5 |.png'%str(testinfo)
     

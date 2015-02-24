@@ -37,7 +37,6 @@ def doSavePrevous(json_current, json_updated):
     previous[handleForNow()] = json_current
     json_updated['previous'] = previous
 
-
 def graphs2_handler(testinfo, testfolder, testdata, args, savePrevious=True):
 
     return handler(testinfo=testinfo, testfolder=testfolder, args=args, savePrevious=savePrevious)
