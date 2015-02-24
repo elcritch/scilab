@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import argparse, re, os, glob, sys, pprint, itertools
+import argparse, re, os, glob, sys, pprint, itertools, json
 import inspect
 import logging
 from pathlib import Path
@@ -14,6 +14,53 @@ def stems(file):
     return file.name.rstrip(''.join(file.suffixes))
 
 Path.stems = stems
+
+def flatten(d, parent_key='', sep='_'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + str(k) if parent_key else str(k)
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+def debugger_summary(idx, val, prefix='_', depth=0):
+    msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))
+    if 'ndarray' in val.__class__.__name__:
+        return msg + "ndarry[shape={}]".format(shape=val.shape)         
+    elif isinstance(val, dict):
+        print('items:', flush=True, file=sys.stderr)
+        
+        for k,v in flatten(val, sep='.').items():
+            msg += '\n' + debugger_summary(k, v, depth=depth+1)
+        return msg
+    else:
+        return msg+repr(val)
+
+def debugger(func, debug=False):
+    """ Use to annotate functions for debugging purposes. """
+    pd = lambda *a, **kw: print(*a, end=' ', flush=True, file=sys.stderr, **kw)
+    pdln = lambda *a, **kw: print(*a, flush=True, file=sys.stderr, **kw)
+    
+    # np.set_printoptions(threshold=10)
+    def debugger_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as err:
+            args = itertools.chain( enumerate(args), kwargs.items())
+            # args = [ "{}-> {}".format(k, str(v)) for k,v in args ]
+            print("Trace:", func.__name__,' Args :=\n+ ', flush=True,file=sys.stderr)
+            
+            for idx, arg in args:
+                print('+ [{}]<{}>'.format(idx, type(arg)), end=' ', flush=True, file=sys.stderr)
+                if hasattr(arg, '_asdict'):
+                     arg = vars(arg)
+                print(debugger_summary(idx, arg), flush=True, file=sys.stderr)
+            
+            raise err
+            
+    return debugger_wrapper    
 
 def bindMethod(cls, name, func):
     """ Dynamically bind a new method to a class. """
@@ -69,15 +116,26 @@ class DataTree(dict):
         
         super().__init__(*args, **kwdargs)
         
+    def set(self,**kw):
+        copy = DataTree(self)
+        copy.update(**kw)
+        return copy
+        
     def __getattr__(self, name):
-        return self.__getitem__(name)
-    
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError(self._keyerror(name))
+            
+    def _keyerror(self, name):
+        avail_keys = set(str(s) for s in self.keys())
+        return "Key `{}` not found in: {}".format(name,avail_keys)
+        
     def __getitem__(self, name):
         try:
             return super().__getitem__(name)
         except KeyError:
-            avail_keys = set(str(s) for s in self.keys())
-            raise KeyError("Key `{}` not found in: {}".format(name,avail_keys))
+            raise KeyError(self._keyerror(name))
     
     def __setattr__(self, name, value):
         self[name] = value

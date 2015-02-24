@@ -11,8 +11,13 @@ if __name__ != '__main__':
 else:
     from project import *
 
+_InstronColumnData = namedtuple('_InstronColumnData', 'array name label details units idx')
 
-InstronColumnData = namedtuple('InstronColumnData', 'array name label details units idx')
+class InstronColumnData(_InstronColumnData):
+    
+    def set(self, **kw):
+        vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
+        return InstronColumnData(*vals)
 
 # class InstronColumnData(__InstronColumnData):
     # def __new__(cls, *args, **kwargs):

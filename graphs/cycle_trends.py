@@ -10,6 +10,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 
+sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').exists() ][0] )
+
 from scilab.tools.project import *
 import scilab.tools.scriptrunner as ScriptRunner
 from scilab.tools.instroncsv import csvread
@@ -22,37 +24,42 @@ import numpy as np
 
 from scilab.graphs.graph_shared import *
 
-def graph(testinfo:TestInfo, details, args, data):
+def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
-    t, x, y = data.totalTime, data.strain_max, data.stress_max
+    stepslice = testdata.steps[5]
+    sliced = lambda xs: xs.set(array=xs.array[stepslice])
+    debug(stepslice)
+    
+    # t, x, y = testdata.elapsedCycles, testdata.strain_max, testdata.stress_max
+    # debug(testdata.load_max)
+    t, x, y = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
+    # debug(t,x,y)
     
     ax1_title = "%s vs %s"%(t.label, x.label)
     
-    fig, axes = plt.subplots(ncols=1, figsize=(14,6))
+    fig, axes = plt.subplots(ncols=2, figsize=(14,6))
     (ax1,ax2) = axes
     
     ## First Plot ##
-
-    ax1.plot(x.array, y.array)
+    ax1.plot(t.array, y.array)
     ax1.set_xlabel(t.label)
     ax1.set_ylabel(x.label)
     
-    stress_max = stepsummaries.stress_max.mean
-    ax1.hlines(stress_max, x.array[0],x.array[-1], linestyles='dashed')
+    # stress_max = .stress_max.mean
+    # ax1.hlines(stress_max, x.array[0],x.array[-1], linestyles='dashed')
     
-    label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.max.idx], x.units, )
-    debug(label_stress_max)
+    # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.summary.maxs.idx], x.units, )
+    # debug(label_stress_max)    
+    # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
     
-    graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
-    
-    ax1.set(xlim=limiter(x.array, 0.08), ylim=limiter(y.array, 0.08))
+    ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.8))
     ax1.legend(loc=0, fontsize=10)
     ax1.set_title(ax1_title)
     
     ## Second Plot ##
     ax2_title = "%s vs %s"%(y.label, t.label, )
     
-    ax2.plot(x.array, y.array)
+    ax2.plot(t.array, x.array)
     ax2.set_xlabel(t.label)
     ax2.set_ylabel(y.label)
     
@@ -65,28 +72,42 @@ def graph(testinfo:TestInfo, details, args, data):
     # Make some room at the bottom 
     fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
     
-    set_secondary_label(ax1, xx=data.strain, xp=data.displacement, 
-                convertfunc=lambda x: x*details.gauge.value)
-    
-    set_secondary_label(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='right',
-                convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
+    # set_secondary_label(ax1, xx=data.strain, xp=data.displacement,
+    #             convertfunc=lambda x: x*details.gauge.value)
+    #
+    # set_secondary_label(ax1, xx=data.stress, xp=data.load, ax_dir='y', side='right',
+    #             convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
         
     return fig, axes
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
-    data = testdata.tests.cycles.trends
-    data = data_configure_load(testinfo=testinfo, data=data, details=details, trends=True)
-    data.update( data_normalized(testinfo, data, details, suffix='maxs') )
-    data.update( data_normalized(testinfo, data, details, suffix='mins') )
-    data.update( data_stepsummaries(testinfo, data, details) )
+    cyclesdata = testdata.tests.cycles.trends
     
-    fig, ax = graph(testinfo, data, details, args)
+    data = data_configure_load(testinfo=testinfo, data=cyclesdata, details=details, trends=True)
+    
+    data.elapsedCycles = cyclesdata.elapsedCycles
+    data.summaries = DataTree()
+    
+    updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
+    
+    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['load_max', 'disp_max']) )
+    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['load_min', 'disp_min']) )
+
+    data.update( data_normalize(testinfo, data, details, suffix='max') )
+    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['stress_max', 'strain_max']) )
+
+    data.update( data_normalize(testinfo, data, details, suffix='min') )
+    data.summaries.update( data_datasummaries(testinfo, data, details, cols=['stress_min', 'strain_min']) )
+    
+    fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
     imgname = 'fatigue graphs | name=cycle trends | test=%s | v5 |.png'%str(testinfo)
     
     imgpath = testfolder.graphs.resolve() / imgname 
     debug(imgpath)    
 
+    plt.show(block=True)
+    
     fig.savefig(str(imgpath), bbox_inches='tight',)    
     plt.close()
     
@@ -97,5 +118,8 @@ def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
     return handler(testinfo, testfolder, details=testdata.details, testdata=testdata, args=args, )    
 
     
-
+if __name__ == '__main__':
+    
+    import scilab.graphs.graph_runner2
+    scilab.graphs.graph_runner2.main()
 
