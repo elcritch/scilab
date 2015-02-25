@@ -27,14 +27,14 @@ import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing
 import scilab.tools.scriptrunner as ScriptRunner
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
 from scilab.expers.mechanical.fatigue.cycles import FileStructure
 from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
 from scilab.expers.mechanical.fatigue.helpers import *
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 
 from scilab.expers.mechanical.fatigue.cycles import TestInfo
 

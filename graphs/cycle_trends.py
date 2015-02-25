@@ -15,7 +15,7 @@ sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').
 from scilab.tools.project import *
 import scilab.tools.scriptrunner as ScriptRunner
 from scilab.tools.instroncsv import csvread
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing
@@ -26,7 +26,7 @@ from scilab.graphs.graph_shared import *
 
 def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
-    stepslice = testdata.steps[5]
+    stepslice = testdata.steps['step_5']
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
     # debug(stepslice)
     
@@ -47,7 +47,7 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     calc[xname].actual = x.array.mean()
     calc[xname].actual_perc = calc[xname].actual/(calc[xname].pred_max) * 100.0
     
-    debug(calc)
+    # debug(calc)
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))
@@ -60,7 +60,7 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ax2.set_ylabel(labeler(x))
     
     # stress_max = .stress_max.mean
-    ax1.hlines(-testdata.summaries[xname].balance, *ax1.get_xbound(), linestyles='dashed', label='Offset', color='lightgrey')
+    ax1.hlines(-testdata.summaries[xname].balance.offset, *ax1.get_xbound(), linestyles='dashed', label='Offset', color='lightgrey')
     
     avg_label='Avg. {:3.1f} ({:.0f}%)'.format(calc[xname].actual, calc[xname].actual_perc)    
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calc[xname].target, calc[xname].stress_level)
@@ -109,11 +109,16 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
-    cyclesdata = testdata.tests.cycles.trends
+    csvdata = testdata.tests.cycles.trends
     
-    data = data_configure_load(testinfo=testinfo, data=cyclesdata, details=details, doLoad=args.doLoad)
+    # debug('cycle_trends',displayjson(details.summaries))
     
-    data.elapsedCycles = cyclesdata.elapsedCycles
+    balances = DataTree()
+    data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, 
+                                data_kind='trends', 
+                                balances=details.summaries.step04_cycles )
+    
+    data.elapsedCycles = csvdata.elapsedCycles
     data.balances = DataTree(disp=DataTree(),load=DataTree())
     
     
@@ -123,15 +128,13 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     # data.balances.strain.summary = details.summaries.strain.summary['2.0']
     # data.balances.strain.offset = data.balances.strain.summary.mean
     
-    dictdisplay = lambda x: '\n'+'\n'.join([ "> .... {} -> {}".format(k,v) for k,v in flatten(x,sep='.').items() ])
-
     # debug( dictdisplay(details) )
     
-    data.balances.disp.summary = details.summaries.disp.summary['2.0']
-    data.balances.disp.offset = data.balances.disp.summary.mean
-    
-    data.balances.load.summary = details.summaries.load.summary['2.0']
-    data.balances.load.offset = data.balances.load.summary.mean
+    # data.balances.disp.summary = ['step04_cycles','step_2','disp']
+    # data.balances.disp.offset = details.summaries.step04_cycles.disp.summary['step_2'].mean
+    #
+    # data.balances.load.summary = ['step04_cycles','step_2','load']
+    # data.balances.load.offset = details.summaries.step04_cycles.load.summary['step_2'].mean
     
     data.summaries = DataTree()
     
@@ -140,12 +143,12 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     data.update( data_normalize(testinfo, data, details, suffix='max') )
     data.update( data_normalize(testinfo, data, details, suffix='min') )
     
-    debug(data.summaries.keys())
+    # debug(data.summaries.keys())
     
     # debug( dictdisplay(data.summaries) )
     
     fig, ax, calc = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)
-    plt.show(block=True)
+    # plt.show(block=True)
     testfolder.save_graph(name='cycle_trends', fig=fig)
     plt.close()
     

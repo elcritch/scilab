@@ -15,7 +15,7 @@ sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').
 from scilab.tools.project import *
 import scilab.tools.scriptrunner as ScriptRunner
 from scilab.tools.instroncsv import csvread
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing
@@ -26,9 +26,9 @@ from scilab.graphs.graph_shared import *
 
 def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
-    stepslice = testdata.steps[-1]
+    stepslice = testdata.steps['step_all']
     sliced = lambda xs: xs.set(array=xs.array[stepslice])
-    debug(stepslice)
+    print("Stepslice:",stepslice)
     
     # t, y, x = testdata.total_time, testdata.disp, testdata.load
     t, y, x = testdata.total_time, testdata.strain, testdata.stress
@@ -48,9 +48,8 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ax1.legend(loc=2, fontsize=10)
     ax1.set_title(ax1_title)
     
-    ax1_bounds = ax1.get_xbound()
     for step, stepslice in testdata.steps.items():
-        ax1.axvline(x=end_y[1], ymin=ax1_bounds, ymax = max(y.array[npslice]), color='purple')
+        ax1.axvline(t.array[stepslice.start], *ax1.get_ybound(), color='purple')
         
     
     ## y2 Plot ##
@@ -67,10 +66,13 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     testname = 'cycles'
     csvdata = testdata.tests[testname].tracking
     
-    data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, doLoad=args.doLoad)
+    data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, 
+                               balancestep='step_2', data_kind='tracking')
     
     data.total_time = csvdata.totalTime
-    data.summaries = DataTree()
+    # data.summaries = DataTree()
+    
+    # debug(displayjson(data))
     
     updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
     
@@ -81,7 +83,7 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     ## Figure ##
     fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)    
-    plt.show(block=True)
+    # plt.show(block=True)
     testfolder.save_graph(name='graph_all_'+testname, fig=fig)
     plt.close()
     

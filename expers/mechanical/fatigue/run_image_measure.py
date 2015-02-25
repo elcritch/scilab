@@ -14,7 +14,7 @@ base3 = '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Exp
 
 sys.path.insert(0,base3)
 
-import scilab, scilab.tools.graphing, scilab.tools.json
+import scilab, scilab.tools.graphing, scilab.tools.jsonutils
 from scilab.tools.project import *
 from scilab.expers.mechanical.fatigue.uts import *
 
@@ -60,14 +60,14 @@ def processSpecimenImages(testinfo, testfolder, testimages):
         if not measure: continue
 #         print("Measurements:\n",flatten(measure.mm.summaries,sep='.'))
 
-    scilab.tools.json.write_json(pd, measures)
+    scilab.tools.jsonutils.write_json(pd, measures)
     summaries = DataTree(**{ k: v.mm.summaries for k,v in measures.items() if v })
     summaries.units = 'mm'
     summaries.info = testinfo
     summariesName = '{}.measurements.json'.format(testinfo.name)
 
     debug(summaries)
-    scilab.tools.json.write_json(testfolder.jsoncalc, summaries, json_url=summariesName)
+    scilab.tools.jsonutils.write_json(testfolder.jsoncalc, summaries, json_url=summariesName)
 
     print("Wrote json:", testfolder.jsoncalc)
 

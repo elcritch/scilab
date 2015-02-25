@@ -15,7 +15,7 @@ import logging
 from scilab.tools.excel import *
 from scilab.tools.project import *
 
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 # from scilab.expers.mechanical.fatigue.uts import TestInfo
 from scilab.expers.mechanical.fatigue.helpers import flatten
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
@@ -47,7 +47,7 @@ def parse_fatigue_data_sheet_v1(ws):
     other = DataTree()
     
     ## continue reading the column down 
-    end = process_definitions_column(ws, other, 'A',8,30, stop_key='Failure Notes / Test Results', dbg=False)
+    end = process_definitions_column(ws, other, 'A',8,50, stop_key='Failure Notes / Test Results', dbg=False)
     ## read next definition column (4 excel columns over)
     process_definitions_column(ws, other, 'D', 7, end, dbg=True)
 
@@ -228,12 +228,7 @@ def handler(testinfo, testfolder, excelfile, args):
     print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
     updateMetaData(data)
     
-    Json.write_json(
-        testfolder.jsoncalc,
-        json_url=testinfo.name+'.excel.calculated.json',
-        data=data,
-        dbg=False)
-
+    testfolder.save_calculated_json_raw(name='excel',json_data=data)
     
     ## Update with Image Measurements
     
@@ -244,11 +239,7 @@ def handler(testinfo, testfolder, excelfile, args):
     
     updateMetaData(data)
 
-    Json.write_json(
-        testfolder.jsoncalc.as_posix(),
-        data,
-        json_url=testinfo.name+'.measurements.calculated.json',
-        dbg=False)
+    testfolder.save_calculated_json_raw(name='measurements',json_data=data)
     
     return
 

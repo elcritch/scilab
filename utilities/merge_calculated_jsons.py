@@ -18,7 +18,7 @@ import logging
 from scilab.tools.excel import *
 from scilab.tools.project import *
 
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 # from scilab.expers.mechanical.fatigue.uts import UtsTestInfo
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
     

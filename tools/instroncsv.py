@@ -11,18 +11,33 @@ if __name__ != '__main__':
 else:
     from project import *
 
-_InstronColumnData = namedtuple('_InstronColumnData', 'array name label details units idx')
-
-class InstronColumnData(_InstronColumnData):
-    
+class NamedTuple():
     def set(self, **kw):
         vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
-        return InstronColumnData(*vals)
-
-# class InstronColumnData(__InstronColumnData):
-    # def __new__(cls, *args, **kwargs):
-        # super().__new__(cls, *args, **kwargs)
+        return self.__class__(*vals)
+    # def __str__(self):
+    #     return "{}({})".format(self.__class__.__name__, repr(self))
     
+
+class InstronColumnSummary(DataTree):
+    pass
+class InstronColumnBalance(DataTree):
+    pass
+class InstronColumnData(namedtuple('_InstronColumnData', 'array name label details units idx summary'), NamedTuple):
+    pass
+        
+def get_max(data):
+    if not len(data):
+        return DataTree(idx=None, value=None)
+    idx = np.argmax(data)
+    return DataTree(idx=idx, value=data[idx])
+
+def get_min(data):
+    if not len(data):
+        return DataTree(idx=None, value=None)
+    idx = np.argmin(data)
+    return DataTree(idx=idx, value=data[idx])
+
 def InstronColumnData__call__(self):
     return self.array
     
@@ -68,7 +83,9 @@ def getColumnData(headerLine):
             label=label, 
             details=kind, 
             units=units, 
-            idx=idx)
+            idx=idx,
+            summary=None,
+            )
             
         columns.append(columnData)
         
@@ -93,7 +110,9 @@ def getColumnData(headerLine):
                     label=c.label, 
                     details=c.details, 
                     units=c.units, 
-                    idx=c.idx)
+                    idx=c.idx,
+                    summary=None,
+                    )
 
                 # logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
             
@@ -118,15 +137,15 @@ def getColumnData(headerLine):
 
 # InstronMatrixData = namedtuple('InstronMatrixData', '')
 # InstronField = namedtuple('InstronMatrixData', '')
-def get_index_slices(data):
+def get_index_slices(data, keyer=None):
     """ Return an array of numpy slices for indexing arrays according to changes in the numpy array `data` """
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
     indices_begin = [0] + [ i for i in (indices + 1)] # offset by 1 to get beginning of slices
     indices_end = [ i for i in (indices + 1)]+[-1]
-
+    keyer = keyer or (lambda k: k)
     # debug(indices_begin, indices_end)
 
-    return collections.OrderedDict( (data[i], np.s_[i:j:1]) for i,j in zip(indices_begin, indices_end) )
+    return collections.OrderedDict( (keyer(data[i]), np.s_[i:j:1]) for i,j in zip(indices_begin, indices_end) )
     
 class InstronMatrixData(DataTree):
     def __init__(self, *args, **kwdargs):
@@ -141,10 +160,10 @@ class InstronMatrixData(DataTree):
         indicies = self._getslices(key)[index]
         return indicies
         
-    def _getslices(self, keyColumn='step'):
+    def _getslices(self, keyColumn='step', keyer=lambda x: "step_{:.0f}".format(x)):
         """ Lazy loading of slices based on 'step' column. """
         if keyColumn not in self.__slices:
-            npslices = get_index_slices(self[keyColumn].array)
+            npslices = get_index_slices(self[keyColumn].array, keyer=keyer)
             self.__slices[keyColumn] = npslices
         
         return self.__slices[keyColumn]
@@ -199,8 +218,9 @@ def csvread(fileName):
         for (idx, cd) in enumerate(columns):
             # debug(idx, cd.name, cd)
             # print()
-            
-            data[cd.name] =  InstronColumnData(array=matrix[:,idx], name=cd.name, label=cd.label, details=cd.details, units=cd.units, idx=cd.idx)
+            xx = matrix[:,idx]
+            summary = InstronColumnSummary(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
+            data[cd.name] =  InstronColumnData(array=xx, name=cd.name, label=cd.label, details=cd.details, units=cd.units, idx=cd.idx, summary=summary)
         
         # for idx in step_indices:
             # debug(idx, step[idx], step[idx-1])

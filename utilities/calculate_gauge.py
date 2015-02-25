@@ -16,7 +16,7 @@ import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing 
 import scilab.tools.scriptrunner as ScriptRunner
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 from scilab.tools.instroncsv import csvread
 from pprint import pprint
 

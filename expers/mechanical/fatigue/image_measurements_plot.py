@@ -12,7 +12,7 @@ import seaborn as sns
 from IPython.display import display
 import numpy as np, scipy
 
-import scilab, scilab.tools.graphing, scilab.tools.json 
+import scilab, scilab.tools.graphing, scilab.tools.jsonutils 
 from scilab.tools.project import *
 from scilab.expers.mechanical.fatigue.uts import *
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable

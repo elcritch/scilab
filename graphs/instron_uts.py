@@ -13,7 +13,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
 from scilab.tools.project import *
 import scilab.tools.scriptrunner as ScriptRunner
 from scilab.tools.instroncsv import csvread
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing

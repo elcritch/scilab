@@ -14,7 +14,7 @@ import seaborn as sns
 from IPython.display import display
 import numpy as np, scipy
 
-import scilab, scilab.tools.graphing, scilab.tools.json 
+import scilab, scilab.tools.graphing, scilab.tools.jsonutils 
 from scilab.tools.project import *
 from scilab.expers.mechanical.fatigue.uts import *
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
@@ -279,7 +279,7 @@ def processTest(coun,test):
     
     print(mdHeader(1, "Test {}: {} ({})".format(count,test.info.name, test.info.short()) ) )
 
-    locations = scilab.tools.json.load_json(str(test.parent / 'measured'), json_url="hand.measurements.json")
+    locations = scilab.tools.jsonutils.load_json(str(test.parent / 'measured'), json_url="hand.measurements.json")
 
     orient = test.info.orientation
     pixel_ratio = DIMS['pixel_ratio']
@@ -294,13 +294,13 @@ def processTest(coun,test):
         if not measure: continue
 #         print("Measurements:\n",flatten(measure.mm.summaries,sep='.'))
     
-    scilab.tools.json.write_json(pd, measures)
+    scilab.tools.jsonutils.write_json(pd, measures)
     summaries = DataTree(**{ k: v.mm.summaries for k,v in measures.items() if v })
     summaries.units = 'mm'
     summaries.info = test.info    
     summariesName = '{}.measurements.json'.format(test.info.name)
     
-    scilab.tools.json.write_json(testDataDir, summaries, json_url=summariesName)
+    scilab.tools.jsonutils.write_json(testDataDir, summaries, json_url=summariesName)
     print("Wrote json:", testDataDir)
     
 #     clear_output()
@@ -393,7 +393,7 @@ def processTest(coun,test):
     
     print(mdHeader(1, "Test {}: {} ({})".format(count,test.info.name, test.info.short()) ) )
 
-    locations = scilab.tools.json.load_json(str(test.parent / 'measured'), json_url="hand.measurements.json")
+    locations = scilab.tools.jsonutils.load_json(str(test.parent / 'measured'), json_url="hand.measurements.json")
 
     orient = test.info.orientation
     pixel_ratio = DIMS['pixel_ratio']
@@ -407,13 +407,13 @@ def processTest(coun,test):
         print("## Processing:", k)
         if not measure: continue
     
-    scilab.tools.json.write_json(pd, measures)
+    scilab.tools.jsonutils.write_json(pd, measures)
     summaries = DataTree(**{ k: v.mm.summaries for k,v in measures.items() if v })
     summaries.units = 'mm'
     summaries.info = test.info    
     summariesName = '{}.measurements.json'.format(test.info.name)
     
-    scilab.tools.json.write_json(testDataDir, summaries, json_url=summariesName)
+    scilab.tools.jsonutils.write_json(testDataDir, summaries, json_url=summariesName)
     print("Wrote json:", testDataDir)
     
     for fig in [figname1, figname2, figname3]:

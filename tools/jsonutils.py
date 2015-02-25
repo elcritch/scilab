@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import json, os, tempfile, shutil, logging, re
+import os, tempfile, shutil, logging, re
+
+import json as json
 
 import jsonmerge
 from pathlib import Path
@@ -8,7 +10,7 @@ from pathlib import Path
 if __name__ != '__main__':
     from scilab.tools.project import *
 else:
-    from Project import *
+    from project import *
 
 
 def stems(file):
@@ -115,14 +117,16 @@ class CustomJsonEncoder(json.JSONEncoder):
         try:
             if isinstance(obj, numpy.ndarray):
                 return obj.tolist()
-            elif isinstance(obj, numpy.generic):
-                return numpy.asscalar(obj)
             elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
-                return dict(**zip(obj._fields,obj))
+                return vars(obj)
             elif isinstance(obj, slice):
                 return (obj.start, obj.step, obj.stop)
+            elif isinstance(obj, numpy.generic):
+                return numpy.asscalar(obj)
             else:
-                return super().default(obj)
+                # return super().default(obj)
+                return json.JSONEncoder.default(self, obj)
+                
         except TypeError as err:
             print("Json TypeError:"+str(type(obj))+" obj: "+str(obj))
             raise err
@@ -133,7 +137,7 @@ def write_json(parentdir,json_data, json_url="data.json", **kwargs):
 
 
 @debugger
-def write_json_to(json_path, json_data, dbg=None, cls=CustomJsonEncoder):
+def write_json_to(json_path, json_data, dbg=None, ):
 
     json_path = Path(str(json_path))
 
@@ -148,7 +152,7 @@ def write_json_to(json_path, json_data, dbg=None, cls=CustomJsonEncoder):
 
         # with open( tempFile, 'w' ) as json_file:
         # with tempFile as json_file:
-        json.dump(json_data, tempFile, indent=4,cls=CustomJsonEncoder)
+        json.dump(json_data, tempFile, indent=4, sort_keys=True, cls=CustomJsonEncoder)
 
             # update json file
             # debug(tempFile.name)
@@ -170,4 +174,33 @@ def update_json(parentdir, update_data, json_url="data.json", default=None, dbg=
     write_json(parentdir, json_to_write, json_url=json_url, dbg=dbg)
 
     return
+
+def main():
+    
+    from collections import OrderedDict, namedtuple
+    
+    class NamedTuple():
+        def set(self, **kw):
+            vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
+            return self.__class__(*vals)
+        # def __str__(self):
+        #     return "{}({})".format(self.__class__.__name__, repr(self))
+    
+
+    class Test1(DataTree): 
+        pass
+    
+    class Test2(object): 
+        pass
+    
+    # debug(Test1(1,2).__class__.mro())
+    
+    j1 = { 'test1': Test1(a=1,b=2) }
+    t1 = json.dumps(j1, sort_keys=True, cls=CustomJsonEncoder)
+    # t2 = json.dumps(Test2(), sort_keys=True, cls=CustomJsonEncoder)
+    t3 = CustomJsonEncoder().encode(Test1(a=5,b=6))
+    debug(j1, t1, t3)
+    
+if __name__ == '__main__':
+    main()
 

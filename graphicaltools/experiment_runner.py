@@ -14,7 +14,7 @@ import scilab
 from scilab.expers.mechanical.fatigue.cycles import FileStructure
 from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
 from scilab.expers.mechanical.fatigue.helpers import *
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 
 import numpy as np
 

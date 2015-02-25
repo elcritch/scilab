@@ -4,6 +4,7 @@ import argparse, re, os, glob, sys, pprint, itertools, json
 import inspect
 import logging
 from pathlib import Path
+import jsonmerge
 
 import collections
 from collections import OrderedDict, namedtuple
@@ -121,6 +122,22 @@ class DataTree(dict):
         copy.update(**kw)
         return copy
         
+    # def merge(self, other):
+    #     def mergerer(d, ):
+    #         if isinstance(v, collections.MutableMapping):
+    #             for k, v in d.items():
+    #                 mergerer(v)
+    #     def mergerer(d, parent_key='', sep='_'):
+    #         items = []
+    #         for k, v in d.items():
+    #             new_key = parent_key + sep + str(k) if parent_key else str(k)
+    #             if isinstance(v, collections.MutableMapping):
+    #                 items.extend(flatten(v, new_key, sep=sep).items())
+    #             else:
+    #                 items.append((new_key, v))
+    #         return collections.OrderedDict(items)
+    #     self.update(updated)
+        
     def __getattr__(self, name):
         try:
             return self.__getitem__(name)
@@ -144,6 +161,8 @@ class DataTree(dict):
     def __str__(self):
         return pprint.pformat(self)
 
+    def __iter__(self):
+        return sort(super().__iter__())
 
 class DebugData(DataTree):
 

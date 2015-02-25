@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 
-import sys, os, glob, logging
+import sys, os, glob, logging, collections
 from collections import namedtuple
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').exists() ][0] )
+
 from scilab.tools.project import *
 import scilab.tools.scriptrunner as ScriptRunner
 from scilab.tools.instroncsv import csvread
-import scilab.tools.json as Json
+from scilab.tools.instroncsv import InstronColumnSummary, InstronColumnBalance
+import scilab.tools.jsonutils as Json
 import scilab.tools.project as Project
 import scilab.tools.graphing as Graphing
 from scilab.tools.graphing import DataMax
@@ -24,6 +27,7 @@ from scilab.expers.configuration import FileStructure, TestInfo, TestData, TestD
 
 limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
 labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.label)
+displayjson = lambda x: '\n'+'\n'.join([ "> .... {} -> {}".format(k,v) for k,v in flatten(x,sep='.').items() ])
 
 def get_max(data):
     if not len(data):
@@ -37,7 +41,10 @@ def get_min(data):
     idx = np.argmin(data)
     return DataTree(idx=idx, value=data[idx])
 
-def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLoad):
+def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, data_kind, 
+                        balances=DataTree(),balancestep=None):
+    
+    assert data_kind in ['tracking', 'trends']
     
     updated = DataTree()
     updated.summaries = DataTree()
@@ -47,17 +54,16 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLo
         stressname='stress', strainname='strain',
         stressunits='MPa', strainunits='∆',
         )
-
-
+    
     updated.config = dataconfig
     updated.steps = data._getslices('step')
-    updated.steps[-1] = np.s_[0:-1]
-    debug(updated.steps)
+    updated.steps['step_all'] = np.s_[0:-1]
+    print("Steps:",updated.steps)
     
     if 'load' in data:
         return updated
 
-    if doLoad.tracking:
+    if data_kind == 'tracking':
         if testinfo.orientation == 'tr':
             loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
         if testinfo.orientation == 'lg':
@@ -66,10 +72,12 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLo
         logging.warn("Choosing loads: "+repr(loads))
         updated.load = data[loads[0]]
         updated.disp = data.displacement
-        ds = data_datasummaries(testinfo, updated, details, cols=[dataconfig.loadname, dataconfig.dispname])
-        updated.summaries.update(ds)
-    
-    if doLoad.trends:
+        updated.summaries.update(data_datasummaries(
+            testinfo, updated, details,
+            balancestep=balancestep, balances=balances,
+            cols=[dataconfig.loadname, dataconfig.dispname]))
+
+    elif data_kind == 'trends':
         if testinfo.orientation == 'tr':
             if 'load_max' not in data:
                 load_max = data.loadLinearLoad1Maximum # choose Honeywell
@@ -92,7 +100,10 @@ def data_configure_load(testinfo:TestInfo, data:DataTree, details:DataTree, doLo
         updated.disp_min = disp_min
         
         updated.summaries.update(data_datasummaries(
-            testinfo, updated, details, cols=['load_max', 'load_min', 'disp_max', 'disp_min']) )
+            testinfo, updated, details, 
+            balancestep=balancestep,
+            balances=balances,
+            cols=['load_max', 'load_min', 'disp_max', 'disp_min']) )
         
     if not updated:
         raise ValueExceptioN("Choose something!")
@@ -104,15 +115,23 @@ def data_datasummaries( testinfo:TestInfo,
                         data:DataTree, 
                         details:DataTree, 
                         balancestep=None,
+                        balances=DataTree(),
                         cols=['load', 'disp']):
     
     datasummaries = DataTree()
+    
+    # debug('data_datasummaries', cols, balancestep)
+    
+    # if not balancestep:
+        # raise Exception()
+    
+    assert not (balancestep and balances)
     
     @debugger
     def summaryvalues(val, sl):
         # debug(val.array.shape, sl)
         xx = val.array[sl]
-        return DataTree(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
+        return InstronColumnSummary(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
     
     @debugger
     def summarize(colname):
@@ -120,23 +139,53 @@ def data_datasummaries( testinfo:TestInfo,
         return DataTree({ key:_summarize(stepslice) for key, stepslice in data.steps.items() })
     
     @debugger
-    def balances(colname, summary):
+    def dobalances(colname, summary):
         # debug(summary)
-        return DataTree(step=balancestep, offset=summary[balancestep]['mean'])
+        return InstronColumnBalance(step=balancestep, offset=summary[balancestep].mean)
         
         return balances
         
     for colname in cols:
         summary = summarize(colname)
-        balance = balances(colname, summary) if balancestep else {}
+        
+        if colname in balances:
+            balance = balances[colname]
+        elif balancestep:
+            balance = dobalances(colname, summary)
+        else:
+            balance = InstronColumnBalance(offset=0.0)
+        
         datasummaries[colname] = DataTree(balance=balance,summary=summary)
 
     return datasummaries
+
+def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree, 
+                    normfactor, xname, yname, yunits, balance, 
+                    ):
+
+    normalized = DataTree(steps=data.steps)
+    if xname in data.summaries:
+        normalized.summaries
+    normalized.summaries.update(data_datasummaries(testinfo, data=data, details=details, cols=[xname]))
+    
+    # offset_load = data[loadname].array - data.summaries[xname].balance
+    # normalized[loadname] = data[loadname].set(array=offset_load)
+    
+    ydata = data[dispname].array / normfactor
+    normalized[stressname] = DataTree(array=stress, label=stressname.capitalize(), units=stressunits)
+
+    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
+
+    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
+    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
+    
+    return normalized
 
 def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree, 
                     loadname='load', dispname='disp',suffix="",
                     stressname='stress', strainname='strain',
                     stressunits='MPa', strainunits='∆',
+                    
                     ):
 
     if suffix:
@@ -151,18 +200,28 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
     normalized.summaries = DataTree(**data.summaries)
     normalized.summaries.update(data_datasummaries(testinfo, data, details, cols=[loadname, dispname]))
     
-    normalized.summaries[loadname].balance = data.balances.load.offset
-    normalized.summaries[dispname].balance = data.balances.disp.offset
+    # debug(displayjson(data.summaries), displayjson(normalized.summaries))
+    # debug(list(data.keys()))
+    # debug(displayjson(data.get('balance', {})), displayjson(data.get('balances', {})))
+    # debug('data_normalize',displayjson(data.summaries))
+
+    # normalized.summaries.load.summary.step_3.std
+    load_balance = normalized.summaries[loadname]['balance']
+    disp_balance = normalized.summaries[dispname]['balance']
+    if load_balance:
+        normalized.summaries[loadname].balance = load_balance
+    if disp_balance:
+        normalized.summaries[dispname].balance = disp_balance
     
     # data.load_orig = data.load
     
-    offset_load = data[loadname].array - normalized.summaries[loadname].balance
-    normalized[loadname] = data[loadname].set(array=offset_load)
+    offset_load = normalized.summaries[loadname].balance.offset if normalized.summaries[loadname].balance else 0.0
+    normalized[loadname] = data[loadname].set(array=data[loadname].array-offset_load)
     normalized[dispname] = data[dispname]
     
-    pre=data_datasummaries(testinfo, data, details, cols=[loadname]),
-    post=data_datasummaries(testinfo, normalized, details, cols=[loadname]),
-    debug(pre, post)
+    # pre=data_datasummaries(testinfo, data, details, cols=[loadname]),
+    # post=data_datasummaries(testinfo, normalized, details, cols=[loadname]),
+    # debug(pre, post)
     
     # DataTree(array=data[loadname].array - data.summaries[loadname].balance.offset,
                                # label=data[loadname].label, units=data[loadname].label)
@@ -175,8 +234,10 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
 
     normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
 
-    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
-    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
+    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance
+    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance
+    normalized.summaries[strainname].balance.offset /= details.gauge.value
+    normalized.summaries[stressname].balance.offset /= details.measurements.area.value
     
     return normalized
 
@@ -233,4 +294,8 @@ def set_secondary_label(axes, label, ax_dir='x',side='bottom', tickfmt = "{:.0f}
     Gaxtwin('{x}axis').set_label_position(side)
     Gaxtwin('spines')[side].set_position(position)
 
+if __name__ == '__main__':
+    
+    import scilab.graphs.graph_runner2
+    scilab.graphs.graph_runner2.main()
 

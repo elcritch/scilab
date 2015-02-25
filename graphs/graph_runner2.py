@@ -26,7 +26,7 @@ import scilab.tools.project as Project
 import scilab.tools.excel as Excel
 import scilab.tools.graphing as Graphing
 import scilab.tools.scriptrunner as ScriptRunner
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 from scilab.expers.mechanical.fatigue.helpers import *
@@ -70,7 +70,7 @@ def process_uts_tests(testinfo, testfolder, handlers, reportfile):
     data.tracking = trackingdata
     
     data.tests.uts = DataTree(tracking=trackingdata)
-    debug(testfolder.raws.csv_step02_precond.tracking)
+    # debug(testfolder.raws.csv_step02_precond.tracking)
     data.tests.preconds = DataTree(tracking = csvread( testfolder.raws.csv_step02_precond.tracking ))    
     data.datasheet = testfolder.datasheet
     
@@ -83,7 +83,7 @@ def process_uts_tests(testinfo, testfolder, handlers, reportfile):
     
     
 
-def process_cycle_tests(testinfo, testfolder, handlers, reportfile, doLoad):
+def process_cycle_tests(testinfo, testfolder, reportfile, doLoad, handlers,):
     args = DataTree()
     args.experReportGraphs = testfolder.graphs
     args.experJson = testfolder.jsoncalc
@@ -94,7 +94,7 @@ def process_cycle_tests(testinfo, testfolder, handlers, reportfile, doLoad):
     
     testdata = TestData(tests=TestData())
     
-    debug(testfolder.raws.preconds_csv.tracking)
+    # debug(testfolder.raws.preconds_csv.tracking)
     testdata.tests.preconds = DataTree(tracking = csvread( testfolder.raws.preconds_csv.tracking ))    
 
     cycles_test = 'cycles_{}_csv'.format(testinfo.orientation)
@@ -128,39 +128,24 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.graphs.precondition_fitting as precondition_fitting 
     import scilab.graphs.cycle_trends as cycle_trends 
     
-    cycle_handlers_tracking = [ 
-            # merge_calculated_jsons.graphs2_handler,
-            # make_data_json.graphs2_handler,
-            merge_calculated_jsons.graphs2_handler,
-            # graphs_graph_all.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
-        ]
-    
-    cycle_handlers_trends = [ 
-            # make_data_json.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
-            cycle_trends.graphs2_handler,
-            # graphs_graph_all.graphs2_handler,
-        ]
-    
-    uts_handlers = [
-            # run_image_measure.graphs2_handler,
-            # make_data_json.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
-            # graphs_instron_uts.graphs2_handler,
-            # precondition_fitting.graphs2_handler,
-            # merge_calculated_jsons.graphs2_handler,
-        ]
-    
-    # doLoadTracking = DataTree(tracking=False, trends=False)
-    # doLoadTrends   = DataTree(tracking=False, trends=False)
-    
+        
     doLoadTracking = DataTree(tracking=True, trends=False)
     doLoadTrends   = DataTree(tracking=False, trends=True)
+    doLoadPost     = DataTree(tracking=False, trends=False)
     
     try:
-        process_cycle_tests(testinfo, testfolder, cycle_handlers_tracking, reportfile, doLoadTracking)
-        process_cycle_tests(testinfo, testfolder, cycle_handlers_trends, reportfile, doLoadTrends)
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking, 
+                            handlers=[make_data_json.graphs2_handler, merge_calculated_jsons.graphs2_handler], )
+        
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking, 
+                            handlers=[ graphs_graph_all.graphs2_handler,merge_calculated_jsons.graphs2_handler,], )
+        
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTrends, 
+                            handlers=[cycle_trends.graphs2_handler], )
+        
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadPost, 
+                            handlers=[merge_calculated_jsons.graphs2_handler], )
+        
         # return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
     except Exception as err:
         # logging.warn("Error occurred: "+str(err),exc_info=err)
@@ -198,8 +183,8 @@ def main():
         # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
 
             # if testinfo.orientation == 'lg':
-            if testinfo.orientation == 'tr':
-                continue
+            # if testinfo.orientation == 'tr':
+                # continue
             # if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
             #     continue
             

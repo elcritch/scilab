@@ -5,7 +5,7 @@ import shutil, re, sys, os, itertools, collections, logging
 from pathlib import Path
 from functools import partial
 
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
 
@@ -70,7 +70,10 @@ class TestFileStructure(DataTree):
         
         return data
 
-    def save_calculated_json(self, name, data, suffix="calculated", field="{name}", **kwargs):
+    def save_calculated_json(self, name, data, **kwargs):
+        return self.save_calculated_json_raw(name, {name:data}, **kwargs)
+        
+    def save_calculated_json_raw(self, name, json_data, suffix="calculated", field="{name}", **kwargs):
         filename = "{testinfo}.{name}.{suffix}json".format(
                     testinfo=self._testinfo.name,
                     name=name,
@@ -79,13 +82,11 @@ class TestFileStructure(DataTree):
         
         json_path = self.jsoncalc / filename
         
-        json_data = {name: data} if field else data
-        
         logging.info("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
         logging.info("Saving json file `{filename}` with fields: {fields}".format(
                 filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
         
-        return Json.write_json_to(json_path=json_path, json_data=data, **kwargs)
+        return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
     
     def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         

@@ -7,7 +7,7 @@ from functools import partial
 
 from scilab.tools.project import *
 from scilab.tools.helpers import *
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 

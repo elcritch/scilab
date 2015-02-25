@@ -7,7 +7,7 @@ from functools import partial
 
 sys.path.insert(0, '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (uts, expr1)/05_Code/01_Libraries')
 
-import scilab.tools.json as Json
+import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
 
