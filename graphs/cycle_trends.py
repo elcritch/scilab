@@ -41,10 +41,10 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     calc = DataTree()
     calc[xname] = DataTree()
     
-    calc[xname].target = other.test_max_force
+    calc[xname].target = other.test_max_force / testdetails.measurements.area.value
     calc[xname].stress_level = int(100*other.stress_level)
     calc[xname].pred_max = other.uts_stress # *testdetails.measurements.area.value
-    calc[xname].actual = x.array.mean()
+    calc[xname].actual = x.array.mean() 
     calc[xname].actual_perc = calc[xname].actual/(calc[xname].pred_max) * 100.0
     
     # debug(calc)
@@ -152,7 +152,7 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     testfolder.save_graph(name='cycle_trends', fig=fig)
     plt.close()
     
-    testfolder.save_calculated_json(name='stresslevels', data={'stresslevels':calc})
+    testfolder.save_calculated_json(name='stresslevels', data=calc)
     
     return {}
 

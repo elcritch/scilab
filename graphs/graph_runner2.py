@@ -127,23 +127,22 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.graphs.graph_all as graphs_graph_all
     import scilab.graphs.precondition_fitting as precondition_fitting 
     import scilab.graphs.cycle_trends as cycle_trends 
-    
         
     doLoadTracking = DataTree(tracking=True, trends=False)
     doLoadTrends   = DataTree(tracking=False, trends=True)
     doLoadPost     = DataTree(tracking=False, trends=False)
     
     try:
-        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking, 
-                            handlers=[make_data_json.graphs2_handler, merge_calculated_jsons.graphs2_handler], )
-        
-        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking, 
-                            handlers=[ graphs_graph_all.graphs2_handler,merge_calculated_jsons.graphs2_handler,], )
-        
-        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTrends, 
-                            handlers=[cycle_trends.graphs2_handler], )
-        
-        process_cycle_tests(testinfo, testfolder, reportfile, doLoadPost, 
+        # process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking,
+        #                     handlers=[make_data_json.graphs2_handler, merge_calculated_jsons.graphs2_handler], )
+        #
+        # process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking,
+        #                     handlers=[ graphs_graph_all.graphs2_handler,merge_calculated_jsons.graphs2_handler,], )
+        #
+        # process_cycle_tests(testinfo, testfolder, reportfile, doLoadTrends,
+        #                     handlers=[cycle_trends.graphs2_handler], )
+
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadPost,
                             handlers=[merge_calculated_jsons.graphs2_handler], )
         
         # return process_uts_tests(testinfo, testfolder, uts_handlers, reportfile)
