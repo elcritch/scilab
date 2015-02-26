@@ -177,7 +177,6 @@ def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree,
                     loadname='load', dispname='disp',suffix="",
                     stressname='stress', strainname='strain',
                     stressunits='MPa', strainunits='∆',
-                    
                     ):
 
     if suffix:

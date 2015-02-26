@@ -17,30 +17,10 @@ class NamedTuple():
         return self.__class__(*vals)
     # def __str__(self):
     #     return "{}({})".format(self.__class__.__name__, repr(self))
-    
-
-class InstronColumnSummary(DataTree):
-    pass
-class InstronColumnBalance(DataTree):
-    pass
-class InstronColumnData(namedtuple('_InstronColumnData', 'array name label details units idx summary'), NamedTuple):
-    pass
-        
-def get_max(data):
-    if not len(data):
-        return DataTree(idx=None, value=None)
-    idx = np.argmax(data)
-    return DataTree(idx=idx, value=data[idx])
-
-def get_min(data):
-    if not len(data):
-        return DataTree(idx=None, value=None)
-    idx = np.argmin(data)
-    return DataTree(idx=idx, value=data[idx])
 
 def InstronColumnData__call__(self):
     return self.array
-    
+
 InstronColumnData.__call__ = InstronColumnData__call__
 
 def camelCase(name, capitalizeFirst=False, removeCommon=[]):
@@ -48,7 +28,7 @@ def camelCase(name, capitalizeFirst=False, removeCommon=[]):
     name = ''.join( ""+w[:1].upper()+w[1:].lower() for w in words )
     name = ""+(name[:1].lower() if not capitalizeFirst else name[:1].upper())+name[1:]
     return name
-        
+
 def getColumnData(headerLine):
     headers = [ h.strip('"').replace(':', '|') for h in headerLine.split(',') ]
     
