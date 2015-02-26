@@ -9,6 +9,8 @@ from scilab.tools.project import *
 from scilab.tools.helpers import *
 import scilab.tools.jsonutils as Json
 
+
+
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
     def __new__(self, reTestName=None, name=None, *args, **kwargs):
@@ -168,7 +170,9 @@ class TestDetails(DataTree):
 
     def __str__(self):
         return "TestDetails[%s]"%super().__str__()
-    
+
+class TestOverview(DataTree):
+    pass
 
 def main():
 

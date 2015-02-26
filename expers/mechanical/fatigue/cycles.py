@@ -2,7 +2,6 @@
 
 
 import shutil, re, sys, os, itertools, collections, logging
-from pathlib import Path
 from functools import partial
 
 import scilab.tools.jsonutils as Json

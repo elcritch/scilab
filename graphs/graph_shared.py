@@ -21,7 +21,7 @@ import numpy as np
 
 # PlotData = namedtuple('PlotData', 'array label units')
 
-from scilab.expers.configuration import FileStructure, TestInfo, TestData, TestDetails
+from scilab.expers.configuration import *
 
 # from addict import Dict 
 

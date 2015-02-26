@@ -1,20 +1,12 @@
 #!/usr/local/bin/python3
 
 import argparse, re, os, glob, sys, pprint, itertools, json
-import inspect
-import logging
-from pathlib import Path
-import jsonmerge
+import inspect, logging, pathlib
 
 import collections
-from collections import OrderedDict, namedtuple
-
 from types import MethodType
 
-def stems(file):
-    return file.name.rstrip(''.join(file.suffixes))
-
-Path.stems = stems
+Path = pathlib.Path
 
 def flatten(d, parent_key='', sep='_'):
     items = []
@@ -174,6 +166,13 @@ class DebugNone(DebugData):
     def __bool__(self):
         return False
     
+# class Path(pathlib.Path):
+#
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#     def stems(self, file):
+#         return file.name.rstrip(''.join(file.suffixes))
 
 def ResearchDir(project_setup_file="project-setup.sh"):
     abspath = os.path.abspath(".").split(os.sep)
@@ -200,6 +199,8 @@ print ("Research (Project) Directory:", RESEARCH, RAWDATA)
 sys.path.append(RESEARCH+"/06_Methods/05_Code/03_DataReduction/libraries/")
 
 
+USER_HOME = Path(os.path.expanduser('~')).resolve()
+
 def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
     try:
         st = inspect.stack()[1]
@@ -209,12 +210,24 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
         varnames = re.search('debug\((.*)\)', funcCallStr[0])
         varnames = varnames.groups()[0].split(',')
 
+        def fmt_v_str(v):
+            if isinstance(v, Path) and str(v).startswith(str(USER_HOME)):
+                vstr = '~/'+str(v.relative_to(USER_HOME))
+            else:
+                vstr = str(v)
+            return "`%s`"%vstr if vstr.count('\n') == 0 else '\n'+vstr.replace('\n', '\n> ....')
+
         for n, v in zip(varnames, args):
-            v_str = str(v)
-            v_str = "`%s`"%v_str if v_str.count('\n') == 0 else v_str
-            print(fmt.format(n.strip())+sep, v_str, end=end, file=file)
+            if isinstance(v, dict):
+                print(fmt.format(n.strip()), '::->', end=end, file=file)
+                for i,j in flatten(v,sep='.').items():
+                    print('.... ', fmt.format(i.strip()), sep, fmt_v_str(j), end=end, file=file)
+                # print( json.dumps(v, indent='    ').replace('    ','....'), end=end, file=file)
+            else:
+                print(fmt.format(n.strip())+sep, fmt_v_str(v), end=end, file=file)
         
     except Exception as err:
+        raise err
         print('debug(...error...)')
 
 if __name__ == '__main__':
