@@ -1,9 +1,34 @@
 #!/usr/local/bin/python3
 
 import argparse, re, os, glob, sys, collections
-import pprint, itertools, inspect, logging, pathlib 
+import itertools, inspect, logging, pathlib 
 
 Path = pathlib.Path
+os = os
+sys = sys
+re = re
+logging = logging
+
+if __name__ == '__main__':
+    import os, sys, pathlib
+    sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
+
+import scilab.tools.testingtools as testingtools
+import scilab.tools.datatypes as datatypes
+from scilab.tools.datatypes import *
+from scilab.tools.testingtools import Tests, test_in
+
+Testing = testingtools
+collections = collections
+
+class InstronColumnSummary(DataTree):
+    pass
+
+class InstronColumnBalance(DataTree):
+    pass
+
+class InstronColumnData(namedtuple('_InstronColumnData', 'array name label details units idx summary'), NamedTuple):
+    pass
 
 def flatten(d, parent_key='', sep='_'):
     items = []
@@ -73,140 +98,6 @@ def attributesAccessor(node, path):
     except KeyError:
         return 'n/a'
 
-
-# from addict import Dict
-
-from inspect import isgenerator
-
-# Helpers
-class DataTree(dict):
-    """Default dictionary where keys can be accessed as attributes and
-    new entries recursively default to be this class. This means the following
-    code is valid:
-    
-    >>> mytree = jsontree()
-    >>> mytree.something.there = 3
-    >>> mytree['something']['there'] == 3
-    True
-    """
-    def __init__(self, *args, **kwdargs):
-        if 'defaults' in kwdargs:
-            defaults = kwdargs['defaults']
-            if not type(defaults) == list:
-                defaults = defaults.split() 
-            for arg in defaults: 
-                kwdargs[arg] = None
-        if 'withProperties' in kwdargs:
-            defaults = kwdargs.pop('withProperties')
-            if not type(defaults) == list:
-                defaults = defaults.split() 
-            for arg in defaults: 
-                kwdargs[arg] = DataTree()
-        
-        super().__init__(*args, **kwdargs)
-        
-    def set(self,**kw):
-        copy = DataTree(self)
-        copy.update(**kw)
-        return copy
-        
-    # def merge(self, other):
-    #     def mergerer(d, ):
-    #         if isinstance(v, collections.MutableMapping):
-    #             for k, v in d.items():
-    #                 mergerer(v)
-    #     def mergerer(d, parent_key='', sep='_'):
-    #         items = []
-    #         for k, v in d.items():
-    #             new_key = parent_key + sep + str(k) if parent_key else str(k)
-    #             if isinstance(v, collections.MutableMapping):
-    #                 items.extend(flatten(v, new_key, sep=sep).items())
-    #             else:
-    #                 items.append((new_key, v))
-    #         return collections.OrderedDict(items)
-    #     self.update(updated)
-        
-    def __getattr__(self, name):
-        try:
-            return self.__getitem__(name)
-        except KeyError:
-            class getatter(object):
-                
-                def __init__(self, parent):
-                    self.parent = parent
-                
-                def __setitem__(self, name, value):
-                    debug(name, value)
-                
-                
-            return getatter(self)
-            # raise AttributeError(self._keyerror(name))
-            
-    def _keyerror(self, name):
-        avail_keys = set(str(s) for s in self.keys())
-        return "Key `{}` not found in: {}".format(name,avail_keys)
-        
-    def __getitem__(self, name):
-        try:
-            return super().__getitem__(name)
-        except KeyError:
-            raise KeyError(self._keyerror(name))
-    
-    def __setattr__(self, name, value):
-        self[name] = value
-        return value
-    
-    def __str__(self):
-        return pprint.pformat(self)
-
-    def __iter__(self):
-        return sort(super().__iter__())
-
-class DebugData(DataTree):
-
-    def __bool__(self):
-        return True
-    
-class DebugNone(DebugData):
-
-    def __bool__(self):
-        return False
-    
-# class Path(pathlib.Path):
-#
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#
-#     def stems(self, file):
-#         return file.name.rstrip(''.join(file.suffixes))
-
-def ResearchDir(project_setup_file="project-setup.sh"):
-    abspath = os.path.abspath(".").split(os.sep)
-
-    def find(dirs):
-        if not dirs:
-            logging.warn("Could not find project dir")
-            return ''
-        elif os.path.exists(os.sep.join(dirs)+os.sep+project_setup_file):
-            return os.sep.join(dirs)
-        else:
-            return find(dirs[:-1])
-        
-    RESEARCH = find(abspath)
-    RAWDATA = os.sep.join((RESEARCH, "07_Results", "02_Raw"))
-
-    return (RESEARCH, RAWDATA)
-
-if not 'RESEARCH' in globals().keys() or not 'RAWDATA' in globals().keys():
-    global RESEARCH, RAWDATA
-    RESEARCH, RAWDATA = ResearchDir()
-    
-print ("Research (Project) Directory:", RESEARCH, RAWDATA)
-sys.path.append(RESEARCH+"/06_Methods/05_Code/03_DataReduction/libraries/")
-
-
-USER_HOME = Path(os.path.expanduser('~')).resolve()
-
 def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
     try:
         st = inspect.stack()[1]
@@ -237,10 +128,6 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
         print('debug(...error...)')
 
 
-try:
-    from testingtools import Tests, test_in
-except:
-    from scilab.tools.testingtools import Tests, test_in
 
 if __name__ == '__main__':
 

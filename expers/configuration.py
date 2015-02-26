@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-
 import shutil, re, sys, os, itertools, collections
 from pathlib import Path
 from functools import partial
 
+if __name__ == '__main__':
+    import os, sys, pathlib
+    sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
+    
 from scilab.tools.project import *
 from scilab.tools.helpers import *
-import scilab.tools.jsonutils as Json
 
 
 
@@ -47,8 +49,6 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
 
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
-
-
 
 class FileStructure(DataTree):
 
@@ -175,51 +175,53 @@ class TestOverview(DataTree):
     pass
 
 def main():
+    
+    pass
 
-    print("Test TestInfo")
-
-    ti = TestInfo(name='nov26(gf9.2-llm)-wf-tr-l9-x1')
-    print(ti)
-
-    ti = TestInfo('xx',*TestInfo.reTestName.match('nov26(gf9.2-rmm)-wf-tr-l9-x1-r1').groups())
-    ti.short()
-    print(ti.short())
-
-    print("Success")
-    print()
-
-    print("Good:")
-    ti = TestInfo(name='nov26(gf9.2-rmm)-wf-tr-l9-x1-r1')
-    print("Validate:", ti, ti.validate())
-    print()
-    ti = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
-    print("Validate:", ti, ti.validate())
-    print()
-
-    print("Fail:")
-    ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
-    print("Validate:", ti, ti.validate())
-    print()
-
-    print("\nSet\n")
-    # import Set
-    ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
-    tj = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
-
-    si = set( (k,v) for k,v in zip(ti._fields,ti))
-    sj = set( (k,v) for k,v in zip(tj._fields,tj))
-
-    print(si)
-    print(sj)
-    print(si-sj)
-    print(ti.differenceOf(tj))
-
-    print("## FileStructure")
-    fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
-
-    debug(fs)
-
-    print("\n\nTests:\n\n",fs.testitemsd())
+    # print("Test TestInfo")
+    #
+    # ti = TestInfo(name='nov26(gf9.2-llm)-wf-tr-l9-x1')
+    # print(ti)
+    #
+    # ti = TestInfo('xx',*TestInfo.reTestName.match('nov26(gf9.2-rmm)-wf-tr-l9-x1-r1').groups())
+    # ti.short()
+    # print(ti.short())
+    #
+    # print("Success")
+    # print()
+    #
+    # print("Good:")
+    # ti = TestInfo(name='nov26(gf9.2-rmm)-wf-tr-l9-x1-r1')
+    # print("Validate:", ti, ti.validate())
+    # print()
+    # ti = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
+    # print("Validate:", ti, ti.validate())
+    # print()
+    #
+    # print("Fail:")
+    # ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
+    # print("Validate:", ti, ti.validate())
+    # print()
+    #
+    # print("\nSet\n")
+    # # import Set
+    # ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
+    # tj = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
+    #
+    # si = set( (k,v) for k,v in zip(ti._fields,ti))
+    # sj = set( (k,v) for k,v in zip(tj._fields,tj))
+    #
+    # print(si)
+    # print(sj)
+    # print(si-sj)
+    # print(ti.differenceOf(tj))
+    #
+    # print("## FileStructure")
+    # fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
+    #
+    # debug(fs)
+    #
+    # print("\n\nTests:\n\n",fs.testitemsd())
 
 
 if __name__ == '__main__':

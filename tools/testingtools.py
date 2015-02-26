@@ -70,9 +70,9 @@ def Tests(tests=None, quiet=True, ):
     print("Finished Executing Tests")
     
     del tests
-    
 
-def tests():
+if __name__ == '__main__':
+
     with Tests(quiet=False) as tests:
 
         foobar = []
@@ -104,5 +104,3 @@ def tests():
 
             print(foobar, foolist)
 
-if __name__ == '__main__':
-    tests()
