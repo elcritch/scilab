@@ -19,7 +19,6 @@ print("scibase:",scibase)
 sys.path.insert(0,str(scibase))
 
 from scilab.tools.project import *
-from scilab.tools.graphing import *
 from scilab.tools.instroncsv import *
 
 import scilab.tools.project as Project
@@ -37,19 +36,6 @@ import scilab.expers.mechanical.fatigue.uts as fatigue_uts
 
 
 PlotData = namedtuple('PlotData', 'array label units max')
-
-def findTestCsv(csvTestParent, testfile):
-    debug(csvTestParent, testfile)
-
-    testfiles = [ t for t in csvTestParent.glob(testfile+'*') if t.is_dir() ]
-    if not testfiles:
-        raise Exception("Cannot find matching csv test folder: "+testfile+" "+csvTestParent.as_posix())
-    elif len(testfiles) > 1:
-        testfile = sorted(testfiles, key=lambda x: x.stem )[0]
-        logging.warn("Multiple csv test files match, choosing: "+str(testfile) )
-        return testfile
-    else:
-        return testfiles[0]
     
 def process_uts_tests(testinfo, testfolder, handlers, reportfile):
     args = DataTree()
@@ -125,9 +111,9 @@ def process_test(testinfo, testfolder, reportfile):
     import scilab.graphs.instron_uts as graphs_instron_uts
     import scilab.graphs.instron_all as graphs_instron_all
     import scilab.graphs.graph_all as graphs_graph_all
-    import scilab.graphs.precondition_fitting as precondition_fitting 
-    import scilab.graphs.cycle_trends as cycle_trends 
-        
+    import scilab.graphs.precondition_fitting as precondition_fitting
+    import scilab.graphs.cycle_trends as cycle_trends
+    
     doLoadTracking = DataTree(tracking=True, trends=False)
     doLoadTrends   = DataTree(tracking=False, trends=True)
     doLoadPost     = DataTree(tracking=False, trends=False)
