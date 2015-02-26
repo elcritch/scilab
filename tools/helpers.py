@@ -8,9 +8,6 @@ from pathlib import *
 def mapTo(func, iterable,*args,**kwargs):
     return [ (i, func(i,*args,**kwargs)) for i in iterable ]
 
-def argmax(y,idx):
-    return DataTree(idx=idx, value=y[idx])
-    
 def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """
     

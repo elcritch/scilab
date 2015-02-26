@@ -1,23 +1,13 @@
 #!/usr/bin/env python3
 
-import sys, os, glob, logging
-from collections import namedtuple
-from pathlib import Path
+import os, sys, pathlib
+sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
 
-sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').exists() ][0] )
 
 from scilab.tools.project import *
-from scilab.tools.datatypes import *
-import scilab.tools.scriptrunner as ScriptRunner
-from scilab.tools.instroncsv import csvread
-import scilab.tools.jsonutils as Json
-import scilab.tools.project as Project
-import scilab.tools.excel as Excel
-import scilab.tools.graphing as Graphing
-from scilab.tools.graphing import DataMax
-import numpy as np
+from scilab.expers.configuration import *
 
-from scilab.graphs.graph_shared import *
+import numpy as np
 
 @unwrap_array
 def getmax(array):
@@ -35,16 +25,15 @@ def getmin(array):
 
 @unwrap_array
 def summaryvalues(array, sl):
-    array = array[]
+    array = array[sl]
     return InstronColumnSummary(mean=array[sl].mean(),std=array[sl].std(),mins=get_min(array[sl]),maxs=get_max(array[sl]))
 
-def summarize(colname):
-    return DataTree({ key:summaryvalues(data[colname], stepslice).set(slices=sl)
-                        for key, stepslice in data.steps.items() })
+def summarize(testdata, colname):
+    return DataTree({ key:summaryvalues(testdata[colname], stepslice).set(slices=stepslice)
+                        for key, stepslice in testdata.steps.items() })
 
 def dobalances(colname, summary):
     return InstronColumnBalance(step=balancestep, offset=summary[balancestep].mean)
-    return balances
 
 
 @debugger
@@ -105,7 +94,7 @@ def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree,
     return normalized
 
 def normalize_data(testinfo:TestInfo, testdetails, testdata, testargs):
-    
+    pass
 
 
 def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
@@ -137,13 +126,14 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     
     return {}
 
-def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
-    
-    return handler(testinfo, testfolder, details=testdata.details, testdata=testdata, args=args, )    
-
     
 if __name__ == '__main__':
     
-    import scilab.graphs.graph_runner2
-    scilab.graphs.graph_runner2.main()
-
+    with Tests(quiet=False, ) as tests:
+    
+        foobar = []
+    
+        @test_in(tests)
+        def test_debug():
+            pass
+        
