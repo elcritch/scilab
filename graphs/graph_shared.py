@@ -159,33 +159,10 @@ def data_datasummaries( testinfo:TestInfo,
 
     return datasummaries
 
-def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree, 
-                    normfactor, xname, yname, yunits, balance, 
-                    ):
-
-    normalized = DataTree(steps=data.steps)
-    if xname in data.summaries:
-        normalized.summaries
-    normalized.summaries.update(data_datasummaries(testinfo, data=data, details=details, cols=[xname]))
-    
-    # offset_load = data[loadname].array - data.summaries[xname].balance
-    # normalized[loadname] = data[loadname].set(array=offset_load)
-    
-    ydata = data[dispname].array / normfactor
-    normalized[stressname] = DataTree(array=stress, label=stressname.capitalize(), units=stressunits)
-
-    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
-
-    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
-    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
-    
-    return normalized
-
 def data_normalize(testinfo:TestInfo, data:DataTree, details:DataTree, 
                     loadname='load', dispname='disp',suffix="",
                     stressname='stress', strainname='strain',
                     stressunits='MPa', strainunits='∆',
-                    
                     ):
 
     if suffix:
