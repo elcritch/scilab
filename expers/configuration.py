@@ -11,8 +11,6 @@ if __name__ == '__main__':
 from scilab.tools.project import *
 from scilab.tools.helpers import *
 
-
-
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
     def __new__(self, reTestName=None, name=None, *args, **kwargs):
@@ -170,9 +168,13 @@ class TestDetails(DataTree):
 
     def __str__(self):
         return "TestDetails[%s]"%super().__str__()
+<<<<<<< HEAD
 
 class TestOverview(DataTree):
     pass
+=======
+    
+>>>>>>> f7342e7a012247fe976a55a13ad4b65ec2fad129
 
 def main():
     
