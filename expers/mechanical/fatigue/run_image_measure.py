@@ -23,7 +23,6 @@ from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 from scilab.expers.mechanical.fatigue.image_measurements_auto import DIMS, crop, process
 import PIL
 
-from fn import _ as __
 
 # from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
 from scilab.expers.mechanical.fatigue.uts import TestInfo, FileStructure

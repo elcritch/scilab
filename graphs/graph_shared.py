@@ -163,21 +163,13 @@ def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree,
                     normfactor, xname, yname, yunits, balance, 
                     ):
 
-    normalized = DataTree(steps=data.steps)
-    if xname in data.summaries:
-        normalized.summaries
-    normalized.summaries.update(data_datasummaries(testinfo, data=data, details=details, cols=[xname]))
-    
-    # offset_load = data[loadname].array - data.summaries[xname].balance
-    # normalized[loadname] = data[loadname].set(array=offset_load)
-    
-    ydata = data[dispname].array / normfactor
-    normalized[stressname] = DataTree(array=stress, label=stressname.capitalize(), units=stressunits)
+    normalized[yname] = DataTree(array=data[xname].array * normfactor.value, 
+                                 label=yname.capitalize(), 
+                                 units=yunits)
 
-    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
+    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[yname]))
 
-    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
-    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
+    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance * normfactor
     
     return normalized
 

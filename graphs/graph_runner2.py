@@ -119,8 +119,8 @@ def process_test(testinfo, testfolder, reportfile):
     doLoadPost     = DataTree(tracking=False, trends=False)
     
     try:
-        # process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking,
-        #                     handlers=[make_data_json.graphs2_handler, merge_calculated_jsons.graphs2_handler], )
+        process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking,
+                            handlers=[make_data_json.graphs2_handler, merge_calculated_jsons.graphs2_handler], )
         #
         # process_cycle_tests(testinfo, testfolder, reportfile, doLoadTracking,
         #                     handlers=[ graphs_graph_all.graphs2_handler,merge_calculated_jsons.graphs2_handler,], )

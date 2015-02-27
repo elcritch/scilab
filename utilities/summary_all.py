@@ -15,31 +15,41 @@ test_configs = {
     'cycles_tr_csv' : DataTree(tracking=DataTree(balancestep='step_2')),
 }
 
+normalized_names = {
+    'load' : DataTree(stress),
+}
+
 def handler(test:TestOverview, method_name, data_kind, datafile, args:DataTree):
     
     csvdata = csvread(str(datafile))
     # testname = 'cycles'
     # csvdata = testdata.tests[testname].tracking
     
-    if data_kind == 'tracking':
     kws_balances = test_configs[method_name].get(data_kind, DataTree())
     
-    data = data_configure_load(testinfo=test.info, data=csvdata, details=test.details, 
+    normalized = data_configure_load(testinfo=test.info, data=csvdata, details=test.details, 
                                data_kind=data_kind, **kws_balances)
     
-    updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
+    normalized = DataTree(summaries=DataTree())
     
-    data.update( data_normalize(test.info, data, test.details) )
+    for column, value in [ (c,v) for c,v in data.items() if isinstance(v,InstronColumnData) ]:
+        print("Normalizing:", column, value.summary)
+        normalized[column] = data_normalize_col(
+                        testinfo=test.info, 
+                        data=data, 
+                        details=test.details, 
+                        normfactor=1.0/test.details.measurements.area.value, 
+                        xname=column, yname=, yunits, balance, 
+                        )    
     
-    debug(data)
+    debug(normalized)
     
     ## Save Summaries ##
-    # testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
-    
+    # testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})    
     return {}
 
 def process(testinfo, testfolder, **kwargs):
-        
+    
     args = DataTree()
     details = Json.load_json_from(testfolder.details)
     
@@ -51,7 +61,7 @@ def process(testinfo, testfolder, **kwargs):
         for raw_data_kind, raw_data_file in raw_data_files.items():
             
             if not raw_data_file:
-                continue
+                continue        
         
             debug(method_name, raw_data_kind, raw_data_file, sep=', ')
             
@@ -60,7 +70,6 @@ def process(testinfo, testfolder, **kwargs):
     # process_raw_csv(test, )
     
     # return handler(testinfo, testfolder, details=testdata.details, testdata=testdata, args=args, )
-
     
 def main():
     
@@ -71,7 +80,7 @@ def main():
     # fs = fatigue_uts.FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
     # Test test images for now
     test_dir = fs.test_parent.resolve()
-        
+    
     testitemsd = fs.testitemsd()
     debug('\n'.join([l.name for l in testitemsd ]))
     

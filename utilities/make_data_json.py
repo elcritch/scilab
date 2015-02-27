@@ -93,8 +93,8 @@ def parse_data_from_worksheet(testinfo, testfolder, args, **kwargs):
         
         wb = load_workbook(excelfile.absolute().as_posix(), data_only=True)
     except (Exception) as err:
-        logging.warn("Cannot open file:\n\t"+str(excelfile)+"\n\t vs \n\t"+excelfile.absolute().as_posix())
-        raise err
+        logging.warn("Cannot open file:\n\t"+str(excelfile)+"\n\t vs \n\t"+str(excelfile))
+        return 
         
     ## Process Excel Sheets
     ws = wb.worksheets[0]
@@ -197,7 +197,8 @@ def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
         handler(testinfo, testfolder, excelfile=excelfile, args=args, )
     except FileNotFoundError as err:
         logging.error("FileNotFoundError:", testinfo.name, err)
-    
+    except:
+        return
     
 
 def handler(testinfo, testfolder, excelfile, args):

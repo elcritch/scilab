@@ -27,8 +27,8 @@ import collections
 
 import scilab.tools.fitting as Fitting
 
-PlotData = namedtuple('PlotData', 'array label units max')
-CycleData = namedtuple('CycleData', 'index elapsedCycle time')
+PlotData = collections.namedtuple('PlotData', 'array label units max')
+CycleData = collections.namedtuple('CycleData', 'index elapsedCycle time')
 
 
 def find_index(time, times):
