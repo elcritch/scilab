@@ -16,6 +16,7 @@ if __name__ == '__main__':
 import scilab.tools.testingtools as testingtools
 import scilab.tools.datatypes as datatypes
 from scilab.tools.datatypes import *
+from scilab.tools.tables import *
 from scilab.tools.testingtools import Tests, test_in
 
 Testing = testingtools
@@ -27,8 +28,13 @@ class InstronColumnSummary(DataTree):
 class InstronColumnBalance(DataTree):
     pass
 
-class InstronColumnData(namedtuple('_InstronColumnData', 'array name label details units idx summary'), NamedTuple):
+class ColumnInfo(namedtuple('_ColumnInfo', 'name label details units full idx'), NamedTuple):
     pass
+
+class InstronColumnData(namedtuple('_InstronColumnData', 'array summary name label details units full idx'), NamedTuple):
+    pass
+
+
 
 def flatten(d, parent_key='', sep='_'):
     items = []

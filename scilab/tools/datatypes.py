@@ -117,7 +117,7 @@ class DataTree(dict):
         return pprint.pformat(self)
 
     def __iter__(self):
-        return sort(super().__iter__())
+        return sorted(super().__iter__()).__iter__()
 
 class DebugData(DataTree):
 

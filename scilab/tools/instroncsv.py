@@ -6,10 +6,9 @@ import numpy as np
 import collections, itertools, logging
 from collections import OrderedDict, namedtuple
 
-if __name__ != '__main__':
-    from scilab.tools.project import *
-else:
-    from project import *
+from scilab.tools.project import *
+from scilab.utilities.normalize_data import *
+
 
 class NamedTuple():
     def set(self, **kw):
@@ -29,6 +28,42 @@ def camelCase(name, capitalizeFirst=False, removeCommon=[]):
     name = ""+(name[:1].lower() if not capitalizeFirst else name[:1].upper())+name[1:]
     return name
 
+def getcolumninfo(idx, column, longname=True):
+    
+    # Split name based on parens. 
+    parts = column.replace(')','').split('(')
+    label, kind, units = parts[0], '', ''
+
+    # Camel Case Titles 
+    name = camelCase(label)
+    
+    # hack, instron appears to put units last with preceding space
+    # two parts, *with* preceding => name & units 
+    if len(parts) == 2 and parts[0].endswith(' '): 
+        units = parts[1]
+    # two parts, no preceding => name & kind
+    elif len(parts) == 2:
+        kind = parts[1]
+    # three parts => name, kind, units
+    elif len(parts) == 3:
+        kind, units = parts[1:]
+
+    # default to using unique name...
+    extraDetails = ' '.join(kind.split("|"))
+    uniqueName = name+camelCase(extraDetails, capitalizeFirst=True, )
+
+    columnData = ColumnInfo(
+        name=uniqueName if longname else name, 
+        label=label, 
+        details=kind, 
+        units=units, 
+        full=column,
+        idx=idx,
+        )
+        
+    # debug(columnData)
+    return columnData
+
 def getColumnData(headerLine):
     headers = [ h.strip('"').replace(':', '|') for h in headerLine.split(',') ]
     
@@ -38,38 +73,8 @@ def getColumnData(headerLine):
 
     ## Make Columns
     for idx, column in enumerate(headers):
-        
-        # Split name based on parens. 
-        parts = column.replace(')','').split('(')
-        label, kind, units = parts[0], '', ''
-
-        # Camel Case Titles 
-        name = camelCase(label)
-        
-        # hack, instron appears to put units last with preceding space
-        # two parts, *with* preceding => name & units 
-        if len(parts) == 2 and parts[0].endswith(' '): 
-            units = parts[1]
-        # two parts, no preceding => name & kind
-        elif len(parts) == 2:
-            kind = parts[1]
-        # three parts => name, kind, units
-        elif len(parts) == 3:
-            kind, units = parts[1:]
-
-        columnData = InstronColumnData(
-            array=None, 
-            name=name, 
-            label=label, 
-            details=kind, 
-            units=units, 
-            idx=idx,
-            summary=None,
-            )
-            
+        columnData = getcolumninfo(idx, column, longname=False)
         columns.append(columnData)
-        
-        # debug(columnData)
     
     # Handle issue when column names are not unique, such as totalCycleCount
     # Basically, we just take the extra details (Rotary Wavefrom) and camel    
@@ -81,25 +86,14 @@ def getColumnData(headerLine):
         else:
             
             def makeUnique(c):
-                extraDetails = ' '.join(c.details.split("|"))
-                uniqueName = c.name+camelCase(extraDetails, capitalizeFirst=True, )
-                
-                uniqueCol = InstronColumnData(
-                    array=None, 
-                    name=uniqueName, 
-                    label=c.label, 
-                    details=c.details, 
-                    units=c.units, 
-                    idx=c.idx,
-                    summary=None,
-                    )
+                uniqueCol = getcolumninfo(idx, c.full, longname=True)
 
                 # logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
             
                 # debug(uniqueCol)
                 # print("assert failed: %s already in %s"%(uniqueCol.name, [ k for k in allColumns.keys()] ))
                 
-                assert uniqueName not in allColumns.keys() # and not \
+                assert uniqueCol.name not in allColumns.keys() # and not \
                     # print("assert failed: %s already in %s"%(uniqueCol.name, [ k for k in allColumns.keys()] ))
             
                 return uniqueCol
@@ -130,8 +124,8 @@ def get_index_slices(data, keyer=None):
 class InstronMatrixData(DataTree):
     def __init__(self, *args, **kwdargs):
         super().__init__(*args, **kwdargs)
-        self.__slices = {}
-        self.indices = None
+        self.__dict__['__slices'] = {}
+        self.__dict__['indices'] = None
 
     def getIndices(self, **kwdargs):
         """ return numpy array for slice """
@@ -144,20 +138,20 @@ class InstronMatrixData(DataTree):
         """ Lazy loading of slices based on 'step' column. """
         if keyColumn not in self.__slices:
             npslices = get_index_slices(self[keyColumn].array, keyer=keyer)
-            self.__slices[keyColumn] = npslices
+            self.__dict__['__slices'][keyColumn] = npslices
         
         return self.__slices[keyColumn]
         
-    def slice(self, **kwdargs):
-        """ return numpy array for slice """
-        assert len(kwdargs) == 1
-        key, index = kwdargs.popitem()
-        indicies = self._getslices(key)[index]
-
-        return InstronMatrixDataSlice(indicies, self)
+    # def slice(self, **kwdargs):
+    #     """ return numpy array for slice """
+    #     assert len(kwdargs) == 1
+    #     key, index = kwdargs.popitem()
+    #     indicies = self._getslices(key)[index]
+    #
+    #     return InstronMatrixDataSlice(indicies, self)
 
     def _setIndices(self, indicies):
-        self.indicies = indicies
+        self.__dict__['indicies'] = indicies
         return self
     
         
@@ -193,14 +187,14 @@ def csvread(fileName):
         matrix = np.genfromtxt(fileObjTranscode, delimiter=',',skip_header=0,filling_values=np.nan,autostrip=True)
         
         data = InstronMatrixData()
-        data._matrix = matrix
+        data.__dict__['_matrix'] = matrix
         
         for (idx, cd) in enumerate(columns):
             # debug(idx, cd.name, cd)
             # print()
             xx = matrix[:,idx]
-            summary = InstronColumnSummary(mean=xx.mean(),std=xx.std(),mins=get_min(xx),maxs=get_max(xx))
-            data[cd.name] =  InstronColumnData(array=xx, name=cd.name, label=cd.label, details=cd.details, units=cd.units, idx=cd.idx, summary=summary)
+            summary = InstronColumnSummary(mean=xx.mean(),std=xx.std(),mins=getmin(xx),maxs=getmax(xx))
+            data[cd.name] = InstronColumnData(xx, summary, *cd)
         
         # for idx in step_indices:
             # debug(idx, step[idx], step[idx-1])
