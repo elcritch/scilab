@@ -13,6 +13,21 @@ class NamedTuple():
         vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
         return self.__class__(*vals)
 
+
+class getatter(object):
+    
+    def __init__(self, parent, name):
+        self.__dict__['parent'] = parent
+        self.__dict__['name'] = name
+    
+    def __setattr__(self, name, value):
+        print("...getter:__setattr__: `%s`, `%s`, `%s`, `%s`, `%s`"%(name, value, self, self.parent, self.name))
+        super().__setattr__(name, value)
+    
+    def __getattr__(self, name):
+        print("...getter:__getattr__: `%s`, `%s`"%(self,name))
+    
+
 # Helpers
 class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
@@ -62,20 +77,10 @@ class DataTree(dict):
     #     self.update(updated)
         
     def __getattr__(self, name):
-        try:
+        if name in self:
             return self.__getitem__(name)
-        except KeyError:
-            class getatter(object):
-                
-                def __init__(self, parent):
-                    self.parent = parent
-                
-                def __setitem__(self, name, value):
-                    debug(name, value)
-                
-                
-            return getatter(self)
-            # raise AttributeError(self._keyerror(name))
+        else:
+            raise AttributeError(self._keyerror(name))
             
     def _keyerror(self, name):
         avail_keys = set(str(s) for s in self.keys())
@@ -90,6 +95,29 @@ class DataTree(dict):
     def __setattr__(self, name, value):
         self[name] = value
         return value
+    
+    def __setitem__(self, name, value):
+        """ Set item using default parent method. If a tuple is passed in, a new DataTree will be created if needed. """
+        if isinstance(name,tuple):
+            try:
+                try:
+                    if name[0] in self:
+                        super().__getitem__(name[0]).__setitem__(name[1:], value)
+                    else:
+                        top = self
+                        for sub in name[:-1]:
+                            subdict = DataTree()
+                            top[sub] = subdict 
+                            top = subdict
+                        else:
+                            top[name[-1]] = value
+                except AttributeError as err:
+                    # raise ValueError("unable to create subtree starting at: `{}`".format(name))
+                    raise ValueError('', name)
+            except ValueError as err:
+                raise ValueError("unable to create subtree `{}` from: `{}`".format(name, err.args[-1]),err.args[-1])
+        else:
+            super().__setitem__(name, value)
     
     def __str__(self):
         return pprint.pformat(self)
@@ -152,14 +180,45 @@ if __name__ == '__main__':
     
             print("d1:",d1)
             print("d2:",d2)
+            # print("d2:",d2.zz)
 
-    
+            assert d1 == {'a': {'aa': 'sublevel'}, 'b': {}, 'c': {'cc': 'sublevel'}} 
+            assert d2 == {'a': 3, 'b': {}, 'c': {'cc': 'sublevel'}} 
+            
         @test_in(tests)
-        def test_datatree_sub():
+        def test_datatree_sub3():
     
             # empty sub
             d1 = DataTree()
-            d1.a.b = 'foobar'
+            print()
+            
+            d1['a','b','bb'] = 'foo'
+            print()
+
+            d1['a','b','c','d'] = 'bar'
+            print()
 
             print('d1:',d1)
+            # assert d1 == {'a':{'b':'foobar'}}
+            assert d1 == {'a':{'b':{'bb':'foo','c':{'d':'bar'}}}}
+
+        @test_in(tests)
+        def test_datatree_sub4():
+    
+            # empty sub
+            d1 = DataTree()
+            print()
+            
+            d1['a','b','c'] = 'foo'
+            print()
+
+            try:
+                d1['a','b','c','d'] = 'bar'
+                raise Error("Previous should result in an error")
+            except ValueError:
+                pass
+
+            print('d1:',d1)
+            
+            assert d1 == {'a':{'b':{'c':'foo'}}}
 
