@@ -58,45 +58,50 @@ def process_instron_file(csvpath,savemode,filekind):
     debug(rawdata.__class__.__name__)
     
     for name in rawdata.keys():
-        debug(name)
+        # debug(name)
         column = rawdata[name]
         
-        debug(column[1:])
+        # debug(column[1:])
         
         array, summary, *colinfo = column
-        print(tuple(colinfo))
+        # print(tuple(colinfo))
+        print(ColumnInfo(*colinfo).idx)
     
     if savemode == 'tracking':
 
-        rawcolumns = [
-           #ColumnInfo  name                   label                  details                     units full
-           #----------  ---------------------  ---------------------  --------------------------  ----- ----
-            ColumnInfo('cycleElapsedTime',    'Cycle Elapsed Time ', '',                         's',  'Cycle Elapsed Time (s)',                      1),
-            ColumnInfo('position',            'Position',            'Linear|Position ',         'mm', 'Position(Linear|Position) (mm)',              7),
-            ColumnInfo('loadLinearTheMissus', 'Load',                'Linear|The Missus ',       'N',  'Load(Linear|The Missus) (N)',                11),
-            ColumnInfo('displacement',        'Displacement',        'Linear|Digital Position ', 'mm', 'Displacement(Linear|Digital Position) (mm)',  9),
-            ColumnInfo('elapsedCycles',       'Elapsed Cycles',      '',                         '',   'Elapsed Cycles',                              3),            
-            ]
-
-    
-
-# "Total Time (s)",
-# "Cycle Elapsed Time (s)",
-# "Total Cycles",
-# "Elapsed Cycles",
-# "Step",
-# "Total Cycle Count(Linear Waveform)",
-# "Total Cycle Count(Rotary Waveform)",
-# "Position(Linear:Position) (mm)",
-# "Load(Linear:Load) (N)",
-# "Displacement(Linear:Digital Position) (mm)",
-# "Load(Linear:The Missus) (N)",
-
-            
-        # dataconfig = DataTree(url=csvname, columns='')
+        columns_renamed = [
+           #ColumnInfo name                             label                  details                    units  full                                         idx
+           #---------- ----------------------           ---------------------  -------------------------- -----  ----------------------------------------     ---- 
+           ColumnInfo( 'load_1kN',                      'Load',                'Linear|Load',             'N',   'Load(Linear|Load) (N)',                       0),
+           ColumnInfo(  None,                           'Total Cycle Count',   'Rotary Waveform',         'Nº',  'Total Cycle Count(Rotary Waveform)',          1),
+           ColumnInfo( 'load_missus',                   'Load',                'Linear|The Missus',       'N',   'Load(Linear|The Missus) (N)',                 2),
+           ColumnInfo( 'step',                          'Step',                '',                        'Nº',  'Step',                                        3),
+           ColumnInfo( 'elapsedCycles',                 'Elapsed Cycles',      '',                        'Nº',  'Elapsed Cycles',                              4),
+           ColumnInfo( 'disp',                          'Displacement',        'Linear|Digital Position', 'mm',  'Displacement(Linear|Digital Position) (mm)',  5),
+           ColumnInfo(  None,                           'Position',            'Linear|Position',         'mm',  'Position(Linear|Position) (mm)',              6),
+           ColumnInfo( 'totalCycleCount',               'Total Cycle Count',   'Linear Waveform',         'Nº',  'Total Cycle Count(Linear Waveform)',          7),
+           ColumnInfo( 'totalTime',                     'Total Time',          '',                        's',   'Total Time (s)',                              8),
+           ColumnInfo( 'cycleElapsedTime',              'Cycle Elapsed Time ', '',                        's',   'Cycle Elapsed Time (s)',                      9),
+           ColumnInfo( 'totalCycles',                   'Total Cycles',        '',                        'Nº',  'Total Cycles',                               10),
+        ]
+        
+        choose_stress_column_name = lambda info: 'load_1k' if info.orientation else 'load_missus'
+        
+        columns_normalized = [
+            DataTree(name='strain', label='Strain', units='∆',   source='disp',                    factor=lambda info: 1.0/info.measurements.length),
+            DataTree(name='stress', label='Stress', units='MPa', source=choose_stress_column_name, factor=lambda info: 1.0/info.measurements.area),
+            DataTree(name='step',          source='step'),
+            DataTree(name='elapsedCycles', source='elapsedCycles'),
+            DataTree(name='totalCycleCount', source='totalCycleCount'),
+            DataTree(name='totalTime', source='totalTime'),
+            DataTree(name='cycleElapsedTime', source='cycleElapsedTime'),
+            DataTree(name='totalCycles', source='totalCycles'),
+        ]
 
     elif savemode == 'trends':
         pass
+    
+    
     
 def process_files(testfolder):
     

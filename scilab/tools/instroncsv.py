@@ -74,6 +74,7 @@ def getColumnData(headerLine):
     ## Make Columns
     for idx, column in enumerate(headers):
         columnData = getcolumninfo(idx, column, longname=False)
+        print('IDX:',idx, columnData.idx)
         columns.append(columnData)
     
     # Handle issue when column names are not unique, such as totalCycleCount
@@ -86,11 +87,11 @@ def getColumnData(headerLine):
         else:
             
             def makeUnique(c):
-                uniqueCol = getcolumninfo(idx, c.full, longname=True)
+                uniqueCol = getcolumninfo(c.idx, c.full, longname=True)
 
-                # logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
+                logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
             
-                # debug(uniqueCol)
+                debug(uniqueCol)
                 # print("assert failed: %s already in %s"%(uniqueCol.name, [ k for k in allColumns.keys()] ))
                 
                 assert uniqueCol.name not in allColumns.keys() # and not \
@@ -98,12 +99,13 @@ def getColumnData(headerLine):
             
                 return uniqueCol
 
-            uniqueCol = makeUnique(column)
+            uniqueCol = makeUnique(column).set(idx=column.idx)
             allColumns[uniqueCol.name] = uniqueCol
             
             if allColumns[column.name].name == column.name:
-                uniqueColPrev = makeUnique(allColumns[column.name])
-                allColumns[column.name] = uniqueColPrev
+                prevcol = allColumns.pop(column.name)
+                uniqueColPrev = makeUnique(prevcol).set(idx=prevcol)
+                allColumns[uniqueColPrev.name] = uniqueColPrev
             
             
     return [ v for c, v in allColumns.items() if v ]
