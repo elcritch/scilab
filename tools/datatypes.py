@@ -71,15 +71,24 @@ class DataTree(dict):
         avail_keys = set(str(s) for s in self.keys())
         return "Key `{}` not found in: {}".format(name,avail_keys)
         
-    def __getitem__(self, name):
-        try:
-            return super().__getitem__(name)
-        except KeyError:
-            raise KeyError(self._keyerror(name))
-    
     def __setattr__(self, name, value):
         self[name] = value
         return value
+    
+    def __getitem__(self, name):
+        try:
+            if isinstance(name,tuple):
+                top = self
+                for n in name:
+                    if n in top:
+                        top = top[n]
+                    else:
+                        return None
+                return top
+            else:
+                return super().__getitem__(name)
+        except KeyError:
+            raise KeyError(self._keyerror(name))
     
     def __setitem__(self, name, value):
         """ Set item using default parent method. If a tuple is passed in, a new DataTree will be created if needed. """
@@ -207,5 +216,19 @@ if __name__ == '__main__':
             
             assert d1 == {'a':{'b':{'c':'foo'}}}
     
+        @test_in(tests)
+        def test_datatree_sub3():
     
+            # empty sub
+            d1 = DataTree()
+            print()
+            
+            d1['a','b','bb'] = 'foo'
+            print()
+
+            assert d1 == {'a':{'b':{'bb':'foo'}}}
+            assert d1['a','b','bb'] == 'foo'
+            assert d1['a','b','bb','not','here'] == None
+            
+        
     
