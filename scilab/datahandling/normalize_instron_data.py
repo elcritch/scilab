@@ -85,19 +85,27 @@ def process_instron_file(csvpath,savemode,filekind):
            ColumnInfo( 'totalCycles',                   'Total Cycles',        '',                        'Nº',  'Total Cycles',                               10),
         ]
         
+        to_tuple = lambda i: tuple(zip(i._fields, i))
+        
+        columns_renamed = [ OrderedDict(to_tuple(i)) for i in columns_renamed ]
+        
         choose_stress_column_name = lambda info: 'load_1k' if info.orientation else 'load_missus'
         
         columns_normalized = [
-            DataTree(name='strain', label='Strain', units='∆',   source='disp',                    factor=lambda info: 1.0/info.measurements.length),
-            DataTree(name='stress', label='Stress', units='MPa', source=choose_stress_column_name, factor=lambda info: 1.0/info.measurements.area),
-            DataTree(name='step',          source='step'),
-            DataTree(name='elapsedCycles', source='elapsedCycles'),
-            DataTree(name='totalCycleCount', source='totalCycleCount'),
-            DataTree(name='totalTime', source='totalTime'),
-            DataTree(name='cycleElapsedTime', source='cycleElapsedTime'),
-            DataTree(name='totalCycles', source='totalCycles'),
+            DataTree(name='strain', label='Strain', units='∆',   source='disp',                    converter='lambda info: 1.0/info.measurements.length'),
+            DataTree(name='stress', label='Stress', units='MPa', source="lambda info: 'load_1k' if info.orientation else 'load_missus'", converter='lambda info: 1.0/info.measurements.area'),
+            DataTree(name='step',                                source='step'),
+            DataTree(name='elapsedCycles',                       source='elapsedCycles'),
+            DataTree(name='totalCycleCount',                     source='totalCycleCount'),
+            DataTree(name='totalTime',                           source='totalTime'),
+            DataTree(name='cycleElapsedTime',                    source='cycleElapsedTime'),
+            DataTree(name='totalCycles',                         source='totalCycles'),
         ]
-
+        
+        with open('/tmp/1','w') as out:
+            print(json.dumps(columns_renamed,indent=4),file=out)        
+            print(json.dumps(columns_normalized,indent=4),file=out)
+        
     elif savemode == 'trends':
         pass
     
