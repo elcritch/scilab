@@ -47,15 +47,7 @@ def data_datasummaries(
         ):
     
     datasummaries = DataTree()
-    
-    # debug('data_datasummaries', cols, balancestep)
-    
-    # if not balancestep:
-        # raise Exception()
-    
-    assert not (balancestep and balances)
-    
-        
+            
     for colname in cols:
         summary = summarize(colname)
         
