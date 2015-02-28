@@ -13,21 +13,6 @@ class NamedTuple():
         vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
         return self.__class__(*vals)
 
-
-class getatter(object):
-    
-    def __init__(self, parent, name):
-        self.__dict__['parent'] = parent
-        self.__dict__['name'] = name
-    
-    def __setattr__(self, name, value):
-        print("...getter:__setattr__: `%s`, `%s`, `%s`, `%s`, `%s`"%(name, value, self, self.parent, self.name))
-        super().__setattr__(name, value)
-    
-    def __getattr__(self, name):
-        print("...getter:__getattr__: `%s`, `%s`"%(self,name))
-    
-
 # Helpers
 class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
@@ -221,4 +206,6 @@ if __name__ == '__main__':
             print('d1:',d1)
             
             assert d1 == {'a':{'b':{'c':'foo'}}}
-
+    
+    
+    
