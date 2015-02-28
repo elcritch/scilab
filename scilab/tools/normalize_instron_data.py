@@ -42,61 +42,14 @@ def process_columns(columns):
     
 def process(file, kind, columnconfigs):
     
-    
+    pass
     
     
 def main():
     
-    fs = fatigue_cycles.FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr2')
-    # fs = fatigue_uts.FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
-    # Test test images for now
-    test_dir = fs.test_parent.resolve()
+    file = Path(__file__).resolve()
     
-    
-    testitemsd = fs.testitemsd()
-
-    import seaborn as sns
-    sns.set_style("whitegrid")
-    # sns.set_style("ticks")
-    # sns.set_style("dark")
-    
-    testitems = list(testitemsd.items())
-    debug('\n'.join([l.name for l in testitemsd ]))
-    
-    tempreports = fs.results_dir/'Temp Reports'
-    if not tempreports.is_dir():
-        tempreports.mkdir()
-    
-    with (tempreports/'Excel Data Sheet Results.md').open('w') as report:
-    
-        for testinfo, testfile  in testitems[ : ]:
-        # for testinfo, testfile  in testitems[ :2 ]:
-        # for testinfo, testfile  in testitems[ : len(testitems)//2 ]:
-        # for testinfo, testfile  in testitems[ len(testitems)//2-1 : ]:
-
-            # if testinfo.orientation == 'lg':
-            # if testinfo.orientation == 'tr':
-                # continue
-            # if testinfo.name != 'nov28(gf10.1-llm)-wa-tr-l4-x2':
-            #     continue
-            
-            testfolder = fs.testfolder(testinfo=testinfo, ensure_folders_exists=False)
-            
-            print(mdHeader(3, testinfo))
-            
-            # if any( testfolder.jsoncalc.glob('*.summaries.calculated.json') ):
-            #     logging.info("SKIPPING: "+str(testinfo))
-            #     continue
-            
-            try:
-                res = process_test(testinfo, testfolder, reportfile=report)
-                print(res)
-            
-            except Exception as err:
-                logging.warn("Error processing tests %s: %s", testinfo, err)
-                raise err
-    
-    
+    debug(file)
     
     
 if __name__ == '__main__':

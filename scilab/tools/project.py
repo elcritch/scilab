@@ -98,6 +98,8 @@ def attributesAccessor(node, path):
     except KeyError:
         return 'n/a'
 
+USER_HOME = Path(os.path.expanduser('~'))
+
 def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
     try:
         st = inspect.stack()[1]
@@ -126,7 +128,6 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
     except Exception as err:
         raise err
         print('debug(...error...)')
-
 
 
 if __name__ == '__main__':
@@ -174,37 +175,4 @@ if __name__ == '__main__':
             debug(ans1)
             ans2 = [ g for g in grouper(2, 'one two three'.split())]
             debug(ans2)
-
-        @test_in(tests)
-        def test_datatree():
-            # creationg
-            d1 = DataTree()
-    
-            # simple assigning
-            d1.a = 1
-            d1['b'] = 2
-    
-            # sub level with another tree
-            d1.c = DataTree(cc="sublevel")
-    
-            d1['a'] = DataTree(aa="sublevel")
-            d1.b = {}
-    
-            # update from another datatree
-            d2 = DataTree()
-            d2.update(d1)
-            d2.a = 3
-    
-            print("d1:",d1)
-            print("d2:",d2)
-
-    
-        @test_in(tests)
-        def test_datatree_sub():
-    
-            # empty sub
-            d1 = DataTree()
-            d1.a.b = 'foobar'
-
-            print('d1:',d1)
 
