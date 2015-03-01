@@ -1,54 +1,59 @@
-{ "csv":
+[
 	{ 
-		"tracking": { 
-			"raw": [
-	            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)",                      "idx": 0},
-	            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|The Missus) (N)",                "idx": 2},
-	            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step",                                       "idx": 3},
-	            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles",                             "idx": 4},
-	            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)", "idx": 5},
-	            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)",         "idx": 7},
-	            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)",                             "idx": 8},
-	            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)",                     "idx": 9},
-	            { "name": "totalCycles",            "label": "Total Cycles",            "units": "Nº",  "full": "Total Cycles",                               "idx":10},
-			],
-			"normalize": [
-				{
-					"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-					"source":     { "column":   "raw.disp"},
-					"conversion": { "constant": "1.0/info.measurements.length" },
-				},
-				{
-					"column":     { "name":     "stress", "units": "MPa", "label": "Stress", },
-					"source":     { "function": "'raw.load_missus' if info.orientation == 'tr' else 'raw.load_1kN'" },
-					"conversion": { "constant": "1.0/info.measurements.area" },
-				},
-				{
-					"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-					"source":     { "field":    "raw.step" }, 
-					"conversion": { "constant": "1.0/info.measurements.area" },
-				}, 
-				{ 
-					"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles", },
-					"source":     { "field": "raw.elapsedCycles" }, 
-					"conversion": {},
-				},
-				{
-					"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count", },
-					"source":     { "field": "raw.totalCycleCount" }, 
-					"conversion": {},
-				},
-				{
-					"column":     { "name":  "totalTime", "units": "s", "label": "Total Time", },
-					"source":     { "field": "raw.totalTime" }, 
-					"conversion": {},
-				},
-				{
-					"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles", },
-					"source":     { "field": "raw.cycleElapsedTime" }, 
-					"conversion": {},
-				}
-			]
-		}
+		"instron_tracking": [
+			{"kind": "instron", "mode": "tracking", "filetype": "csv" },
+			{
+				"raw": [
+		            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)",                      "idx": 0 },
+		            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|The Missus) (N)",                "idx": 2 },
+		            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step",                                       "idx": 3 },
+		            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles",                             "idx": 4 },
+		            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)", "idx": 5 },
+		            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)",         "idx": 7 },
+		            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)",                             "idx": 8 },
+		            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)",                     "idx": 9 },
+		            { "name": "totalCycles",            "label": "Total Cycles",            "units": "Nº",  "full": "Total Cycles",                               "idx":10 }
+				]
+			},
+			{
+				"normalize": [
+					{
+						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
+						"source":     { "column":   "raw.disp"},
+						"conversion": { "constant": "1.0/info.measurements.length" }
+					},
+					{
+						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
+						"source":     { "function": "'raw.load_missus' if info.orientation == 'tr' else 'raw.load_1kN'" },
+						"conversion": { "constant": "1.0/info.measurements.area" }
+					},
+					{
+						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
+						"source":     { "field":    "raw.step" }, 
+						"conversion": { "constant": "1.0/info.measurements.area" }
+					}, 
+					{ 
+						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
+						"source":     { "field": "raw.elapsedCycles" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
+						"source":     { "field": "raw.totalCycleCount" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
+						"source":     { "field": "raw.totalTime" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
+						"source":     { "field": "raw.cycleElapsedTime" }, 
+						"conversion": {}
+					}
+				]
+			}
+		]
 	}
-}
+]
