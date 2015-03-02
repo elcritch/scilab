@@ -60,7 +60,7 @@ def update_data(parentdir, test_name, data, dataDir="../../test-data/", dbg=None
     print("update_data:",dataDir)
     update_json(dataDir, data, json_url=test_name+".json")
 
-    return
+    return 
 
 # def load_json(parentdir, json_url="data.json"):
 #

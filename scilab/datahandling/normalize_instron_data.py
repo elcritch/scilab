@@ -47,11 +47,14 @@ def process_raw_columns(csvpath, raw_config, rawoutfiles):
     return output 
 
 
-def normalize_columns(csvpath, config, filenames):
+def normalize_columns(testdetails, csvpath, config, filenames):
     
     # TODO: load 'raw' file (from matlab)
     # TODO: load 'info' data (need to update this first?)
     #            - need to save data into "flat excel file"
+    
+    debug(testdetails.measurements) 
+    print()
     
     for item in config:
         debug(item)
@@ -83,14 +86,15 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
 
     if not 'norm' in force and not normoutfiles.names.matlab.exists():
-        columnmapping = normalize_columns(csvpath, normalized_config, normoutfiles)
+        testdetails = Json.load_json_from(testfolder.details)
+        columnmapping = normalize_columns(testdetails, csvpath, normalized_config, normoutfiles)
         save_columns(testfolder, "normalized", columnmapping=columnmapping, filenames=normoutfiles)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
-    
-    
+
 
 def process_files(testfolder):
+    
     
     for key, value in flatten(testfolder.raw,sep='.').items():
         filekind, wavematrix, savemode = key.split('.')[0:]
@@ -115,7 +119,8 @@ def main():
     ## create fake folder structure 
     testfolder = DataTree()
     testfolder['data'] = samplefiles / 'data' 
-    testfolder['datacalc'] = samplefiles / 'data' / 'processed'
+    testfolder['details'] = samplefiles / 'data' / 'instron-test.details.json'
+    testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
 

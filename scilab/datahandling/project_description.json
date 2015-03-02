@@ -21,17 +21,17 @@
 				{
 					"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
 					"source":     { "column":   "raw.disp"},
-					"conversion": { "constant": "1.0/info.measurements.length" }
+					"conversion": { "constant": "1.0/details.measurements.length" }
 				},
 				{
 					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "function": "'raw.load_missus' if info.orientation == 'tr' else 'raw.load_1kN'" },
-					"conversion": { "constant": "1.0/info.measurements.area" }
+					"source":     { "function": "'raw.load_missus' if details.orientation == 'tr' else 'raw.load_1kN'" },
+					"conversion": { "constant": "1.0/details.measurements.area" }
 				},
 				{
 					"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
 					"source":     { "field":    "raw.step" }, 
-					"conversion": { "constant": "1.0/info.measurements.area" }
+					"conversion": { "constant": "1.0/details.measurements.area" }
 				}, 
 				{ 
 					"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
