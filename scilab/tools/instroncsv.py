@@ -30,6 +30,8 @@ def camelCase(name, capitalizeFirst=False, removeCommon=[]):
 
 def getcolumninfo(idx, column, longname=True):
     
+    column = str(column)
+    
     # Split name based on parens. 
     parts = column.replace(')','').split('(')
     label, kind, units = parts[0], '', ''

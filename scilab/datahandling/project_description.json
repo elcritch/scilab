@@ -6,7 +6,7 @@
 		{
 			"raw": [
 	            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)",                      "idx": 0 },
-	            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|The Missus) (N)",                "idx": 2 },
+	            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)",                 "idx": 2 },
 	            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step",                                       "idx": 3 },
 	            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles",                             "idx": 4 },
 	            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)", "idx": 5 },

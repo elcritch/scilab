@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib
-
+import os, sys, pathlib, re
+import pandas as pd
+import numpy as np
+import scipy.io as sio
+from pandas import ExcelWriter
 
 # sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
 
@@ -13,70 +16,86 @@ import scilab.tools.jsonutils as Json
 
 import numpy as np
 
+def getproperty(json_object):
+    return next(json_object.values().__iter__())
 
-def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree, 
-                    normfactor, xname, yname, yunits, balance, 
-                    ):
+def getproperties(json_array):
+    return [ getproperty(item) for item in json_array ]
 
-    normalized = DataTree(steps=data.steps)
-    if xname in data.summaries:
-        normalized.summaries
-    normalized.summaries.update(data_datasummaries(testinfo, data=data, details=details, cols=[xname]))
-    
-    # offset_load = data[loadname].array - data.summaries[xname].balance
-    # normalized[loadname] = data[loadname].set(array=offset_load)
-    
-    ydata = data[dispname].array / normfactor
-    normalized[stressname] = DataTree(array=stress, label=stressname.capitalize(), units=stressunits)
-
-    normalized.summaries.update(data_datasummaries(testinfo, normalized, details, cols=[strainname, stressname]))
-
-    normalized.summaries[strainname].balance = normalized.summaries[dispname].balance / details.gauge.value
-    normalized.summaries[stressname].balance = normalized.summaries[loadname].balance / details.measurements.area.value
-    
-    return normalized
-
-
-def process_columns(columns):
-    
-    pass
-    
-    
-def process_csv_file(rawdata, dataconfig):
-    
-    rawdata = csvread(csvpath)
-
-    debug(rawdata.keys())
-    
-    # ColumnInfo('name label details units full idx')
 
 def match_data_description(testfolder):
-    project_description_url = Path(__file__).parent / "project_description.json"
-    debug(project_description_url)
-    project_description_url = project_description_url.resolve()
     
-    project_description = Json.load_json_from(project_description_url)
+    ## temporary, later lookup test config
+    project_description_url = Path(__file__).parent / "project_description.json"    
+    project_description = Json.load_json_from(project_description_url.resolve())
     
     return project_description
 
-def process_instron_file(testfolder, csvpath,savemode,filekind):
+def clean(s):
+    return s.replace("·",".")
+
+def process_raw_columns(csvpath, raw_config):
+
+    rawdata = csvread(csvpath)
+
+    debug(rawdata)
+    
+    csv_cols_index_full = { v.full: v for v in rawdata.values() if isinstance(v, InstronColumnData) }
+    debug(list(csv_cols_index_full.keys()))
+    
+    output = []
+    
+    for rawcol in raw_config:
+        print(mdBlock("**Raw Column**: {}".format(repr(rawcol))))
+        # debug([rawcol])
+        
+        if rawcol.full not in csv_cols_index_full:
+            raise KeyError("Column Missing from Data: column: `{}` data file columns: `{}`".format(repr(rawcol.full), repr(csv_cols_index_full.keys())))
+        
+        output.append((rawcol, csv_cols_index_full[rawcol.full]))
+    
+    return output 
+
+def save_columns(testfolder, name, columnmapping):
+    
+    with ExcelWriter(str(testfolder.datacalc / '{name}.xlsx'.format(name=name) )) as writer:
+        # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
+        # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
+        df1 = pd.DataFrame( OrderedDict( (k.name, v.array) for k,v in columnmapping ) )
+        df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
+        df1.to_excel(writer,'Data')
+        df2.to_excel(writer,'ColumnInfo')
+
+
+def process_instron_file(testfolder, csvpath, file_description):
     
     print(mdHeader(3, "File: {} ".format(csvpath.name) ))
     
-    debug(locals())
+    header, raw_config, normalized_config = getproperties(file_description)
     
-    project_description = match_data_description(testfolder)
-    debug(project_description)
+    print(mdHeader(3, "Header"))
+    debug(header)
     
+    print(mdHeader(3, "Raw Data"))
+    save_columns(testfolder, "raw", process_raw_columns(csvpath, raw_config))
+
+    print(mdHeader(3, "Normalize Data"))
     
 
     
 def process_files(testfolder):
     
-    for key, value in flatten(testfolder,sep='.').items():
-        filekind, wavematrix, savemode = key.split('.')[1:]
+    for key, value in flatten(testfolder.raw,sep='.').items():
+        filekind, wavematrix, savemode = key.split('.')[0:]
         csvpath = value
-        process_instron_file(testfolder=testfolder, csvpath=csvpath, savemode=savemode, filekind=filekind)
+        
+        debug(filekind, wavematrix, savemode, csvpath.name)
+        project_description_dict = match_data_description(testfolder)
+        
+        if filekind == 'csv' and savemode == 'tracking':
+            
+            file_description = project_description_dict['instron_tracking']
+            process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description)
     
     
 def main():
@@ -87,6 +106,8 @@ def main():
     
     ## create fake folder structure 
     testfolder = DataTree()
+    testfolder['data'] = samplefiles / 'data' 
+    testfolder['datacalc'] = samplefiles / 'data' / 'processed'
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
 
