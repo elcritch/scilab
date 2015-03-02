@@ -47,7 +47,15 @@ def process_raw_columns(csvpath, raw_config, rawoutfiles):
     return output 
 
 
-def normalize_columns(csvpath, raw_config):
+def normalize_columns(csvpath, config, filenames):
+    
+    # TODO: load 'raw' file (from matlab)
+    # TODO: load 'info' data (need to update this first?)
+    #            - need to save data into "flat excel file"
+    
+    for item in config:
+        debug(item)
+    
     return 
 
 def process_instron_file(testfolder, csvpath, file_description, version=0, force=DataTree()):
@@ -74,7 +82,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
 
-    if not 'norm' in force and not rawoutfiles.names.matlab.exists():
+    if not 'norm' in force and not normoutfiles.names.matlab.exists():
         columnmapping = normalize_columns(csvpath, normalized_config, normoutfiles)
         save_columns(testfolder, "normalized", columnmapping=columnmapping, filenames=normoutfiles)
     else:

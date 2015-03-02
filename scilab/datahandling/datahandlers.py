@@ -41,6 +41,9 @@ def getfilenames(testfolder, stage, version, matlab=True, excel=True):
     
 def save_columns(testfolder, name, columnmapping, filenames):
     
+    if not columnmapping:
+        return 
+    
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
     
     if 'matlab' in filenames.names:
