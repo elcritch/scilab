@@ -34,8 +34,8 @@ class Any(Shapes): pass
 class Array(Shapes): pass
 class String(Shapes): pass
 class Tuple(Shapes): pass
-class Dict(Shapes): pass
-class Property(Dict): pass
+class JsonDict(Shapes): pass
+class Property(JsonDict): pass
 
 
 def shape(obj):
@@ -48,14 +48,14 @@ def shape(obj):
         return Array(tuple(subtypes))
     elif isinstance(obj, (dict, collections.MutableMapping)):
         if len(obj) == 1:
-            return Property( (String(), shape(next(obj.values().__iter__()))) )
+            return Property( ( shape(next(obj.values().__iter__())), ) )
         elif len(obj) == 0:
-            return Property( tuple() ) 
+            return Property( tuple((None,)) ) 
         else:
             subtypes = set()
             for item in obj.values():
                 subtypes.add(shape(item))
-            return Dict( (String(), subtypes ))
+            return JsonDict( subtypes )
     else:
         return type(obj).__name__ 
 
