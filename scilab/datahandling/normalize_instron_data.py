@@ -6,22 +6,14 @@ import numpy as np
 import scipy.io as sio
 from pandas import ExcelWriter
 
-# sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
-
-
+import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.expers.configuration import *
 from scilab.tools.instroncsv import *
-import scilab.tools.jsonutils as Json
+
+from scilab.datahandling.datahandlers import *
 
 import numpy as np
-
-def getproperty(json_object):
-    return next(json_object.values().__iter__())
-
-def getproperties(json_array):
-    return [ getproperty(item) for item in json_array ]
-
 
 def match_data_description(testfolder):
     
@@ -31,10 +23,8 @@ def match_data_description(testfolder):
     
     return project_description
 
-def clean(s):
-    return s.replace("·",".")
 
-def process_raw_columns(csvpath, raw_config):
+def process_raw_columns(csvpath, raw_config, rawoutfiles):
 
     rawdata = csvread(csvpath)
 
@@ -56,50 +46,11 @@ def process_raw_columns(csvpath, raw_config):
     
     return output 
 
-def save_columns(testfolder, name, columnmapping, version=0, matlab=True, excel=True):
-    
-    filename = testfolder.datacalc / '{name} | v{ver}.txt'.format(name=name, ver=version)
-    orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
-    
-    outputs = []
-    
-    if matlab:
-        file = filename.with_suffix('.mat')    
-        save_columns_matlab(columnmapping, orderedmapping, file)
-        outputs.append(file)
-    if excel:
-        file = filename.with_suffix('.xlsx')    
-        save_columns_matlab(columnmapping, orderedmapping, file)
-        outputs.append(file)
-    
-    return outputs
 
-def save_columns_matlab(columnmapping, orderedmapping, file):
-    with open(str(file),'wb') as outfile:
-        print("Writing matlab file...")
-        sio.savemat(outfile, {"data":orderedmapping, "columns": { k[0].name: k[0] for k in columnmapping } } , 
-                    appendmat=False, 
-                    format='5',
-                    long_field_names=False, 
-                    do_compression=True,
-                    )
+def normalize_columns(csvpath, raw_config):
+    return 
 
-def save_columns_excel(columnmapping, orderedmapping, file):
-    with ExcelWriter(str(file)) as writer:
-        # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
-        # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
-        print("Creating excel file...")
-        df1 = pd.DataFrame( orderedmapping )
-        df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
-        df1.to_excel(writer,'Data')
-        df2.to_excel(writer,'ColumnInfo')
-        print("Writing excel file...")
-        writer.save()
-
-def normalize_columns(*args):
-    pass    
-
-def process_instron_file(testfolder, csvpath, file_description):
+def process_instron_file(testfolder, csvpath, file_description, version=0, force=DataTree()):
     
     print(mdHeader(3, "File: {} ".format(csvpath.name) ))
     
@@ -108,12 +59,28 @@ def process_instron_file(testfolder, csvpath, file_description):
     print(mdHeader(3, "Header"))
     debug(header)
     
+    #################################################
     print(mdHeader(3, "Raw Data"))
-    save_columns(testfolder, "raw", process_raw_columns(csvpath, raw_config))
+    rawoutfiles = getfilenames(testfolder, stage="raw", version=version, matlab=True)
 
+    if not 'raw' in force and not rawoutfiles.names.matlab.exists():
+        columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
+        save_columns(testfolder, stage="raw", columnmapping=columnmapping, filenames=rawoutfiles)
+    else:
+        print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
+
+    #################################################
     print(mdHeader(3, "Normalize Data"))
-    save_columns(testfolder, "normalized", normalize_columns(csvpath, raw_config))
 
+    normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
+
+    if not 'norm' in force and not rawoutfiles.names.matlab.exists():
+        columnmapping = normalize_columns(csvpath, normalized_config, normoutfiles)
+        save_columns(testfolder, "normalized", columnmapping=columnmapping, filenames=normoutfiles)
+    else:
+        print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
+    
+    
 
 def process_files(testfolder):
     
@@ -121,7 +88,8 @@ def process_files(testfolder):
         filekind, wavematrix, savemode = key.split('.')[0:]
         csvpath = value
         
-        debug(filekind, wavematrix, savemode, csvpath.name)
+        print(mdHeader(2, "Project: {} {} {}".format(filekind, wavematrix, savemode)))
+                
         project_description_dict = match_data_description(testfolder)
         
         if filekind == 'csv' and savemode == 'tracking':
