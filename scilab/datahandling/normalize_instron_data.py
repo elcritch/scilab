@@ -56,21 +56,36 @@ def process_raw_columns(csvpath, raw_config):
     
     return output 
 
-def save_columns(testfolder, name, columnmapping, version=0):
+def save_columns(testfolder, name, columnmapping, version=0, matlab=True, excel=True):
     
     filename = testfolder.datacalc / '{name} | v{ver}.txt'.format(name=name, ver=version)
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
     
-    with open(str(filename.with_suffix('.mat')),'wb') as outfile:
+    outputs = []
+    
+    if matlab:
+        file = filename.with_suffix('.mat')    
+        save_columns_matlab(columnmapping, orderedmapping, file)
+        outputs.append(file)
+    if excel:
+        file = filename.with_suffix('.xlsx')    
+        save_columns_matlab(columnmapping, orderedmapping, file)
+        outputs.append(file)
+    
+    return outputs
+
+def save_columns_matlab(columnmapping, orderedmapping, file):
+    with open(str(file),'wb') as outfile:
         print("Writing matlab file...")
-        sio.savemat(outfile, {"data":orderedmapping, "columns": [ k[0] for k in columnmapping ] } , 
+        sio.savemat(outfile, {"data":orderedmapping, "columns": { k[0].name: k[0] for k in columnmapping } } , 
                     appendmat=False, 
                     format='5',
                     long_field_names=False, 
                     do_compression=True,
                     )
-    
-    with ExcelWriter(str(filename.with_suffix('.xlsx'))) as writer:
+
+def save_columns_excel(columnmapping, orderedmapping, file):
+    with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
         # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
         print("Creating excel file...")
@@ -80,7 +95,9 @@ def save_columns(testfolder, name, columnmapping, version=0):
         df2.to_excel(writer,'ColumnInfo')
         print("Writing excel file...")
         writer.save()
-    
+
+def normalize_columns(*args):
+    pass    
 
 def process_instron_file(testfolder, csvpath, file_description):
     
@@ -95,9 +112,9 @@ def process_instron_file(testfolder, csvpath, file_description):
     save_columns(testfolder, "raw", process_raw_columns(csvpath, raw_config))
 
     print(mdHeader(3, "Normalize Data"))
-    
+    save_columns(testfolder, "normalized", normalize_columns(csvpath, raw_config))
 
-    
+
 def process_files(testfolder):
     
     for key, value in flatten(testfolder.raw,sep='.').items():
