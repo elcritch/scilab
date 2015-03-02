@@ -61,6 +61,15 @@ def save_columns(testfolder, name, columnmapping, version=0):
     filename = testfolder.datacalc / '{name} | v{ver}.txt'.format(name=name, ver=version)
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
     
+    with open(str(filename.with_suffix('.mat')),'wb') as outfile:
+        print("Writing matlab file...")
+        sio.savemat(outfile, {"data":orderedmapping, "columns": [ k[0] for k in columnmapping ] } , 
+                    appendmat=False, 
+                    format='5',
+                    long_field_names=False, 
+                    do_compression=True,
+                    )
+    
     with ExcelWriter(str(filename.with_suffix('.xlsx'))) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
         # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
@@ -72,15 +81,6 @@ def save_columns(testfolder, name, columnmapping, version=0):
         print("Writing excel file...")
         writer.save()
     
-    with open(str(filename.with_suffix('.mat')),'wb') as outfile:
-        print("Writing matlab file...")
-        sio.savemat(outfile, {"data":orderedmapping, "columns": [k[0] for k in columnmapping ] } , 
-                    appendmat=False, 
-                    format='5',
-                    long_field_names=False, 
-                    do_compression=True,
-                    )
-        
 
 def process_instron_file(testfolder, csvpath, file_description):
     
