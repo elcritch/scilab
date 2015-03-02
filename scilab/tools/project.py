@@ -120,6 +120,11 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
                 vstr = '~/'+str(v.relative_to(USER_HOME))
             else:
                 vstr = str(v)
+            if '<' in vstr:
+                vstr = vstr.replace('<','&lt;')
+            if '>' in vstr:
+                vstr = vstr.replace('>','&gt;')
+            
             return "`%s`"%vstr if vstr.count('\n') == 0 else '\n'+vstr.replace('\n', '\n> ....')
 
         for n, v in zip(varnames, args):

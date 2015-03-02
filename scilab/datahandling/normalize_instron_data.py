@@ -9,6 +9,7 @@ import os, sys, pathlib
 from scilab.tools.project import *
 from scilab.expers.configuration import *
 from scilab.tools.instroncsv import *
+import scilab.tools.jsonutils as Json
 
 import numpy as np
 
@@ -42,81 +43,41 @@ def process_columns(columns):
     
     
 def process_csv_file(rawdata, dataconfig):
-    pass
-    
-def process_instron_file(csvpath,savemode,filekind):
-    
-    print(mdHeader(3, "File: {} ".format(csvpath.name) ))
-    debug(locals())
     
     rawdata = csvread(csvpath)
 
     debug(rawdata.keys())
     
     # ColumnInfo('name label details units full idx')
-    
-    debug(rawdata.__class__.__name__)
-    
-    for name in rawdata.keys():
-        # debug(name)
-        column = rawdata[name]
-        
-        # debug(column[1:])
-        
-        array, summary, *colinfo = column
-        # print(tuple(colinfo))
-        print(ColumnInfo(*colinfo).idx)
-    
-    if savemode == 'tracking':
 
-        columns_renamed = [
-           #ColumnInfo name                             label                  details                    units  full                                         idx
-           #---------- ----------------------           ---------------------  -------------------------- -----  ----------------------------------------     ---- 
-           ColumnInfo( 'load_1kN',                      'Load',                'Linear|Load',             'N',   'Load(Linear|Load) (N)',                       0),
-           ColumnInfo(  None,                           'Total Cycle Count',   'Rotary Waveform',         'Nº',  'Total Cycle Count(Rotary Waveform)',          1),
-           ColumnInfo( 'load_missus',                   'Load',                'Linear|The Missus',       'N',   'Load(Linear|The Missus) (N)',                 2),
-           ColumnInfo( 'step',                          'Step',                '',                        'Nº',  'Step',                                        3),
-           ColumnInfo( 'elapsedCycles',                 'Elapsed Cycles',      '',                        'Nº',  'Elapsed Cycles',                              4),
-           ColumnInfo( 'disp',                          'Displacement',        'Linear|Digital Position', 'mm',  'Displacement(Linear|Digital Position) (mm)',  5),
-           ColumnInfo(  None,                           'Position',            'Linear|Position',         'mm',  'Position(Linear|Position) (mm)',              6),
-           ColumnInfo( 'totalCycleCount',               'Total Cycle Count',   'Linear Waveform',         'Nº',  'Total Cycle Count(Linear Waveform)',          7),
-           ColumnInfo( 'totalTime',                     'Total Time',          '',                        's',   'Total Time (s)',                              8),
-           ColumnInfo( 'cycleElapsedTime',              'Cycle Elapsed Time ', '',                        's',   'Cycle Elapsed Time (s)',                      9),
-           ColumnInfo( 'totalCycles',                   'Total Cycles',        '',                        'Nº',  'Total Cycles',                               10),
-        ]
-        
-        to_tuple = lambda i: tuple(zip(i._fields, i))
-        
-        columns_renamed = [ OrderedDict(to_tuple(i)) for i in columns_renamed ]
-        
-        choose_stress_column_name = lambda info: 'load_1k' if info.orientation else 'load_missus'
-        
-        columns_normalized = [
-            DataTree(name='strain', label='Strain', units='∆',   source='disp',                    converter='lambda info: 1.0/info.measurements.length'),
-            DataTree(name='stress', label='Stress', units='MPa', source="lambda info: 'load_1k' if info.orientation else 'load_missus'", converter='lambda info: 1.0/info.measurements.area'),
-            DataTree(name='step',                                source='step'),
-            DataTree(name='elapsedCycles',                       source='elapsedCycles'),
-            DataTree(name='totalCycleCount',                     source='totalCycleCount'),
-            DataTree(name='totalTime',                           source='totalTime'),
-            DataTree(name='cycleElapsedTime',                    source='cycleElapsedTime'),
-            DataTree(name='totalCycles',                         source='totalCycles'),
-        ]
-        
-        with open('/tmp/1','w') as out:
-            print(json.dumps(columns_renamed,indent=4),file=out)        
-            print(json.dumps(columns_normalized,indent=4),file=out)
-        
-    elif savemode == 'trends':
-        pass
+def match_data_description(testfolder):
+    project_description_url = Path(__file__).parent / "project_description.json"
+    debug(project_description_url)
+    project_description_url = project_description_url.resolve()
+    
+    project_description = Json.load_json_from(project_description_url)
+    
+    return project_description
+
+def process_instron_file(testfolder, csvpath,savemode,filekind):
+    
+    print(mdHeader(3, "File: {} ".format(csvpath.name) ))
+    
+    debug(locals())
+    
+    project_description = match_data_description(testfolder)
+    debug(project_description)
     
     
+
     
 def process_files(testfolder):
     
     for key, value in flatten(testfolder,sep='.').items():
         filekind, wavematrix, savemode = key.split('.')[1:]
         csvpath = value
-        process_instron_file(csvpath=csvpath, savemode=savemode, filekind=filekind)
+        process_instron_file(testfolder=testfolder, csvpath=csvpath, savemode=savemode, filekind=filekind)
+    
     
 def main():
     
