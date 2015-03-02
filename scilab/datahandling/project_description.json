@@ -20,37 +20,37 @@
 			"normalize": [
 				{
 					"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-					"source":     { "column":   "raw.disp"},
+					"source":     { "column":   "raw['disp']"},
 					"conversion": { "constant": "1.0/details.measurements.length" }
 				},
 				{
 					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "function": "'raw.load_missus' if details.orientation == 'tr' else 'raw.load_1kN'" },
+					"source":     { "function": "raw['load_missus'] if details.orientation == 'tr' else raw['load_1kN']" },
 					"conversion": { "constant": "1.0/details.measurements.area" }
 				},
 				{
 					"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-					"source":     { "field":    "raw.step" }, 
+					"source":     { "column":    "raw['step']" }, 
 					"conversion": { "constant": "1.0/details.measurements.area" }
 				}, 
 				{ 
 					"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-					"source":     { "field": "raw.elapsedCycles" }, 
+					"source":     { "column": "raw.elapsedCycles" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-					"source":     { "field": "raw.totalCycleCount" }, 
+					"source":     { "column": "raw.totalCycleCount" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
-					"source":     { "field": "raw.totalTime" }, 
+					"source":     { "column": "raw.totalTime" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-					"source":     { "field": "raw.cycleElapsedTime" }, 
+					"source":     { "column": "raw.cycleElapsedTime" }, 
 					"conversion": {}
 				}
 			]

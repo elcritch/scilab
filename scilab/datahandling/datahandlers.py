@@ -61,6 +61,14 @@ def save_columns_matlab(columnmapping, orderedmapping, file):
                     long_field_names=False, 
                     do_compression=True,
                     )
+                    
+def load_columns_matlab(file):
+    print("Reading matlab file: `{}` ...".format(file))
+    debug(sio.whosmat(str(file)))
+    print()
+    
+    with open(str(file),'rb') as file:
+        return sio.loadmat(file)
 
 def save_columns_excel(columnmapping, orderedmapping, file):
     with ExcelWriter(str(file)) as writer:

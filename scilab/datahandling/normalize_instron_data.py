@@ -46,18 +46,44 @@ def process_raw_columns(csvpath, raw_config, rawoutfiles):
     
     return output 
 
-
-def normalize_columns(testdetails, csvpath, config, filenames):
+# @debugger
+def normalize_columns(testdetails, data, config, filenames):
     
     # TODO: load 'raw' file (from matlab)
     # TODO: load 'info' data (need to update this first?)
     #            - need to save data into "flat excel file"
     
     debug(testdetails.measurements) 
-    print()
+    debug(type(data))
+    debug()
     
-    for item in config:
+    output = []
+    
+    def normalize_column(item):
         debug(item)
+        
+        column = item.column        
+
+        if 'column' in item.source or 'function' in item.source:
+            key, sourcefunc = next(item.source.items().__iter__())
+            print("Retrieving raw column with type: `{}` code: `{}`".format(key,sourcefunc))
+            normeddata = eval(sourcefunc, data) #
+        else:
+            raise("Unimplemented normalization mode: "+str(item.source))
+            
+        if 'constant' in item.conversion:
+            key, constantexpr = next(item.source.items().__iter__())
+            print("Normalizing column with type: `{}` code: `{}`".format(key,sourcefunc))
+            constant_factor = eval(constantexpr, {"details":details})
+            print("Normalizing column constant: `{}`".format(constant_factor))
+            normeddata = normeddata * constant_factor
+        
+        return normeddata
+        
+    for item in config:
+        normedcoldata = normalize_column(item)
+        print("Normed data name:{} shape:{}".format(item.name, normedcoldata.shape))
+        print()
     
     return 
 
@@ -87,7 +113,10 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     if not 'norm' in force and not normoutfiles.names.matlab.exists():
         testdetails = Json.load_json_from(testfolder.details)
-        columnmapping = normalize_columns(testdetails, csvpath, normalized_config, normoutfiles)
+        rawdata = load_columns_matlab(rawoutfiles.names.matlab)
+        debug(type(rawdata), rawdata.keys())
+        data = {"raw": rawdata['data'] }
+        columnmapping = normalize_columns(testdetails, data, normalized_config, normoutfiles)
         save_columns(testfolder, "normalized", columnmapping=columnmapping, filenames=normoutfiles)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
