@@ -53,39 +53,64 @@ def normalize_columns(testdetails, data, config, filenames):
     # TODO: load 'info' data (need to update this first?)
     #            - need to save data into "flat excel file"
     
-    debug(testdetails.measurements) 
+    # data = DataTree(data)
+    shortdetails = DataTree(testdetails)
+    testdetails.__dict__['_ignore'] = ['summaries']
     debug(type(data))
-    debug()
+    debug(data.keys())
+    print('\n')
     
     output = []
     
+    # @debugger
+    def executeexpr(key, expr, **env):
+        
+        try:
+            print("Evaluating key: `{}` with code: `{}`".format(key,expr))
+            value = eval(expr, env)
+            print("Evaluated:", value,'\n')
+            return value        
+        except Exception as err:
+            print("executeexpr:env::",env.keys())
+            print("executeexpr:env::",env['data'].keys())
+            raise err
+        
+    # @debugger
     def normalize_column(item):
         debug(item)
         
         column = item.column        
 
         if 'column' in item.source or 'function' in item.source:
-            key, sourcefunc = next(item.source.items().__iter__())
-            print("Retrieving raw column with type: `{}` code: `{}`".format(key,sourcefunc))
-            normeddata = eval(sourcefunc, data) #
+            key, sourcefunc = getpropertypair(item.source)
+            if key == 'column': # fix attribute accessors ...
+                sourcefunc = sourcefunc.split('.')
+                sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
+
+            normeddata = executeexpr(key, sourcefunc, details=testdetails, data=data)
         else:
-            raise("Unimplemented normalization mode: "+str(item.source))
+            raise Exception("Unimplemented normalization source mode: "+str(item.source))
             
         if 'constant' in item.conversion:
-            key, constantexpr = next(item.source.items().__iter__())
-            print("Normalizing column with type: `{}` code: `{}`".format(key,sourcefunc))
-            constant_factor = eval(constantexpr, {"details":details})
-            print("Normalizing column constant: `{}`".format(constant_factor))
-            normeddata = normeddata * constant_factor
+            key, constantexpr = getpropertypair(item.conversion)
+            constant_factor = executeexpr(key, constantexpr, details=testdetails)
+            normeddata = normeddata * constant_factor             
+        elif len(item.conversion) >= 1:
+            raise Exception("Unimplemented normalization conversion mode: "+str(item.conversion))
         
         return normeddata
         
     for item in config:
+        print(mdHeader(4, "Item: "+item.column.name))
         normedcoldata = normalize_column(item)
-        print("Normed data name:{} shape:{}".format(item.name, normedcoldata.shape))
+        debug(normedcoldata)
+        print("Normed data name:{} shape:{}".format(item.column.label, normedcoldata.shape))
         print()
+        
+        output.append( [ item.column, DataTree(array=normedcoldata) ])
     
-    return 
+    
+    return output 
 
 def process_instron_file(testfolder, csvpath, file_description, version=0, force=DataTree()):
     
@@ -100,9 +125,9 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     print(mdHeader(3, "Raw Data"))
     rawoutfiles = getfilenames(testfolder, stage="raw", version=version, matlab=True)
 
-    if not 'raw' in force and not rawoutfiles.names.matlab.exists():
+    if not 'raw' in force or not [ k for k,v in rawoutfiles.names.items() if not v.exists() ]:
         columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
-        save_columns(testfolder, stage="raw", columnmapping=columnmapping, filenames=rawoutfiles)
+        save_columns(columnmapping=columnmapping, filenames=rawoutfiles)
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
@@ -111,13 +136,13 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
 
-    if not 'norm' in force and not normoutfiles.names.matlab.exists():
+    if not 'norm' in force or not [ k for k,v in normoutfiles.names.items() if not v.exists() ]:
         testdetails = Json.load_json_from(testfolder.details)
         rawdata = load_columns_matlab(rawoutfiles.names.matlab)
         debug(type(rawdata), rawdata.keys())
         data = {"raw": rawdata['data'] }
         columnmapping = normalize_columns(testdetails, data, normalized_config, normoutfiles)
-        save_columns(testfolder, "normalized", columnmapping=columnmapping, filenames=normoutfiles)
+        save_columns(columnmapping=columnmapping, filenames=normoutfiles)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 

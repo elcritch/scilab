@@ -8,18 +8,18 @@ from pathlib import *
 def mapTo(func, iterable,*args,**kwargs):
     return [ (i, func(i,*args,**kwargs)) for i in iterable ]
 
-def debugger(func, debug=False):
-    """ Use to annotate functions for debugging purposes. """
-    
-    def debugger_wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as err:
-            args = itertools.chain( enumerate(args), kwargs.items())
-            args = [ "{}-> {}".format(k, str(v)) for k,v in args ] 
-            print("Trace:", func,' Args :=', ', '.join(args), flush=True,file=sys.stderr)
-            raise err
-    return debugger_wrapper    
+# def debugger(func, debug=False):
+#     """ Use to annotate functions for debugging purposes. """
+#
+#     def debugger_wrapper(*args, **kwargs):
+#         try:
+#             return func(*args, **kwargs)
+#         except Exception as err:
+#             args = itertools.chain( enumerate(args), kwargs.items())
+#             args = [ "{}-> {}".format(k, str(v)) for k,v in args ]
+#             print("Trace:", func,' Args :=', ', '.join(args), flush=True,file=sys.stderr)
+#             raise err
+#     return debugger_wrapper
 
 
 

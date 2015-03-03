@@ -20,37 +20,37 @@
 			"normalize": [
 				{
 					"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-					"source":     { "column":   "raw['disp']"},
-					"conversion": { "constant": "1.0/details.measurements.length" }
+					"source":     { "column":   "data.raw.disp"},
+					"conversion": { "constant": "1.0/details.gauge.value" }
 				},
 				{
 					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "function": "raw['load_missus'] if details.orientation == 'tr' else raw['load_1kN']" },
-					"conversion": { "constant": "1.0/details.measurements.area" }
+					"source":     { "function": "data['raw']['load_missus'] if details.info.orientation == 'tr' else data['raw']['load_1kN']" },
+					"conversion": { "constant": "1.0/details.measurements.area.value" }
 				},
 				{
 					"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-					"source":     { "column":    "raw['step']" }, 
-					"conversion": { "constant": "1.0/details.measurements.area" }
+					"source":     { "column":    "data.raw.step" }, 
+					"conversion": { "constant": "1.0/details.measurements.area.value" }
 				}, 
 				{ 
 					"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-					"source":     { "column": "raw.elapsedCycles" }, 
+					"source":     { "column": "data.raw.elapsedCycles" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-					"source":     { "column": "raw.totalCycleCount" }, 
+					"source":     { "column": "data.raw.totalCycleCount" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
-					"source":     { "column": "raw.totalTime" }, 
+					"source":     { "column": "data.raw.totalTime" }, 
 					"conversion": {}
 				},
 				{
 					"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-					"source":     { "column": "raw.cycleElapsedTime" }, 
+					"source":     { "column": "data.raw.cycleElapsedTime" }, 
 					"conversion": {}
 				}
 			]

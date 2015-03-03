@@ -9,17 +9,6 @@ from scilab.tools.instroncsv import *
 import scilab.tools.jsonutils as Json
 
 
-def flatten(d, parent_key='', sep='_', func=lambda x: None):
-    items = []
-    for k, v in d.items():
-        new_key = parent_key + [ k ] if parent_key else [k]
-        print("."*len(new_key), k, shape(v))
-        if isinstance(v, collections.MutableMapping):
-            items.extend(flatten(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
-    return collections.OrderedDict(items)
-
 class Shapes(object):
     def __init__(self, subs=tuple()):
         self.subs = tuple(subs)

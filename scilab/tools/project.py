@@ -34,12 +34,35 @@ class ColumnInfo(namedtuple('_ColumnInfo', 'name label details units full idx'),
 class InstronColumnData(namedtuple('_InstronColumnData', 'array summary name label details units full idx'), NamedTuple):
     pass
 
+def todatatree(item,depth=0):
+    """convert json to data tree ... """
+    if isinstance(item, collections.Mapping):
+        print("'.'*depth, todatatree: dict:",len(item))
+        output = DataTree()
+        for key,value in item.items():
+            print('.'*depth, "todatatree: dict:key:",key)
+            output[key] = todatatree(value,depth+1)
+        return output
+    elif isinstance(item, collections.Sequence):
+        print('.'*depth, "todatatree:list:",len(item))
+        output = [ todatatree(i,depth+1) for i in item ]
+    else:
+        print('.'*depth, "todatatree:item",str(type(item)).replace('<','≤'))
+        return item
 
 
-def flatten(d, parent_key='', sep='_'):
+def flatten(d, parent_key='', sep='_', func=None, ignore=[]):
     items = []
+    
+    if not func:
+        func = lambda p,ks: p + sep + ks
+        
     for k, v in d.items():
-        new_key = parent_key + sep + str(k) if parent_key else str(k)
+        ks = str(k)
+        if ks in ignore:
+            continue
+        
+        new_key = func(parent_key, ks) if parent_key else ks
         if isinstance(v, collections.MutableMapping):
             items.extend(flatten(v, new_key, sep=sep).items())
         else:
@@ -48,16 +71,23 @@ def flatten(d, parent_key='', sep='_'):
 
 def debugger_summary(idx, val, prefix='_', depth=0):
     msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))
+    # print('debugger_summary:',str(type(val)).replace('<','≤').replace('>','≥'))
     if 'ndarray' == val.__class__.__name__:
         return msg + "ndarray: "+str(val.shape)
+    elif hasattr(val, '__summary__'):
+        return msg + val.__summary__()
     elif isinstance(val, dict):
-        print('items:', flush=True, file=sys.stderr)
-        
+        # print('items:', flush=True, file=sys.stderr)
+        ignore = getattr(val, '_ignore', [] )
+        print('debugger_summary:ignore:'+str(ignore))
         for k,v in flatten(val, sep='.').items():
+            if any([i in k for i in ignore]):
+                # msg += '\nignored key: {} type:{}'.format(k,type(v))
+                continue
             msg += '\n' + debugger_summary(k, v, depth=depth+1)
         return msg
     else:
-        return msg+repr(val)
+        return msg+str(val)
 
 def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """
