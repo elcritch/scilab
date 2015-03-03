@@ -125,7 +125,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     print(mdHeader(3, "Raw Data"))
     rawoutfiles = getfilenames(testfolder, stage="raw", version=version, matlab=True)
 
-    if not 'raw' in force or not [ k for k,v in rawoutfiles.names.items() if not v.exists() ]:
+    if not 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
         columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
         save_columns(columnmapping=columnmapping, filenames=rawoutfiles)
     else:
@@ -136,7 +136,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
 
-    if not 'norm' in force or not [ k for k,v in normoutfiles.names.items() if not v.exists() ]:
+    if not 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
         testdetails = Json.load_json_from(testfolder.details)
         rawdata = load_columns_matlab(rawoutfiles.names.matlab)
         debug(type(rawdata), rawdata.keys())

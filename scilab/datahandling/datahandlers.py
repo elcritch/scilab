@@ -32,9 +32,9 @@ def clean(s):
     return s.replace("·",".")
 
 
-def getfilenames(testfolder, stage, version, matlab=True, excel=True, numpy=True):
+def getfilenames(testfolder, stage, version, matlab=True, excel=True, numpy=True, pickle=True):
     
-    filename = testfolder.datacalc / '{stage} | v{ver}.txt'.format(stage=stage, ver=version)
+    filename = testfolder.datacalc / 'data (stage={stage} | v{ver}).txt'.format(stage=stage, ver=version)
     
     filenames = DataTree()
     filenames.stage = stage
@@ -42,6 +42,7 @@ def getfilenames(testfolder, stage, version, matlab=True, excel=True, numpy=True
     if matlab: filenames['names','matlab'] = filename.with_suffix('.mat')
     if excel: filenames['names','excel'] = filename.with_suffix('.xlsx')
     if numpy: filenames['names','numpy'] = filename.with_suffix('.npz')
+    if pickle: filenames['names','pickle'] = filename.with_suffix('.pickle')
 
     return filenames
     
@@ -58,6 +59,8 @@ def save_columns(columnmapping, filenames):
         save_columns_matlab(columnmapping, orderedmapping, filenames.names.excel)
     if 'numpy' in filenames.names:
         save_columns_numpy(columnmapping, orderedmapping, filenames.names.numpy)
+    if 'pickle' in filenames.names:
+        save_columns_pickle(columnmapping, orderedmapping, filenames.names.pickle)
 
 def save_columns_matlab(columnmapping, orderedmapping, file):
     with open(str(file),'wb') as outfile:
@@ -82,32 +85,17 @@ def save_columns_numpy(columnmapping, orderedmapping, file):
         print("Writing numpy file...")
         np.savez_compressed(outfile, data=orderedmapping, columns={ k[0].name: k[0] for k in columnmapping })
 
-def load_columns_numpy(filepath):
+def save_columns_pickle(columnmapping, orderedmapping, file):
+    import pickle
+    with open(str(file),'wb') as outfile:
+        print("Writing python pickle file...")
+        pickle.dump({'data':orderedmapping, 'columns':{ k[0].name: k[0] for k in columnmapping }}, outfile)
+
+def load_columns_pickle(filepath):
+    import pickle
     with open(str(filepath),'rb') as file:
-        print("Reading numpy file: `{}` ...".format(str(filepath)))
-        npzfile = np.load(file)
-        npz = DataTree()
-        # npz = DataTree({ f: npzfile[f] for f in npzfile.files})
-        
-        for f in npzfile.files:
-            v = npzfile[f]
-            
-            debug(type(v))
-            debug(v.dtype.names)
-            debug(v)
-            
-            vdt = DataTree({ x:v[x] for x in v.dtype.names })
-            npz[f] = vdt
-            
-        debug(isinstance(data, dict))
-        debug(type(data))
-        debug(data.keys())
-        debug(data)
-        debug(data['disp'])
-        debug(data.disp)
-        debug([ type(npz[f]) for f in npz ])
-        
-        return npz
+        print("Reading pickle file: `{}` ...".format(str(filepath)))
+        return pickle.load(file)
 
 def save_columns_excel(columnmapping, orderedmapping, file):
     with ExcelWriter(str(file)) as writer:
