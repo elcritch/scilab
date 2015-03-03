@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
-import pprint
+import pprint, collections
 
 try:
     from testingtools import Tests, test_in
@@ -13,6 +13,30 @@ class NamedTuple():
         vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
         return self.__class__(*vals)
 
+
+class TreeAccessor(dict):
+
+    def __init__(self, item):
+        # print("TreeAccessor:item:", item)
+        self.__dict__['__item__'] = item
+    
+    def __getattr__(self, name):
+        
+        if attr in self.__dict__:
+            # this object has it
+            return getattr(self, attr)
+        
+        # print("getattr:getitem:")
+        citem = self.__dict__['__item__'][name]
+        if isinstance(citem, collections.Mapping):
+            # print("getattr:getitem:mapping:")
+            return TreeAccessor(citem)
+        else:
+            # print("getattr:getitem:item:")
+            return citem
+        # raise AttributeError(self._keyerror(name))
+    
+    
 # Helpers
 class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
@@ -29,7 +53,7 @@ class DataTree(dict):
             defaults = kwdargs['defaults']
             if not type(defaults) == list:
                 defaults = defaults.split() 
-            for arg in defaults: 
+            for arg in defaults:
                 kwdargs[arg] = None
         if 'withProperties' in kwdargs:
             defaults = kwdargs.pop('withProperties')
@@ -230,5 +254,19 @@ if __name__ == '__main__':
             assert d1['a','b','bb'] == 'foo'
             assert d1['a','b','bb','not','here'] == None
             
+        @test_in(tests)
+        def test_treeaccessor():
+    
+            # empty sub
+            d1 = {'a':{'b':{'bb':'foo'}}}
+            print()
+            
+            d2 = TreeAccessor(d1)
+
+            print(d1['a']['b']['bb'])
+            print(d2.a.b)
+            print(d2.a.b.bb)
+            print()
+            assert d2.a.b.bb == 'foo'
         
     

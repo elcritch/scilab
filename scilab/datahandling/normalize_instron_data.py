@@ -67,7 +67,7 @@ def normalize_columns(testdetails, data, config, filenames):
         
         try:
             print("Evaluating key: `{}` with code: `{}`".format(key,expr))
-            value = eval(expr, env)
+            value = eval(expr, { k: TreeAccessor(v) for k,v in env.items() } )
             print("Evaluated:", value,'\n')
             return value        
         except Exception as err:

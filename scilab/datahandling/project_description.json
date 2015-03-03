@@ -25,7 +25,7 @@
 				},
 				{
 					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "function": "data['raw']['load_missus'] if details.info.orientation == 'tr' else data['raw']['load_1kN']" },
+					"source":     { "function": "data.raw.load_missus if details.info.orientation == 'tr' else data.raw.load_1kN" },
 					"conversion": { "constant": "1.0/details.measurements.area.value" }
 				},
 				{
