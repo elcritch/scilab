@@ -62,12 +62,17 @@ def normalize_columns(testdetails, data, config, filenames):
     
     output = []
     
+    get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
+    re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
+    
     # @debugger
     def executeexpr(key, expr, **env):
         
         try:
+            expr = re_attribs('data',expr) # change 'data.a.b.c' accesses into getitem style data['a']['b']...
             print("Evaluating key: `{}` with code: `{}`".format(key,expr))
-            value = eval(expr, { k: TreeAccessor(v) for k,v in env.items() } )
+            
+            value = eval(expr, env)
             print("Evaluated:", value,'\n')
             return value        
         except Exception as err:
@@ -125,7 +130,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     print(mdHeader(3, "Raw Data"))
     rawoutfiles = getfilenames(testfolder, stage="raw", version=version, matlab=True)
 
-    if not 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
+    if 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
         columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
         save_columns(columnmapping=columnmapping, filenames=rawoutfiles)
     else:
@@ -136,7 +141,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
 
-    if not 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
+    if 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
         testdetails = Json.load_json_from(testfolder.details)
         rawdata = load_columns_matlab(rawoutfiles.names.matlab)
         debug(type(rawdata), rawdata.keys())
@@ -161,7 +166,8 @@ def process_files(testfolder):
         if filekind == 'csv' and savemode == 'tracking':
             
             file_description = project_description_dict['instron_tracking']
-            process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description)
+            forces = DataTree(raw=True, norm=True)
+            process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
     
     
 def main():
