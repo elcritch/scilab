@@ -143,7 +143,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     if 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
         testdetails = Json.load_json_from(testfolder.details)
-        rawdata = load_columns_matlab(rawoutfiles.names.matlab)
+        rawdata = load_columns_pickle(rawoutfiles.names.pickle) # use python pickling for now... 
         debug(type(rawdata), rawdata.keys())
         data = {"raw": rawdata['data'] }
         columnmapping = normalize_columns(testdetails, data, normalized_config, normoutfiles)

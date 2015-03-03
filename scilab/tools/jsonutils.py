@@ -69,6 +69,16 @@ def update_data(parentdir, test_name, data, dataDir="../../test-data/", dbg=None
 #         json_data = json.load(json_file)
 #
 #         return json_data
+def Base64Encode(ndarray):
+    return json.dumps( DataTree(type=str(ndarray.dtype), shape=ndarray.shape, base64=base64.b64encode(ndarray) ) )
+
+def Base64Decode(jsonDump):
+    loaded = json.loads(jsonDump)
+    dtype = np.dtype(loaded[0])
+    arr = np.frombuffer(base64.decodestring(loaded[1]),dtype)
+    if len(loaded) > 2:
+        return arr.reshape(loaded[2])
+    return arr
 
     
 def load_json_from(json_path, datatree=False, default=None):
@@ -116,6 +126,7 @@ class CustomJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         try:
             if isinstance(obj, numpy.ndarray):
+                    # return DataTree(type=str(obj.dtype), shape=obj.shape, base64=base64.b64encode(obj))
                 return obj.tolist()
             elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
                 return vars(obj)

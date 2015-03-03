@@ -56,7 +56,7 @@ def save_columns(columnmapping, filenames):
     if 'matlab' in filenames.names:
         save_columns_matlab(columnmapping, orderedmapping, filenames.names.matlab)
     if 'excel' in filenames.names:
-        save_columns_matlab(columnmapping, orderedmapping, filenames.names.excel)
+        save_columns_excel(columnmapping, orderedmapping, filenames.names.excel)
     if 'numpy' in filenames.names:
         save_columns_numpy(columnmapping, orderedmapping, filenames.names.numpy)
     if 'pickle' in filenames.names:
@@ -97,6 +97,7 @@ def load_columns_pickle(filepath):
         print("Reading pickle file: `{}` ...".format(str(filepath)))
         return pickle.load(file)
 
+@debugger
 def save_columns_excel(columnmapping, orderedmapping, file):
     with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
