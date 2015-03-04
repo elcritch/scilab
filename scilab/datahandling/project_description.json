@@ -1,44 +1,55 @@
 { 
-	"_metadata_": { "_kind_": "instron" },
+	"_metadata_": { 
+		"_kind_": "instron", 
+		"_protocol_": "fatigue cycle failure instron data and normalization",
+	},
 	"_stages_": [
 		{
 			"_name_": "raw",
-			"_inputs_": { "csv": {"_actions_": ["_file_", "_csv_", "_match_"] } },
+			"_inputs_": { "csv": "_file_" },
 			"_outputs_": { },
 			"_sources_": {
-				"trends": {
-					"preload_csv":   { "csv": "raw/01 Preloads/{testname}*.trends.csv" },
-					"preconds_csv":  { "csv": "raw/02 Preconditions/{testname}*.trends.csv" },
-					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}*.trends.csv" },
-					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}*.trends.csv" }
+				"preload_csv": {
+					"trends": { "_csv_": "raw/01 Preloads/{testname}*.trends.csv" },
+					"tracking": { "_csv_": "raw/01 Preloads/{testname}*.tracking.csv" }
 				},
-				"tracking": { 
-					"preload_csv":   { "csv": "raw/02 Preconditions/{name}*.tracking.csv" },
-					"preconds_csv":  { "csv": "raw/01 Preloads/{name}*.tracking.csv" },
-					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{name}*.tracking.csv" },
-					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{name}*.tracking.csv" }
+				"preload_csv": {
+					"preload_csv":   { "_csv_": "raw/01 Preloads/{testname}*.trends.csv" },
+					"preload_csv":   { "_csv_": "raw/02 Preconditions/{name}*.tracking.csv" },
+					"preconds_csv":  { "_csv_": "raw/02 Preconditions/{testname}*.trends.csv" },
+					"preconds_csv":  { "_csv_": "raw/01 Preloads/{name}*.tracking.csv" }
+				},
+				"cycles_lg_csv": { 
+					"cycles_lg_csv": { "_csv_": "raw/03 Fatigue Cycles (LG)/{testname}*.trends.csv" },
+					"cycles_lg_csv": { "_csv_": "raw/03 Fatigue Cycles (LG)/{name}*.tracking.csv" }
+				 },
+				"cycles_tr_csv": { 
+					"cycles_tr_csv": { "_csv_": "raw/03 Fatigue Cycles (TR)/{testname}*.trends.csv" },
+					"cycles_tr_csv": { "_csv_": "raw/03 Fatigue Cycles (TR)/{name}*.tracking.csv" }
 				 }
 			},
 			"_computations_": {}
 		},
 		{
 			"_name_": "pre",
-			"_inputs_": { "raw": {"_actions_": ["_stage_"] } },
+			"_inputs_": { "raw": "_stage_" },
 			"_outputs_": [ "matlab", "excel" ],
 			"_sources_": {
-				"trends": {
-					"preload": { "_field_": "raw.preconds_csv" },
-					"precond": { "_field_": "raw.preload_csv" },
-					"fatigue": { "_lookup_": ["details.info.orientation", {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} ] }
+				"preload": {
+					"trends":   { "_field_": "raw.preconds_csv" },
+					"tracking": { "_field_": "raw.preconds_csv" }
 				},
-				"tracking": {
-					"preload": { "_field_": "raw.preconds_csv" },
-					"precond": { "_field_": "raw.preload_csv" },
-					"fatigue": { "_lookup_": ["details.info.orientation", {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} ] }
+				"precond": {
+					"trends":   { "_field_": "raw.preload_csv" },
+					"tracking": { "_field_": "raw.preload_csv" }
+				},
+				"fatigue": {
+					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
+					"tracking": { "_lookup_": { "details.info.orientation": {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } }
 				}
 			},
 			"_computations_": {
-				"trends": ["columns.trends.pre"],
+				"trends":   ["columns.trends.pre"],
 				"tracking": ["columns.tracking.pre"]
 			}
 		},
@@ -56,12 +67,12 @@
 					"tracking": { "_field_": "pre.preconds_csv" }
 				},
 		        "fatigue":  {
-					"trends":   { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
-					"tracking": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"trends":   { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
+					"tracking": { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } }
 				}
 			},
 			"_computations_": {
-				"trends": ["_computations_.columns.trends.norm"],
+				"trends":   ["_computations_.columns.trends.norm"],
 				"tracking": ["_computations_.columns.tracking.norm"]
 			}	
 		}
@@ -110,7 +121,7 @@
 					},
 					{
 						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"_source_":     { "_lookup_": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
+						"_source_":     { "_lookup_": { "details.info.orientation": {"tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
 						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					},
 					{
