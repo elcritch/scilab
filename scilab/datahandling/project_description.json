@@ -3,36 +3,38 @@
 	"_stages_": [
 		{
 			"_name_": "raw",
-			"_inputs_": { "csv": "filename" },
-			"__sources_": {
+			"_inputs_": { "csv": {"_actions_": ["_file_", "_csv_", "_match_"] } },
+			"_outputs_": { },
+			"_sources_": {
 				"trends": {
-					"preload_csv":   { "csv": "raw/01 Preloads/{testname}.trends.csv" },
-					"preconds_csv":  { "csv": "raw/02 Preconditions/{testname}.trends.csv" },
-					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}.trends.csv" },
-					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}.trends.csv" }
+					"preload_csv":   { "csv": "raw/01 Preloads/{testname}*.trends.csv" },
+					"preconds_csv":  { "csv": "raw/02 Preconditions/{testname}*.trends.csv" },
+					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}*.trends.csv" },
+					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}*.trends.csv" }
 				},
 				"tracking": { 
-					"preload_csv":   { "csv": "raw/02 Preconditions/{testname}.tracking.csv" },
-					"preconds_csv":  { "csv": "raw/01 Preloads/{testname}.tracking.csv" },
-					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}.tracking.csv" },
-					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}.tracking.csv" }
+					"preload_csv":   { "csv": "raw/02 Preconditions/{name}*.tracking.csv" },
+					"preconds_csv":  { "csv": "raw/01 Preloads/{name}*.tracking.csv" },
+					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{name}*.tracking.csv" },
+					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{name}*.tracking.csv" }
 				 }
-			}
+			},
+			"_computations_": {}
 		},
 		{
 			"_name_": "pre",
-			"_inputs_": { "raw": "stage" },
+			"_inputs_": { "raw": {"_actions_": ["_stage_"] } },
 			"_outputs_": [ "matlab", "excel" ],
-			"_source_": {
+			"_sources_": {
 				"trends": {
 					"preload": { "_field_": "raw.preconds_csv" },
 					"precond": { "_field_": "raw.preload_csv" },
-					"fatigue": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"fatigue": { "_lookup_": ["details.info.orientation", {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} ] }
 				},
 				"tracking": {
 					"preload": { "_field_": "raw.preconds_csv" },
 					"precond": { "_field_": "raw.preload_csv" },
-					"fatigue": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"fatigue": { "_lookup_": ["details.info.orientation", {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} ] }
 				}
 			},
 			"_computations_": {
@@ -44,7 +46,7 @@
 			"_name_": "norm",
 			"_inputs_": {"pre": "stage" },
 			"_outputs_": [ "matlab", "excel" ],
-			"_source_": {
+			"_sources_": {
 		        "preload":  { 
 					"trends":   { "_field_": "pre.preload_csv" },
 					"tracking": { "_field_": "pre.preload_csv" }

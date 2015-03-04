@@ -16,6 +16,9 @@ import scilab.tools.jsonutils as Json
 
 import numpy as np
 
+def isproperty(obj, key):
+    return isinstance(obj, collections.Mapping) and (len(json_object) == 1) and (key in obj)
+    
 def getproperty(json_object):
     assert len(json_object) == 1
     return next(json_object.values().__iter__())
@@ -26,7 +29,6 @@ def getpropertypair(json_object):
 
 def getproperties(json_array):
     return [ getproperty(item) for item in json_array ]
-
 
 def clean(s):
     return s.replace("·",".")
