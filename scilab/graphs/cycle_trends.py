@@ -24,10 +24,12 @@ import numpy as np
 
 from scilab.graphs.graph_shared import *
 
-def graph(testinfo:TestInfo, testdetails, testdata, testargs):
+namedtuple("Test", "info, folder, details, data, headers")
+
+def graph(info, folder, details, data, headers, args):
     
     stepslice = testdata.steps['step_5']
-    sliced = lambda xs: xs.set(array=xs.array[stepslice])
+    sliced = lambda xs: xs.set(array=xs[stepslice])
     # debug(stepslice)
     
     # debug(list(testdata))
@@ -44,7 +46,7 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     calc[xname].target = other.test_max_force / testdetails.measurements.area.value
     calc[xname].stress_level = int(100*other.stress_level)
     calc[xname].pred_max = other.uts_stress # *testdetails.measurements.area.value
-    calc[xname].actual = x.array.mean() 
+    calc[xname].actual = x.mean() 
     calc[xname].actual_perc = calc[xname].actual/(calc[xname].pred_max) * 100.0
     
     # debug(calc)
@@ -54,8 +56,8 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     (ax1,ax2) = axes
     
     ## First Plot ##
-    ax1_title = "%s vs %s"%(x.label, t.label)
-    ax1.plot(t.array, x.array)
+    ax1_title = "%s vs %s"%(datainfo.x.label, datainfo.t.label)
+    ax1.plot(t, x)
     ax2.set_xlabel(labeler(t))
     ax2.set_ylabel(labeler(x))
     
@@ -70,11 +72,11 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ax1.hlines(calc[xname].target, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
     ax1.hlines(calc[xname].pred_max, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
     
-    # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x.array[y.summary.maxs.idx], x.units, )
+    # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x[y.summary.maxs.idx], x.units, )
     # debug(label_stress_max)
     # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
     
-    # ax1.set(xlim=limiter(t.array, 0.08), ylim=limiter(x.array, 0.8))
+    # ax1.set(xlim=limiter(t, 0.08), ylim=limiter(x, 0.8))
     ax1.legend(loc=3, fancybox=True, framealpha=0.0, )
     ax1.set_title(ax1_title)
     
@@ -82,15 +84,15 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     
     y_target = other.precond_disp    
     
-    ax2_title = "%s vs %s"%(y.label, t.label, )
+    ax2_title = "%s vs %s"%(dh.y.label, dh.t.label, )
     
-    ax2.plot(t.array, y.array)
+    ax2.plot(t, y)
     ax2.set_xlabel(labeler(t))
     ax2.set_ylabel(labeler(y))
     
-    ax2.hlines(y_target, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+y.label)
+    ax2.hlines(y_target, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+dh.y.label)
     
-    # ax2.set(xlim=limiter(t.array, 0.08), ylim=limiter(y.array, 0.08))
+    # ax2.set(xlim=limiter(t, 0.08), ylim=limiter(y, 0.08))
     ax2.legend(loc='best', fontsize=10,fancybox=True, framealpha=0.5)
     ax2.set_title(ax2_title)
 

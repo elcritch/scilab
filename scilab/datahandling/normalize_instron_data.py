@@ -128,7 +128,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     
     #################################################
     print(mdHeader(3, "Raw Data"))
-    rawoutfiles = getfilenames(testfolder, stage="raw", version=version, matlab=True)
+    rawoutfiles = getfilenames(testfolder, stage="raw", header=header, version=version, matlab=True)
 
     if 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
         columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
@@ -139,7 +139,7 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     #################################################
     print(mdHeader(3, "Normalize Data"))
 
-    normoutfiles = getfilenames(testfolder, stage="norm", version=version, matlab=True)
+    normoutfiles = getfilenames(testfolder, stage="norm", header=header, version=version, matlab=True)
 
     if 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
         testdetails = Json.load_json_from(testfolder.details)

@@ -13,6 +13,7 @@ class NamedTuple():
         vals = [ kw.get(fld, val) for fld,val in zip(self._fields, self) ]
         return self.__class__(*vals)
 
+
     
     
 # Helpers

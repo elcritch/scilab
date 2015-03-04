@@ -31,10 +31,10 @@ def getproperties(json_array):
 def clean(s):
     return s.replace("·",".")
 
-
-def getfilenames(testfolder, stage, version, matlab=True, excel=True, numpy=True, pickle=True):
-    
-    filename = testfolder.datacalc / 'data (stage={stage} | v{ver}).txt'.format(stage=stage, ver=version)
+def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=True):
+    hdrs = ''.join([ " {}={} |".format(*i) 
+                    for i in sorted(flatten(header,ignore='filetype').items()) ])
+    filename = testfolder.datacalc / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()
     filenames.stage = stage
@@ -77,8 +77,12 @@ def load_columns_matlab(filepath):
     debug(sio.whosmat(str(filepath)))
     print()
     
+    # http://stackoverflow.com/questions/6273634/access-array-contents-from-a-mat-file-loaded-using-scipy-io-loadmat-python
     with open(str(filepath),'rb') as file:
-        return sio.loadmat(file)
+        return sio.loadmat(file,
+                           squeeze_me=True, 
+                           struct_as_record=False,
+                           )
 
 def save_columns_numpy(columnmapping, orderedmapping, file):
     with open(str(file),'wb') as outfile:
@@ -99,12 +103,13 @@ def load_columns_pickle(filepath):
 
 @debugger
 def save_columns_excel(columnmapping, orderedmapping, file):
+    df1 = pd.DataFrame( orderedmapping )
+    df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
+    
     with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
         # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
         print("Creating excel file...")
-        df1 = pd.DataFrame( orderedmapping )
-        df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
         df1.to_excel(writer,'Data')
         df2.to_excel(writer,'ColumnInfo')
         print("Writing excel file...")
