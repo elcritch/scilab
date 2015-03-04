@@ -1,10 +1,10 @@
 { 
-	"metadata": { "kind": "instron" },
-	"stages": [
+	"_metadata_": { "_kind_": "instron" },
+	"_stages_": [
 		{
-			"name": "raw",
-			"inputs": { "csv": "filetype" },
-			"sources": {
+			"_name_": "raw",
+			"_inputs_": { "csv": "filename" },
+			"__sources_": {
 				"trends": {
 					"preload_csv":   { "csv": "raw/01 Preloads/{testname}.trends.csv" },
 					"preconds_csv":  { "csv": "raw/02 Preconditions/{testname}.trends.csv" },
@@ -20,51 +20,54 @@
 			}
 		},
 		{
-			"name": "pre",
-			"inputs": { "raw": "stage" },
-			"outputs": [ "matlab", "excel" ],
-			"sources": {
+			"_name_": "pre",
+			"_inputs_": { "raw": "stage" },
+			"_outputs_": [ "matlab", "excel" ],
+			"_source_": {
 				"trends": {
-					"preload": { "field": "raw.preconds_csv" },
-					"precond": { "field": "raw.preload_csv" },
-					"fatigue": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"preload": { "_field_": "raw.preconds_csv" },
+					"precond": { "_field_": "raw.preload_csv" },
+					"fatigue": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				},
 				"tracking": {
-					"preload": { "field": "raw.preconds_csv" },
-					"precond": { "field": "raw.preload_csv" },
-					"fatigue": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"preload": { "_field_": "raw.preconds_csv" },
+					"precond": { "_field_": "raw.preload_csv" },
+					"fatigue": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				}
 			},
-			"computations": {
-				"trends": ["computations.columns.trends.pre"],
-				"tracking": ["computations.columns.tracking.pre"]
+			"_computations_": {
+				"trends": ["columns.trends.pre"],
+				"tracking": ["columns.tracking.pre"]
 			}
 		},
 		{
-			"name": "norm",
-			"inputs": {"pre": "stage" },
-			"outputs": [ "matlab", "excel" ],
-			"sources": {
+			"_name_": "norm",
+			"_inputs_": {"pre": "stage" },
+			"_outputs_": [ "matlab", "excel" ],
+			"_source_": {
 		        "preload":  { 
-					"trends":   { "field": "pre.preload_csv" },
-					"tracking": { "field": "pre.preload_csv" },
+					"trends":   { "_field_": "pre.preload_csv" },
+					"tracking": { "_field_": "pre.preload_csv" }
 				},
 		        "precond":  {
-					"trends":   { "field": "pre.preconds_csv" },
-					"tracking": { "field": "pre.preconds_csv" },
+					"trends":   { "_field_": "pre.preconds_csv" },
+					"tracking": { "_field_": "pre.preconds_csv" }
 				},
 		        "fatigue":  {
-					"trends":   { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
-					"tracking": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+					"trends":   { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
+					"tracking": { "_lookup_": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				}
 			},
-			"computations": {
-				"trends": ["computations.columns.trends.norm"],
-				"tracking": ["computations.columns.tracking.norm"]
+			"_computations_": {
+				"trends": ["_computations_.columns.trends.norm"],
+				"tracking": ["_computations_.columns.tracking.norm"]
 			}	
 		}
 	],
-	"computations": {
+	"_computations_": {
+		"summaries": {
+			
+		},
 		"columns": {
 			"tracking": {
 				"pre": [
@@ -80,38 +83,38 @@
 				"norm": [
 					{
 						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
-						"source":     { "column": "data.raw.totalTime" }, 
-						"conversion": {}
+						"_source_":     { "__field__": "data.raw.totalTime" }, 
+						"_conversion_": {}
 					},
 					{ 
 						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-						"source":     { "column": "data.raw.elapsedCycles" }, 
-						"conversion": {}
+						"_source_":     { "__field__": "data.raw.elapsedCycles" }, 
+						"_conversion_": {}
 					},
 					{
 						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-						"source":     { "column": "data.raw.totalCycleCount" }, 
-						"conversion": {}
+						"_source_":     { "__field__": "data.raw.totalCycleCount" }, 
+						"_conversion_": {}
 					},
 					{
 						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-						"source":     { "column": "data.raw.cycleElapsedTime" }, 
-						"conversion": {}
+						"_source_":     { "__field__": "data.raw.cycleElapsedTime" }, 
+						"_conversion_": {}
 					},
 					{
 						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-						"source":     { "column":   "data.raw.disp"},
-						"conversion": { "constant": "1.0/details.gauge.value" }
+						"_source_":     { "__field__":   "data.raw.disp"},
+						"_conversion_": { "_constant_": "1.0/details.gauge.value" }
 					},
 					{
 						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
-						"conversion": { "constant": "1.0/details.measurements.area.value" }
+						"_source_":     { "_lookup_": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
+						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					},
 					{
 						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-						"source":     { "column":    "data.raw.step" }, 
-						"conversion": { "constant": "1.0/details.measurements.area.value" }
+						"_source_":     { "__field__":    "data.raw.step" }, 
+						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					}
 				]
 			},
@@ -129,38 +132,13 @@
 				"norm": [
 					{
 						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
-						"source":     { "column": "data.raw.totalTime" }, 
-						"conversion": {}
-					},
-					{ 
-						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-						"source":     { "column": "data.raw.elapsedCycles" }, 
-						"conversion": {}
-					},
-					{
-						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-						"source":     { "column": "data.raw.totalCycleCount" }, 
-						"conversion": {}
-					},
-					{
-						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-						"source":     { "column": "data.raw.cycleElapsedTime" }, 
-						"conversion": {}
-					},
-					{
-						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-						"source":     { "column":   "data.raw.disp"},
-						"conversion": { "constant": "1.0/details.gauge.value" }
-					},
-					{
-						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
-						"conversion": { "constant": "1.0/details.measurements.area.value" }
+						"_source_":     { "__field__": "data.raw.totalTime" }, 
+						"_conversion_": {}
 					},
 					{
 						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-						"source":     { "column":    "data.raw.step" }, 
-						"conversion": { "constant": "1.0/details.measurements.area.value" }
+						"_source_":     { "__field__":    "data.raw.step" }, 
+						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					}
 				]
 			}
