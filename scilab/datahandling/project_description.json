@@ -1,9 +1,69 @@
 { 
-	"instron_tracking": [
+	"metadata": { "kind": "instron" },
+	"stages": [
 		{
-			"details": {"kind": "instron", "mode": "tracking", "filetype": "csv" }
+			"name": "raw",
+			"inputs": [{"filetype":"csv"}],
+			"sources": {
+		        "preload_csv":   { 
+					"trends": { "file": "raw/01 Preloads/{testname}.trends.csv" },
+					"tracking": { "file": "raw/01 Preloads/{testname}.tracking.csv" }
+				 },
+		        "preconds_csv":   { 
+					"trends": { "file": "raw/02 Preconditions/{testname}.trends.csv" },
+					"tracking": { "file": "raw/02 Preconditions/{testname}.tracking.csv" }
+				 },
+		        "cycles_lg_csv":   { 
+					"trends": { "file": "raw/03 Fatigue Cycles (LG)/{testname}.trends.csv" },
+					"tracking": { "file": "raw/03 Fatigue Cycles (LG)/{testname}.tracking.csv" }
+				 },
+		        "cycles_tr_csv":   { 
+					"trends": { "file": "raw/03 Fatigue Cycles (TR)/{testname}.trends.csv" },
+					"tracking": { "file": "raw/03 Fatigue Cycles (TR)/{testname}.tracking.csv" }
+				 }
+			}
 		},
 		{
+			"name": "pre",
+			"inputs": [{"stage":"raw"}],
+			"outputs": ["matlab", "excel"],
+			"sources": {
+		        "preload":  { 
+					"trends":   { "field": "raw.preload_csv" },
+					"tracking": { "field": "raw.preload_csv" },
+				},
+		        "precond":  {
+					"trends":   { "field": "raw.preconds_csv" },
+					"tracking": { "field": "raw.preconds_csv" },
+				},
+		        "fatigue":  {
+					"trends":   { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
+					"tracking": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+				}
+			}	
+		},
+		{
+			"name": "norm",
+			"inputs": [{"stage":"pre"}],
+			"outputs": ["matlab", "excel"],
+			"sources": {
+		        "preload":  { 
+					"trends":   { "field": "raw.preload_csv" },
+					"tracking": { "field": "raw.preload_csv" },
+				},
+		        "precond":  {
+					"trends":   { "field": "raw.preconds_csv" },
+					"tracking": { "field": "raw.preconds_csv" },
+				},
+		        "fatigue":  {
+					"trends":   { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
+					"tracking": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+				}
+			}	
+		},
+	}
+		{
+			"source": { "kind": "instron", "mode": "tracking", "filetype": "csv",  },
 			"raw": [
 	            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
 	            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
@@ -16,6 +76,7 @@
 			]
 		},
 		{
+			"source": { "var": "raw", "stage":"raw", "kind": "instron", "mode": "tracking", "filetype": "matlab" },
 			"normalize": [
 				{
 					"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
@@ -44,7 +105,7 @@
 				},
 				{
 					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "function": " {'tr':data.raw.load_missus, 'lg': data.raw.load_1kN }[details.info.orientation] " },
+					"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
 					"conversion": { "constant": "1.0/details.measurements.area.value" }
 				},
 				{
