@@ -72,6 +72,13 @@ def save_columns_matlab(columnmapping, orderedmapping, file):
                     do_compression=True,
                     )
 
+def load_columns(filenames, filetype):
+    return DataTree(
+        matlab=load_columns_matlab,
+        pickle=load_columns_pickle,
+        json=load_columns_json,
+    )[filetype](filenames[filetype])
+
 def load_columns_matlab(filepath):
     print("Reading matlab file: `{}` ...".format(str(filepath)))
     debug(sio.whosmat(str(filepath)))
@@ -79,10 +86,10 @@ def load_columns_matlab(filepath):
     
     # http://stackoverflow.com/questions/6273634/access-array-contents-from-a-mat-file-loaded-using-scipy-io-loadmat-python
     with open(str(filepath),'rb') as file:
-        return sio.loadmat(file,
-                           squeeze_me=True, 
-                           struct_as_record=False,
-                           )
+        data = DataTree()
+        sio.loadmat(file,mdict=data,squeeze_me=True, struct_as_record=False,)
+        return data 
+                       
 
 def save_columns_numpy(columnmapping, orderedmapping, file):
     with open(str(file),'wb') as outfile:
@@ -100,6 +107,9 @@ def load_columns_pickle(filepath):
     with open(str(filepath),'rb') as file:
         print("Reading pickle file: `{}` ...".format(str(filepath)))
         return pickle.load(file)
+
+def load_columns_json(filepath):
+    return Json.load_json_from(filepath)
 
 @debugger
 def save_columns_excel(columnmapping, orderedmapping, file):

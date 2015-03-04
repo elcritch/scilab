@@ -69,7 +69,8 @@ def normalize_columns(testdetails, data, config, filenames):
     def executeexpr(key, expr, **env):
         
         try:
-            expr = re_attribs('data',expr) # change 'data.a.b.c' accesses into getitem style data['a']['b']...
+            # change 'data.a.b.c' accesses into getitem style data['a']['b']...
+            # expr = re_attribs('data',expr) 
             print("Evaluating key: `{}` with code: `{}`".format(key,expr))
             
             value = eval(expr, env)
@@ -88,9 +89,9 @@ def normalize_columns(testdetails, data, config, filenames):
 
         if 'column' in item.source or 'function' in item.source:
             key, sourcefunc = getpropertypair(item.source)
-            if key == 'column': # fix attribute accessors ...
-                sourcefunc = sourcefunc.split('.')
-                sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
+            # if key == 'column': # fix attribute accessors ...
+            #     sourcefunc = sourcefunc.split('.')
+            #     sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
 
             normeddata = executeexpr(key, sourcefunc, details=testdetails, data=data)
         else:
@@ -143,9 +144,9 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
 
     if 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
         testdetails = Json.load_json_from(testfolder.details)
-        rawdata = load_columns_pickle(rawoutfiles.names.pickle) # use python pickling for now... 
+        rawdata = load_columns(rawoutfiles.names, "matlab") 
         debug(type(rawdata), rawdata.keys())
-        data = {"raw": rawdata['data'] }
+        data = DataTree(raw=rawdata['data'])
         columnmapping = normalize_columns(testdetails, data, normalized_config, normoutfiles)
         save_columns(columnmapping=columnmapping, filenames=normoutfiles)
     else:
