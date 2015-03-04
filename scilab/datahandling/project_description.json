@@ -10,22 +10,20 @@
 			"_outputs_": { },
 			"_sources_": {
 				"preload_csv": {
-					"trends": { "_csv_": "raw/01 Preloads/{testname}*.trends.csv" },
-					"tracking": { "_csv_": "raw/01 Preloads/{testname}*.tracking.csv" }
+					"trends":    { "_csv_": "raw/01 Preloads/{testname}*.trends.csv" },
+					"tracking":  { "_csv_": "raw/01 Preloads/{testname}*.tracking.csv" }
 				},
-				"preload_csv": {
-					"preload_csv":   { "_csv_": "raw/01 Preloads/{testname}*.trends.csv" },
-					"preload_csv":   { "_csv_": "raw/02 Preconditions/{name}*.tracking.csv" },
-					"preconds_csv":  { "_csv_": "raw/02 Preconditions/{testname}*.trends.csv" },
-					"preconds_csv":  { "_csv_": "raw/01 Preloads/{name}*.tracking.csv" }
+				"precond_csv": {
+					"trends":    { "_csv_": "raw/02 Preconditions/{testname}*.trends.csv" },
+					"tracking":  { "_csv_": "raw/02 Preconditions/{name}*.tracking.csv" }
 				},
 				"cycles_lg_csv": { 
-					"cycles_lg_csv": { "_csv_": "raw/03 Fatigue Cycles (LG)/{testname}*.trends.csv" },
-					"cycles_lg_csv": { "_csv_": "raw/03 Fatigue Cycles (LG)/{name}*.tracking.csv" }
+					"trends":    { "_csv_": "raw/03 Fatigue Cycles (LG)/{testname}*.trends.csv" },
+					"tracking":  { "_csv_": "raw/03 Fatigue Cycles (LG)/{name}*.tracking.csv" }
 				 },
 				"cycles_tr_csv": { 
-					"cycles_tr_csv": { "_csv_": "raw/03 Fatigue Cycles (TR)/{testname}*.trends.csv" },
-					"cycles_tr_csv": { "_csv_": "raw/03 Fatigue Cycles (TR)/{name}*.tracking.csv" }
+					"trends":    { "_csv_": "raw/03 Fatigue Cycles (TR)/{testname}*.trends.csv" },
+					"tracking":  { "_csv_": "raw/03 Fatigue Cycles (TR)/{name}*.tracking.csv" }
 				 }
 			},
 			"_computations_": {}
@@ -36,8 +34,8 @@
 			"_outputs_": [ "matlab", "excel" ],
 			"_sources_": {
 				"preload": {
-					"trends":   { "_field_": "raw.preconds_csv" },
-					"tracking": { "_field_": "raw.preconds_csv" }
+					"trends":   { "_field_": "raw.preconds_csv.trends" },
+					"tracking": { "_field_": "raw.preconds_csv." }
 				},
 				"precond": {
 					"trends":   { "_field_": "raw.preload_csv" },

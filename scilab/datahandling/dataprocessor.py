@@ -15,6 +15,22 @@ from scilab.datahandling.datahandlers import *
 
 import numpy as np
 
+
+@debugger
+def matchfilename(testfolder, pattern, strictmatch=True):
+    files = sorted(testfolder.glob(pattern))
+    if strictmatch:
+        assert len(files) == 1
+    return files[-1]
+
+@debugger
+def resolve(url):
+    return Path(url).resolve()
+
+def userstrtopath(filepattern, testconfig):    
+    return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info.name)))
+    
+    
 def load_project_description(testfolder):
     ## temporary, later lookup test config
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
@@ -23,31 +39,47 @@ def load_project_description(testfolder):
 def process_metadata(testconfig, projdesc):
     pass
 
+
+
+def handle_source_action(name, itemaction, testmethod, env, stage, testconfig):
+    action, action_value = getpropertypair(itemaction)
+    print(mdBlock("**Action**: {} -> {} ".format(name, action)))
+
+    debug(action_value)
     
-def handler_file_inputs(action, testconfig):
-    if action == "_glob_":
-        def _glob_(pattern):
-            pattern = pattern.format(**testconfig.info)
-            return sorted(testfolder.glob(pattern))[-1]
-        return _glob_
-    elif action == "_var_":
-        def _var_(name):
-            return eval(name)
+    if action == "_csv_":
+        filepath = userstrtopath(action_value, testconfig)
+        debug(filepath)
+    elif action == "_field_":
+        print("action -> field")
+    elif action == "_lookup_":
+        print("action -> lookup")
+    
+def handle_source(testmethod, methoditems, env, stage, testconfig):
+    print(mdHeader(3, "Source: {}.{}".format(stage._name_, testmethod)))
 
-
-def handler_inputs(name, action, testconfig):
-    # "_inputs_": { "csv": { "_csvfile_": "_glob_" },
-    if isproperty(action, '_csvfile_'):
-        csvread(Path(item))
+    for itemname, itemaction in methoditems.items():
+        handle_source_action(itemname, itemaction, testmethod, env, stage, testconfig)
+    
         
+    # if isproperty(action, '_csvfile_'):
+    #     csvread(Path(item))
     
 
-def process_stage(stage, testconfig, projdesc):
+def process_stage(stage, env, testconfig, projdesc):
     # debug(stage)
     print(mdHeader(2, "Processing Stage: "+stage._name_))
-    sources = stage._sources_
-    computations = stage._computations_
 
+    debug(list(stage.keys()))
+    
+    # Setup Stage Environment
+    var = DataTree()
+    env[stage._name_] = var 
+    
+    sources = { testmethod: handle_source(testmethod, item, var, stage, testconfig) 
+                                for testmethod, item in stage._sources_.items() }
+    var.update(sources)
+    
     
     
 
@@ -58,8 +90,9 @@ def process_project_test(testconfig):
         debug(key)
     print()
     
+    env = DataTree()
     metadata = process_metadata(testconfig, projdesc)
-    stages = [ process_stage(stage, testconfig, projdesc) for stage in projdesc._stages_ ]
+    stages = [ process_stage(stage, env, testconfig, projdesc) for stage in projdesc._stages_ ]
 
     
 def main():

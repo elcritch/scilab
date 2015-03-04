@@ -16,8 +16,8 @@ import scilab.tools.jsonutils as Json
 
 import numpy as np
 
-def isproperty(obj, key):
-    return isinstance(obj, collections.Mapping) and (len(json_object) == 1) and (key in obj)
+def isproperty(obj, key=None):
+    return isinstance(obj, collections.Mapping) and (len(obj) == 1) and (key in obj) if key else True
     
 def getproperty(json_object):
     assert len(json_object) == 1
