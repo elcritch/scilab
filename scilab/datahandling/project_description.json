@@ -1,7 +1,7 @@
 { 
 	"_metadata_": { 
 		"_kind_": "instron", 
-		"_protocol_": "fatigue cycle failure instron data and normalization",
+		"_protocol_": "fatigue cycle failure instron data and normalization"
 	},
 	"_stages_": [
 		{
@@ -95,37 +95,37 @@
 				],
 				"norm": [
 					{
-						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
+						"column":       { "name":  "totalTime", "units": "s", "label": "Total Time" },
 						"_source_":     { "__field__": "data.raw.totalTime" }, 
 						"_conversion_": {}
 					},
 					{ 
-						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
+						"column":       { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
 						"_source_":     { "__field__": "data.raw.elapsedCycles" }, 
 						"_conversion_": {}
 					},
 					{
-						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
+						"column":       { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
 						"_source_":     { "__field__": "data.raw.totalCycleCount" }, 
 						"_conversion_": {}
 					},
 					{
-						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
+						"column":       { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
 						"_source_":     { "__field__": "data.raw.cycleElapsedTime" }, 
 						"_conversion_": {}
 					},
 					{
-						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
+						"column":       { "name":     "strain", "units": "∆", "label": "Strain" }, 
 						"_source_":     { "__field__":   "data.raw.disp"},
 						"_conversion_": { "_constant_": "1.0/details.gauge.value" }
 					},
 					{
-						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"_source_":     { "_lookup_": { "details.info.orientation": {"tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
+						"column":       { "name":     "stress", "units": "MPa", "label": "Stress" },
+						"_source_":     { "_lookup_": { "details.info.orientation": {"tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} } },
 						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					},
 					{
-						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
+						"column":       { "name":     "step", "units": "", "label": "WaveMatrix Step" },
 						"_source_":     { "__field__":    "data.raw.step" }, 
 						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					}
