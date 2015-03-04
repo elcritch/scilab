@@ -3,117 +3,167 @@
 	"stages": [
 		{
 			"name": "raw",
-			"inputs": [{"filetype":"csv"}],
+			"inputs": { "csv": "filetype" },
 			"sources": {
-		        "preload_csv":   { 
-					"trends": { "file": "raw/01 Preloads/{testname}.trends.csv" },
-					"tracking": { "file": "raw/01 Preloads/{testname}.tracking.csv" }
-				 },
-		        "preconds_csv":   { 
-					"trends": { "file": "raw/02 Preconditions/{testname}.trends.csv" },
-					"tracking": { "file": "raw/02 Preconditions/{testname}.tracking.csv" }
-				 },
-		        "cycles_lg_csv":   { 
-					"trends": { "file": "raw/03 Fatigue Cycles (LG)/{testname}.trends.csv" },
-					"tracking": { "file": "raw/03 Fatigue Cycles (LG)/{testname}.tracking.csv" }
-				 },
-		        "cycles_tr_csv":   { 
-					"trends": { "file": "raw/03 Fatigue Cycles (TR)/{testname}.trends.csv" },
-					"tracking": { "file": "raw/03 Fatigue Cycles (TR)/{testname}.tracking.csv" }
+				"trends": {
+					"preload_csv":   { "csv": "raw/01 Preloads/{testname}.trends.csv" },
+					"preconds_csv":  { "csv": "raw/02 Preconditions/{testname}.trends.csv" },
+					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}.trends.csv" },
+					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}.trends.csv" }
+				},
+				"tracking": { 
+					"preload_csv":   { "csv": "raw/02 Preconditions/{testname}.tracking.csv" },
+					"preconds_csv":  { "csv": "raw/01 Preloads/{testname}.tracking.csv" },
+					"cycles_lg_csv": { "csv": "raw/03 Fatigue Cycles (LG)/{testname}.tracking.csv" },
+					"cycles_tr_csv": { "csv": "raw/03 Fatigue Cycles (TR)/{testname}.tracking.csv" }
 				 }
 			}
 		},
 		{
 			"name": "pre",
-			"inputs": [{"stage":"raw"}],
-			"outputs": ["matlab", "excel"],
+			"inputs": { "raw": "stage" },
+			"outputs": [ "matlab", "excel" ],
 			"sources": {
-		        "preload":  { 
-					"trends":   { "field": "raw.preload_csv" },
-					"tracking": { "field": "raw.preload_csv" },
+				"trends": {
+					"preload": { "field": "raw.preconds_csv" },
+					"precond": { "field": "raw.preload_csv" },
+					"fatigue": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				},
-		        "precond":  {
-					"trends":   { "field": "raw.preconds_csv" },
-					"tracking": { "field": "raw.preconds_csv" },
-				},
-		        "fatigue":  {
-					"trends":   { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
-					"tracking": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
+				"tracking": {
+					"preload": { "field": "raw.preconds_csv" },
+					"precond": { "field": "raw.preload_csv" },
+					"fatigue": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				}
-			}	
+			},
+			"computations": {
+				"trends": ["computations.columns.trends.pre"],
+				"tracking": ["computations.columns.tracking.pre"]
+			}
 		},
 		{
 			"name": "norm",
-			"inputs": [{"stage":"pre"}],
-			"outputs": ["matlab", "excel"],
+			"inputs": {"pre": "stage" },
+			"outputs": [ "matlab", "excel" ],
 			"sources": {
 		        "preload":  { 
-					"trends":   { "field": "raw.preload_csv" },
-					"tracking": { "field": "raw.preload_csv" },
+					"trends":   { "field": "pre.preload_csv" },
+					"tracking": { "field": "pre.preload_csv" },
 				},
 		        "precond":  {
-					"trends":   { "field": "raw.preconds_csv" },
-					"tracking": { "field": "raw.preconds_csv" },
+					"trends":   { "field": "pre.preconds_csv" },
+					"tracking": { "field": "pre.preconds_csv" },
 				},
 		        "fatigue":  {
 					"trends":   { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} },
 					"tracking": { "lookup": {"_key_":"details.info.orientation", "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} }
 				}
+			},
+			"computations": {
+				"trends": ["computations.columns.trends.norm"],
+				"tracking": ["computations.columns.tracking.norm"]
 			}	
-		},
-	}
-		{
-			"source": { "kind": "instron", "mode": "tracking", "filetype": "csv",  },
-			"raw": [
-	            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
-	            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
-	            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" },
-	            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      },
-	            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     },
-	            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             },
-	            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     },
-	            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
-			]
-		},
-		{
-			"source": { "var": "raw", "stage":"raw", "kind": "instron", "mode": "tracking", "filetype": "matlab" },
-			"normalize": [
-				{
-					"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
-					"source":     { "column": "data.raw.totalTime" }, 
-					"conversion": {}
-				},
-				{ 
-					"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-					"source":     { "column": "data.raw.elapsedCycles" }, 
-					"conversion": {}
-				},
-				{
-					"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-					"source":     { "column": "data.raw.totalCycleCount" }, 
-					"conversion": {}
-				},
-				{
-					"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-					"source":     { "column": "data.raw.cycleElapsedTime" }, 
-					"conversion": {}
-				},
-				{
-					"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-					"source":     { "column":   "data.raw.disp"},
-					"conversion": { "constant": "1.0/details.gauge.value" }
-				},
-				{
-					"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-					"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
-					"conversion": { "constant": "1.0/details.measurements.area.value" }
-				},
-				{
-					"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-					"source":     { "column":    "data.raw.step" }, 
-					"conversion": { "constant": "1.0/details.measurements.area.value" }
-				}
-			]
 		}
-	]
+	],
+	"computations": {
+		"columns": {
+			"tracking": {
+				"pre": [
+		            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
+		            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
+		            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" },
+		            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      },
+		            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     },
+		            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             },
+		            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     },
+		            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
+				],
+				"norm": [
+					{
+						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
+						"source":     { "column": "data.raw.totalTime" }, 
+						"conversion": {}
+					},
+					{ 
+						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
+						"source":     { "column": "data.raw.elapsedCycles" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
+						"source":     { "column": "data.raw.totalCycleCount" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
+						"source":     { "column": "data.raw.cycleElapsedTime" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
+						"source":     { "column":   "data.raw.disp"},
+						"conversion": { "constant": "1.0/details.gauge.value" }
+					},
+					{
+						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
+						"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
+						"conversion": { "constant": "1.0/details.measurements.area.value" }
+					},
+					{
+						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
+						"source":     { "column":    "data.raw.step" }, 
+						"conversion": { "constant": "1.0/details.measurements.area.value" }
+					}
+				]
+			},
+			"trends": {
+				"pre": [
+		            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
+		            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
+		            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" },
+		            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      },
+		            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     },
+		            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             },
+		            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     },
+		            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
+				],
+				"norm": [
+					{
+						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
+						"source":     { "column": "data.raw.totalTime" }, 
+						"conversion": {}
+					},
+					{ 
+						"column":     { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
+						"source":     { "column": "data.raw.elapsedCycles" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
+						"source":     { "column": "data.raw.totalCycleCount" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
+						"source":     { "column": "data.raw.cycleElapsedTime" }, 
+						"conversion": {}
+					},
+					{
+						"column":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
+						"source":     { "column":   "data.raw.disp"},
+						"conversion": { "constant": "1.0/details.gauge.value" }
+					},
+					{
+						"column":     { "name":     "stress", "units": "MPa", "label": "Stress" },
+						"source":     { "lookup": {"_key_":"details.info.orientation", "tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} },
+						"conversion": { "constant": "1.0/details.measurements.area.value" }
+					},
+					{
+						"column":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
+						"source":     { "column":    "data.raw.step" }, 
+						"conversion": { "constant": "1.0/details.measurements.area.value" }
+					}
+				]
+			}
+		}
+	}
 }
