@@ -15,37 +15,31 @@ from scilab.datahandling.datahandlers import *
 
 import numpy as np
 
-
 def process_metadata(testconfig, projdesc):
     pass
-
 
 # @debugger
 def action_lookup(value:dict, action, env, stage, testconfig):
     lookupexpr, lookupoptions = getpropertypair(value)
-    debug(lookupexpr, lookupoptions)
-    debug({ k:'' for k in flatten(env, sep=".").keys() })
     
     lookupvalue = eval(lookupexpr, env)
     debug(lookupvalue)
-    result = lookupoptions.get(lookupvalue, None)
+    lookupname = lookupoptions.get(lookupvalue, None)
     if lookupvalue in lookupoptions.keys():
-        return action_field("_default_", action, env, stage, testconfig)
+        return action_field(lookupname, action, env, stage, testconfig)
     elif "_default_" in options:
         print(mdBlock("Warning: Could not find: `{}`, choosing default. ", lookupvalue))
         return action_field("_default_", action, env, stage, testconfig)
     else:
+        debug(lookupexpr, lookupoptions)
+        debug({ k:'' for k in flatten(env, sep=".").keys() })
         msg = mdBlock("Error: Could not find: `{}`", lookupvalue)
         raise ProcessorException(msg.strip())
 
 # @debugger
 def action_field(value:str, action, env, stage, testconfig):
-    debug(value, env)
-    
     result = eval(value, env)
-    debug(result)
     return result
-
 
 # @debugger
 def action_csv(value, action, env, stage, testconfig):
@@ -53,7 +47,6 @@ def action_csv(value, action, env, stage, testconfig):
     debug(filepath)
     data = csvread(filepath)
     return data
-    
 
 def handle_source_action(name, itemaction, testmethod, env, stage, testconfig):
     action, action_value = getpropertypair(itemaction)
@@ -63,8 +56,8 @@ def handle_source_action(name, itemaction, testmethod, env, stage, testconfig):
     
     try:
         action_handler = {
-            "_csv_": action_csv,
-            "_field_": action_field,
+            "_csv_":    action_csv,
+            "_field_":  action_field,
             "_lookup_": action_lookup,
         }[action]
         
@@ -88,7 +81,7 @@ def handle_source(testmethod, methoditems, env, stage, testconfig):
     for itemname, itemaction in methoditems.items():
         try:
             ret = handle_source_action(itemname, itemaction, testmethod, env, stage, testconfig)
-            debug(ret, itemname)
+            # debug(ret, itemname)
             output[itemname] = ret
         except ProcessorException as err:
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, stage._name_, err)))
@@ -98,21 +91,35 @@ def handle_source(testmethod, methoditems, env, stage, testconfig):
     
     return output
 
+def load_testdetails(env, testconfig):
+    # update and merge json file
+    # <TODO>
+    
+    # read json file
+    env.details = Json.load_json_from(testconfig.folder.details)
+    
+
 def process_stage(stage, env, testconfig, projdesc):
     # debug(stage)
+    
     print(mdHeader(2, "Processing Stage: "+stage._name_))
-
-    debug(list(stage.keys()))
+    load_testdetails(env, testconfig)
     
     # Setup Stage Environment
     env[stage._name_] = DataTree(_stage_=stage._name_)
-    debug(flatten(env,sep='.').keys())
     
-    sources = { testmethod: handle_source(testmethod, item, env, stage, testconfig) 
-                                for testmethod, item in stage._sources_.items() }
+    try:
+        sources = { testmethod: handle_source(testmethod, item, env, stage, testconfig) 
+                                    for testmethod, item in stage._sources_.items() }
+    except Exception as err:
+        print(mdHeader(3, "Error Processing Stage: {}", stage._name_))
+        debug(stage)
+        debug(flatten(env,sep='.').keys())
+        
+        raise err
                             
     print(mdHeader(3, "Finished processing Stage: {}", stage._name_))
-    debug(sources)
+    # debug(sources)
     
     env[stage._name_].update(**sources)
     
@@ -132,7 +139,7 @@ def process_project_test(testconfig):
     stages = [ (stage._name_, process_stage(stage, env, testconfig, projdesc)) 
                 for stage in projdesc._stages_ ]
 
-    debug(stages)
+    # debug(stages)
 
     
 def main():
@@ -153,7 +160,7 @@ def main():
     testconfig = DataTree()
     testconfig['info','name'] = "feb07(gf10.4-llm)-wa-tr-l8-x1"
     testconfig['folder'] = testfolder
-        
+    
     process_project_test(testconfig)
     
 if __name__ == '__main__':

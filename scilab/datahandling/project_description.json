@@ -57,12 +57,12 @@
 			"_outputs_": [ "matlab", "excel" ],
 			"_sources_": {
 		        "preload":  { 
-					"trends":   { "_field_": "pre.preload_csv.trends" },
-					"tracking": { "_field_": "pre.preload_csv.tracking" }
+					"trends":   { "_field_": "pre.preload.trends" },
+					"tracking": { "_field_": "pre.preload.tracking" }
 				},
 		        "precond":  {
-					"trends":   { "_field_": "pre.precond_csv.trends" },
-					"tracking": { "_field_": "pre.precond_csv.tracking" }
+					"trends":   { "_field_": "pre.precond.trends" },
+					"tracking": { "_field_": "pre.precond.tracking" }
 				},
 		        "fatigue":  {
 					"trends":   { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
