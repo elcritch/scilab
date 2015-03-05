@@ -82,7 +82,11 @@ def handle_source(testmethod, methoditems, env, stage, testconfig):
         try:
             ret = handle_source_action(itemname, itemaction, testmethod, env, stage, testconfig)
             # debug(ret, itemname)
+            
+            handle_computations()
             output[itemname] = ret
+            
+            
         except ProcessorException as err:
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, stage._name_, err)))
             raise err
