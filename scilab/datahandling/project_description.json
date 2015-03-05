@@ -34,12 +34,12 @@
 			"_outputs_": [ "matlab", "excel" ],
 			"_sources_": {
 				"preload": {
-					"trends":   { "_field_": "raw.preconds_csv.trends" },
-					"tracking": { "_field_": "raw.preconds_csv." }
+					"trends":   { "_field_": "raw.precond_csv.trends" },
+					"tracking": { "_field_": "raw.precond_csv.tracking" }
 				},
 				"precond": {
-					"trends":   { "_field_": "raw.preload_csv" },
-					"tracking": { "_field_": "raw.preload_csv" }
+					"trends":   { "_field_": "raw.preload_csv.trends" },
+					"tracking": { "_field_": "raw.preload_csv.tracking" }
 				},
 				"fatigue": {
 					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
@@ -53,16 +53,16 @@
 		},
 		{
 			"_name_": "norm",
-			"_inputs_": {"pre": "_stage_" },
+			"_inputs_": {"pre": "stage" },
 			"_outputs_": [ "matlab", "excel" ],
 			"_sources_": {
 		        "preload":  { 
-					"trends":   { "_field_": "pre.preload_csv" },
-					"tracking": { "_field_": "pre.preload_csv" }
+					"trends":   { "_field_": "pre.preload_csv.trends" },
+					"tracking": { "_field_": "pre.preload_csv.tracking" }
 				},
 		        "precond":  {
-					"trends":   { "_field_": "pre.preconds_csv" },
-					"tracking": { "_field_": "pre.preconds_csv" }
+					"trends":   { "_field_": "pre.precond_csv.trends" },
+					"tracking": { "_field_": "pre.precond_csv.tracking" }
 				},
 		        "fatigue":  {
 					"trends":   { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },

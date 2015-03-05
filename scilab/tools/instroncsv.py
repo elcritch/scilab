@@ -91,7 +91,7 @@ def getColumnData(headerLine):
             def makeUnique(c):
                 uniqueCol = getcolumninfo(c.idx, c.full, longname=True)
 
-                logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
+                # logging.warning("Duplicate column name found, making unique column name: "+str(uniqueCol))
             
                 debug(uniqueCol)
                 # print("assert failed: %s already in %s"%(uniqueCol.name, [ k for k in allColumns.keys()] ))

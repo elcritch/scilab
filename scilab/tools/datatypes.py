@@ -226,10 +226,15 @@ if __name__ == '__main__':
             d1 = DataTree()
             print()
             
+            name = "c"
+            d1[name] = DataTree()
+            d1[name].subc = True
+            
             d1['a','b','bb'] = 'foo'
+            print("d1:",d1)
             print()
 
-            assert d1 == {'a':{'b':{'bb':'foo'}}}
+            assert d1 == {'a':{'b':{'bb':'foo'}}, 'c':{'subc':True}}
             assert d1['a','b','bb'] == 'foo'
             assert d1['a','b','bb','not','here'] == None
             
