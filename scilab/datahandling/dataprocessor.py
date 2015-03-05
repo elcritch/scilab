@@ -15,20 +15,31 @@ from scilab.datahandling.datahandlers import *
 
 import numpy as np
 
+class ProcessorException(Exception):
+    pass
+    
+# @debugger
+def assertsingle(xs):
+    if len(xs) > 1:
+        raise ProcessorException("assertsingle::Argument is not a single (e.g. len()==1). Has lenght: `{}`".format(len(xs)))
+    elif len(xs) < 1:
+        raise ProcessorException("assertsingle::Argument is not a single. It's empty. ")
+    return xs
 
-@debugger
+# @debugger
 def matchfilename(testfolder, pattern, strictmatch=True):
     files = sorted(testfolder.glob(pattern))
+    debug(files)
     if strictmatch:
-        assert len(files) == 1
+        assertsingle(files)
     return files[-1]
 
-@debugger
+# @debugger
 def resolve(url):
     return Path(url).resolve()
 
 def userstrtopath(filepattern, testconfig):    
-    return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info.name)))
+    return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info)))
     
     
 def load_project_description(testfolder):
@@ -43,28 +54,46 @@ def process_metadata(testconfig, projdesc):
 
 def handle_source_action(name, itemaction, testmethod, env, stage, testconfig):
     action, action_value = getpropertypair(itemaction)
-    print(mdBlock("**Action**: {} -> {} ".format(name, action)))
+    print(mdBlock("**Action**: {} -> {} -> {}".format(name, action, action_value)))
 
-    debug(action_value)
+    # debug(action_value)
     
-    if action == "_csv_":
-        filepath = userstrtopath(action_value, testconfig)
-        debug(filepath)
-    elif action == "_field_":
-        print("action -> field")
-    elif action == "_lookup_":
-        print("action -> lookup")
-    
+    try:
+        if action == "_csv_":
+            filepath = userstrtopath(action_value, testconfig)
+            debug(filepath)
+            return DataTree(**itemaction)
+        elif action == "_field_":
+            print(">>> action -> field")
+        elif action == "_lookup_":
+            print(">>> action -> lookup")
+    except ProcessorException as err:
+        msg = "__Problem executing source action__: {} -> {} :: {}".format(name, action, err)
+        print(mdBlock(msg))
+        raise ProcessorException(msg)
+
 def handle_source(testmethod, methoditems, env, stage, testconfig):
     print(mdHeader(3, "Source: {}.{}".format(stage._name_, testmethod)))
 
+    output = DataTree()
+    stage_inputs = [ k for k,v in stage._inputs_.items() if v == "_stage_" ]
+    debug(stage_inputs)
+    
+    if not all([ si in env.keys() for si in stage_inputs ]):
+        print(mdBlock("Required input stages not loaded into the environment: env: {} input stages: {}", env.keys(), stage_inputs))
+        return output
+    
     for itemname, itemaction in methoditems.items():
-        handle_source_action(itemname, itemaction, testmethod, env, stage, testconfig)
+        try:
+            ret = handle_source_action(itemname, itemaction, testmethod, env, stage, testconfig)
+            output[itemname] = ret
+        except ProcessorException as err:
+            print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, stage._name_, err)))
+            # raise err
     
-        
-    # if isproperty(action, '_csvfile_'):
-    #     csvread(Path(item))
+    debug(output)
     
+    return output
 
 def process_stage(stage, env, testconfig, projdesc):
     # debug(stage)
@@ -76,11 +105,13 @@ def process_stage(stage, env, testconfig, projdesc):
     var = DataTree()
     env[stage._name_] = var 
     
-    sources = { testmethod: handle_source(testmethod, item, var, stage, testconfig) 
+    sources = { testmethod: handle_source(testmethod, item, env, stage, testconfig) 
                                 for testmethod, item in stage._sources_.items() }
+                            
+    print(mdHeader(3, "Finished processing Stage: {}", stage._name_))
+    debug(sources)
+    
     var.update(sources)
-    
-    
     
 
 def process_project_test(testconfig):
@@ -92,7 +123,11 @@ def process_project_test(testconfig):
     
     env = DataTree()
     metadata = process_metadata(testconfig, projdesc)
-    stages = [ process_stage(stage, env, testconfig, projdesc) for stage in projdesc._stages_ ]
+    
+    stages = [ (stage._name_, process_stage(stage, env, testconfig, projdesc)) 
+                for stage in projdesc._stages_ ]
+
+    debug(stages)
 
     
 def main():

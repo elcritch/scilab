@@ -210,13 +210,18 @@ add colons as above.
 
 """
 
-def mdBlock(text):
-    return "\n{text}\n".format(text=str(text).strip())
+def mdBlock(text, *args, **kwargs):
+    if args or kwargs:
+        textstr = str(text).strip().format(*args, **kwargs)
+    else:
+        textstr = str(text)
+    return "\n{text:s}\n".format(text=textstr)
 
-def mdHeader(level, text, postfix=True):
+def mdHeader(level, text, *args, _postfix=True, **kwargs):
     tag = '#'*level
-    postTag = tag if postfix else ''
-    return mdBlock('{prefix} {text} {postfix}'.format(prefix=tag, text=text, postfix=postTag))
+    postTag = tag if _postfix else ''
+    textstr = str(text).format(*args, **kwargs) if args or kwargs else str(text)
+    return mdBlock('{prefix} {text} {postfix}'.format(prefix=tag, text=textstr, postfix=postTag))
 
 
 class TableValue(collections.namedtuple('_TableValue', 'table sources')):
