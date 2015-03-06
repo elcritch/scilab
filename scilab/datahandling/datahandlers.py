@@ -16,14 +16,6 @@ import scilab.tools.jsonutils as Json
 
 import numpy as np
 
-
-get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
-re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
-            
-
-def isproperty(obj, key=None):
-    return isinstance(obj, collections.Mapping) and (len(obj) == 1) and (key in obj) if key else True
-    
 def getproperty(json_object):
     assert len(json_object) == 1
     return next(json_object.values().__iter__())
@@ -35,41 +27,9 @@ def getpropertypair(json_object):
 def getproperties(json_array):
     return [ getproperty(item) for item in json_array ]
 
+
 def clean(s):
     return s.replace("·",".")
-
-class ProcessorException(Exception):
-    pass
-    
-# @debugger
-def assertsingle(xs):
-    if len(xs) > 1:
-        raise ProcessorException("assertsingle::Argument is not a single (e.g. len()==1). Has lenght: `{}`".format(len(xs)))
-    elif len(xs) < 1:
-        raise ProcessorException("assertsingle::Argument is not a single. It's empty. ")
-    return xs
-
-# @debugger
-def matchfilename(testfolder, pattern, strictmatch=True):
-    print(mdBlock("Matching pattern: `{}` in testfolder: `{}`, strictmatch: {} ", pattern, testfolder, strictmatch))
-    files = sorted(testfolder.rglob(pattern))
-    debug(files)
-    if strictmatch:
-        assertsingle(files)
-    return files[-1]
-
-# @debugger
-def resolve(url):
-    return Path(url).resolve()
-
-def userstrtopath(filepattern, testconfig):    
-    return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info)))
-    
-    
-def load_project_description(testfolder):
-    ## temporary, later lookup test config
-    project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
-    return project_description
 
 def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=True):
     hdrs = ''.join([ " {}={} |".format(*i) 
@@ -151,7 +111,7 @@ def load_columns_pickle(filepath):
 def load_columns_json(filepath):
     return Json.load_json_from(filepath)
 
-# @debugger
+@debugger
 def save_columns_excel(columnmapping, orderedmapping, file):
     df1 = pd.DataFrame( orderedmapping )
     df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
