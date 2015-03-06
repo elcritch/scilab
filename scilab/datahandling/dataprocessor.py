@@ -15,6 +15,7 @@ from scilab.datahandling.datahandlers import *
 
 import numpy as np
 
+# import pdb
 
 def executeexpr(key, expr, env):
     
@@ -80,7 +81,7 @@ def handle_source_action(name, methoditem_action, testmethod, state, testconfig)
         action_handler.__name__ = action
         sourceret = action_handler(action_value, action, state, testconfig)
         debug(action_handler)
-        debug(sourceret)
+        # debug(sourceret)
         
         return sourceret
     except ProcessorException as err:
@@ -109,13 +110,18 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
         
         if key == '_stage_':
             # key, sourceval = '_field_',
-            # debug(key, sourceval, columndata)
-            normeddata = columndata[item.column.name]
+            debug(key, sourceval, columndata)
+            colstr = sourceval.format(**flatten(item,sep='_'))
+            normeddata = columndata[colstr]
+            
+            raise Exception(key, sourceval, columndata)
+            
             # normeddata = action_fieldon_lookup(source, key, state, testconfig)
             # normeddata = executeexpr(key, sourceval, state.env.set(data=columndata))
         elif key == '_lookup_':
             key, sourceval = getpropertypair(source)
             normeddata = action_field(source, key, state, testconfig)
+            
         elif key == '_field_':
             key, sourceval = getpropertypair(source)
             debug(key, sourceval)
@@ -134,33 +140,33 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
         
         return normeddata
         
-    debug(columninfo, state.testsourcemethoditem)
+    # debug(columninfo, state.testsourcemethoditem)
     cols = tuple(columninfo.split('.'))
-    debug(cols)
+    # debug(cols)
     colconfs = state.env['_shared_'][cols]
-    debug(colconfs)
+    # debug(colconfs)
     columnconfigs = colconfs[state.testsourcemethoditem]
     stagesource = colconfs.get('_source_',DataTree())
-    debug(columnconfigs)
+    # debug(columnconfigs)
     
     for item in columnconfigs:
         source = item.get('_source_',stagesource)
                     
         print(mdHeader(4, "Column name: `{}` from source: `{}`",item.column.name, source))
         normedcoldata = normalize_column(item, source)
-        debug(normedcoldata)
+        # debug(normedcoldata)
         print("Normed data name:{} shape:{}".format(item.column.label, normedcoldata.shape))
         print()
         
         output.append( [ item, DataTree(array=normedcoldata) ])
     
-    debug(output)
+    # debug(output)
     return DataTree(output) 
 
 
 def handle_computations(source_data, computations, methoditem_val, state, testconfig):
     
-    debug(list(source_data.keys()))
+    # debug(list(source_data.keys()))
     
     data = source_data
     
@@ -172,40 +178,65 @@ def handle_computations(source_data, computations, methoditem_val, state, testco
         }[compname]
         
         data = compfunc(compvalue, data, state.set(computations=computations, testsourcemethoditem=methoditem_val), testconfig)
-        debug(data)
+        # debug(data)
         
     # raise Exception(data)
     return data
     
     
-def handle_source(testmethod, methoditems, state, testconfig):
+def handle_inputs(testmethod, methoditems, state, testconfig):
     print(mdHeader(3, "Source: {}.{}".format(state.stage._name_, testmethod)))
 
+    ## Check for previous stages (?)
     stage_inputs = [ k for k,v in state.stage._inputs_.items() if v == "_stage_" ]
     debug(stage_inputs)
     
     if not all([ si in state.env.keys() for si in stage_inputs ]):
         print(mdBlock("Required input stages not loaded into the environment: env: {} input stages: {}", env.keys(), stage_inputs))
         return DataTree()
-
-    ## Configure sources
+    
+    ## Configure inputs
     source_inputs = DataTree()    
-    for methoditem_val, methoditem_action in methoditems.items():
+    for methoditem_val, methoditem_action in sorted(methoditems.items()):
         try:
             itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
             ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
-            debug(ret.keys())
+            # debug(ret.keys())
             source_inputs[methoditem_val] = ret
             
         except ProcessorException as err:
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
             raise err
     
-    debug(source_inputs)
+    # debug(source_inputs)
+    
+    return source_inputs
+    
+
+def handle_source(testmethod, methoditems, state, testconfig):
+
+    ## Configure sources
+    source_outputs = DataTree()    
+    for methoditem_val, methoditem_action in sorted(methoditems.items()):
+        try:
+            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
+            ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
+            # debug(ret.keys())
+            source_outputs[methoditem_val] = ret
+            
+        except ProcessorException as err:
+            print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
+            raise err
+    
+    # debug(source_inputs)
+    
+    return source_outputs
+    
+def handle_computations(testmethod, methoditems, state, testconfig):
     
     ## Handle Computations
-    source_outputs = DataTree()    
-    for methoditem_val, methoditem_action in methoditems.items():
+    computation_outputs = DataTree()    
+    for methoditem_val, methoditem_action in sorted(methoditems.items()):
         try:
             computations = DataTree()
             computations.update(state.stage.get("_computations_", {}))
@@ -220,9 +251,10 @@ def handle_source(testmethod, methoditems, state, testconfig):
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
             raise err
     
-    debug(source_outputs)
+    # debug(computation_outputs)
     
-    return source_outputs
+    return computation_outputs
+    
 
 def load_testdetails(env, testconfig):
     # update and merge json file
@@ -232,6 +264,10 @@ def load_testdetails(env, testconfig):
     testconfig.details = Json.load_json_from(testconfig.folder.details)
     env.details = testconfig.details
     
+
+def flatten_type(d, ignore=['__builtins__', 'summaries']):
+    kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(env,sep='.',ignore=ignore).items() if not 'summaries' in k)
+    return OrderedDict(kenv)
 
 def process_stage(stage, env, testconfig, projdesc):
     # debug(stage)
@@ -245,11 +281,25 @@ def process_stage(stage, env, testconfig, projdesc):
         state = DataTree()
         state.stage = stage
         state.env = env
+
+        ## process inputs
+        inputs = { testmethod: handle_inputs(testmethod, item, state, testconfig) 
+                                    for testmethod, item in stage._inputs_.items() }
         
+        env[stage._name_, 'inputs'] = DataTree(inputs)
+        
+        ## process sources
         sources = { testmethod: handle_source(testmethod, item, state, testconfig) 
                                     for testmethod, item in stage._sources_.items() }
         
-        env[stage._name_] = DataTree(sources)
+        debug(sources.keys())
+        env[stage._name_, 'sources'] = DataTree(sources)
+        
+        ## process computations
+        outputs = { testmethod: handle_computations(testmethod, item, state, testconfig) 
+                                    for testmethod, item in stage._sources_.items() }
+        
+        env[stage._name_, 'outputs'] = DataTree(outputs)
                                     
         if stage._name_ == 'pre':
             raise Exception("done")

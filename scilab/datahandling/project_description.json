@@ -4,8 +4,9 @@
 		"_protocol_": "fatigue cycle failure instron data and normalization"
 	},
 	"_stages_": [
+		
 		{
-			"_name_": "raw",
+			"_name_": "pre",
 			"_outputs_": { },
 			"_inputs_": {
 				"preload_csv": {
@@ -25,44 +26,41 @@
 					"tracking":  { "_csv_": "raw/03 Fatigue Cycles (TR)/*.tracking.csv" }
 				 }
 			},
-			"_computations_": {}
-		},
-		{
-			"_name_": "pre",
-			"_outputs_": [ "matlab", "excel" ],
-			"_inputs_": {
+			"_sources_": {
 				"preload": {
-					"trends":   { "_field_": "raw.precond_csv.trends" },
-					"tracking": { "_field_": "raw.precond_csv.tracking" }
+					"trends":   { "_field_": "pre.inputs.precond_csv.trends" },
+					"tracking": { "_field_": "pre.inputs.precond_csv.tracking" }
 				},
 				"precond": {
-					"trends":   { "_field_": "raw.preload_csv.trends" },
-					"tracking": { "_field_": "raw.preload_csv.tracking" }
+					"trends":   { "_field_": "pre.inputs.preload_csv.trends" },
+					"tracking": { "_field_": "pre.inputs.preload_csv.tracking" }
 				},
 				"fatigue": {
-					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
-					"tracking": { "_lookup_": { "details.info.orientation": {"tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } }
+					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv", "lg": "pre.inputs.cycles_lg_csv"} } },
+					"tracking": { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv", "lg": "pre.inputs.cycles_lg_csv"} } }
 				}
 			},
 			"_computations_": {
 				"_columns_":   "columns.pre"
-			}
+			},
+			"_outputs_": [ "matlab", "excel" ]
 		},
+		
 		{
 			"_name_": "norm",
 			"_outputs_": [ "matlab", "excel" ],
-			"_inputs_": {
+			"_sources_": {
 		        "preload":  { 
-					"trends":   { "_field_": "pre.preload.trends" },
-					"tracking": { "_field_": "pre.preload.tracking" }
+					"trends":   { "_field_": "pre.sources.preload.trends" },
+					"tracking": { "_field_": "pre.sources.preload.tracking" }
 				},
 		        "precond":  {
-					"trends":   { "_field_": "pre.precond.trends" },
-					"tracking": { "_field_": "pre.precond.tracking" }
+					"trends":   { "_field_": "pre.sources.precond.trends" },
+					"tracking": { "_field_": "pre.sources.precond.tracking" }
 				},
 		        "fatigue":  {
-					"trends":   { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } },
-					"tracking": { "_lookup_": {"details.info.orientation": { "tr": "raw.cycles_tr_csv", "lg": "raw.cycles_lg_csv"} } }
+					"trends":   { "_lookup_": {"details.info.orientation": { "tr": "norm.sources.cycles_tr.trends", "lg": "pre.sources.cycles_lg.trends"} } },
+					"tracking": { "_lookup_": {"details.info.orientation": { "tr": "norm.sources.cycles_tr.tracking", "lg": "pre.sources.cycles_lg.tracking"} } }
 				}
 			},
 			"_computations_": {
@@ -70,6 +68,7 @@
 			}
 		}
 	],
+	
 	"_shared_": {
 		"summaries": {
 			
@@ -105,7 +104,7 @@
 				"trends": [
 					
 				],
-				"_source_": { "_stage_": "pre.{column.name}.array" }
+				"_source_": { "_stage_": "_full_" }
 			},
 			"norm": {
 				"tracking": [
