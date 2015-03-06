@@ -80,7 +80,7 @@ class DataTree(dict):
     
     def __getitem__(self, name):
         try:
-            if isinstance(name,tuple):
+            if isinstance(name,(tuple, list)):
                 top = self
                 for n in name:
                     if n in top:

@@ -17,6 +17,10 @@ import scilab.tools.jsonutils as Json
 import numpy as np
 
 
+get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
+re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
+            
+
 def isproperty(obj, key=None):
     return isinstance(obj, collections.Mapping) and (len(obj) == 1) and (key in obj) if key else True
     

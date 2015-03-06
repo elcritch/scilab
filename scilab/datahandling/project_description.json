@@ -47,7 +47,7 @@
 				}
 			},
 			"_computations_": {
-				"_columns_":   ["columns.pre"]
+				"_columns_":   "columns.pre"
 			}
 		},
 		{
@@ -69,71 +69,89 @@
 				}
 			},
 			"_computations_": {
-				"_columns_":   ["columns.norm"]
+				"_columns_":   "columns.norm"
 			}
 		}
 	],
-	"_computations_": {
+	"_shared_": {
 		"summaries": {
 			
 		},
 		"columns": {
 			"pre": {
 				"tracking": [
-		            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
-		            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
-		            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" },
-		            { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      },
-		            { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     },
-		            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             },
-		            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     },
-		            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
+		            {
+						"column":   { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       }
+					},
+		            {
+						"column": { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             }
+					},
+		            {
+						"column": { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" }
+					},
+		            {
+						"column": { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      }
+					},
+		            {
+						"column": { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     }
+					},
+		            {
+						"column": { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             }
+					},
+		            {
+						"column": { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     }
+					},
+		            {
+						"column": { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
+					}
 				],
 				"trends": [
 					
-				]
+				],
+				"_source_": { "_stage_": "pre" }
 			},
 			"norm": {
 				"tracking": [
 					{
 						"column":       { "name":  "totalTime", "units": "s", "label": "Total Time" },
-						"_source_":     { "__field__": "data.raw.totalTime" }, 
+						"_source_":     { "_field_": "data.pre.totalTime" }, 
 						"_conversion_": {}
 					},
 					{ 
 						"column":       { "name":  "elapsedCycles", "units": "Nº:Cycles/Step", "label": "Elapsed Cycles" },
-						"_source_":     { "__field__": "data.raw.elapsedCycles" }, 
+						"_source_":     { "_field_": "data.pre.elapsedCycles" }, 
 						"_conversion_": {}
 					},
 					{
 						"column":       { "name":  "totalCycleCount", "units": "Nº:Cycles/Test", "label": "Total Cycle Count" },
-						"_source_":     { "__field__": "data.raw.totalCycleCount" }, 
+						"_source_":     { "_field_": "data.pre.totalCycleCount" }, 
 						"_conversion_": {}
 					},
 					{
 						"column":       { "name":  "cycleElapsedTime", "units": "s", "label": "Elapsed Cycles" },
-						"_source_":     { "__field__": "data.raw.cycleElapsedTime" }, 
+						"_source_":     { "_field_": "data.pre.cycleElapsedTime" }, 
 						"_conversion_": {}
 					},
 					{
 						"column":       { "name":     "strain", "units": "∆", "label": "Strain" }, 
-						"_source_":     { "__field__":   "data.raw.disp"},
+						"_source_":     { "_field_":   "data.pre.disp"},
 						"_conversion_": { "_constant_": "1.0/details.gauge.value" }
 					},
 					{
 						"column":       { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"_source_":     { "_lookup_": { "details.info.orientation": {"tr":"data.raw.load_missus", "lg": "data.raw.load_1kN"} } },
+						"_source_":     { "_lookup_": { "details.info.orientation": {"tr":"data.pre.load_missus", "lg": "data.pre.load_1kN"} } },
 						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					},
 					{
 						"column":       { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-						"_source_":     { "__field__":    "data.raw.step" }, 
+						"_source_":     { "_field_":    "data.pre.step" }, 
 						"_conversion_": { "_constant_": "1.0/details.measurements.area.value" }
 					}
 				],
 				"trends": [
 					
-				]
+				],
+				"_source_": { "_stage_": "norm" }
 			}
 		}
 	}
