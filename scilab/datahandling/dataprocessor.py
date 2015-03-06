@@ -65,8 +65,8 @@ def action_csv(value, action, state, testconfig):
     data = csvread(filepath)
     return data
 
-def handle_source_action(name, itemaction, testmethod, state, testconfig):
-    action, action_value = getpropertypair(itemaction)
+def handle_source_action(name, methoditem_action, testmethod, state, testconfig):
+    action, action_value = getpropertypair(methoditem_action)
     print(mdBlock("**Action**: {} -> {} -> {}".format(name, action, action_value)))
 
     # debug(action_value)
@@ -105,22 +105,21 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
         
         column = item.column
         
-        key, sourcefunc = getpropertypair(source)
+        key, sourceval = getpropertypair(source)
         
         if key == '_stage_':
-            field = getpropertypair(source)[1] 
-            # key, sourcefunc = '_field_',
-            # debug(key, sourcefunc, columndata)
+            # key, sourceval = '_field_',
+            # debug(key, sourceval, columndata)
             normeddata = columndata[item.column.name]
-            # normeddata = action_lookup(source, key, state, testconfig)
-            # normeddata = executeexpr(key, sourcefunc, state.env.set(data=columndata))
+            # normeddata = action_fieldon_lookup(source, key, state, testconfig)
+            # normeddata = executeexpr(key, sourceval, state.env.set(data=columndata))
         elif key == '_lookup_':
-            key, sourcefunc = getpropertypair(source)
+            key, sourceval = getpropertypair(source)
             normeddata = action_field(source, key, state, testconfig)
         elif key == '_field_':
-            key, sourcefunc = getpropertypair(source)
-            debug(key, sourcefunc)
-            normeddata = executeexpr(key, sourcefunc, state.env)
+            key, sourceval = getpropertypair(source)
+            debug(key, sourceval)
+            normeddata = executeexpr(key, sourceval, state.env)
             # raise Exception(normeddata)
             
         else:
@@ -135,12 +134,12 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
         
         return normeddata
         
-    debug(columninfo, state.sourceitemname)
+    debug(columninfo, state.testsourcemethoditem)
     cols = tuple(columninfo.split('.'))
     debug(cols)
     colconfs = state.env['_shared_'][cols]
     debug(colconfs)
-    columnconfigs = colconfs[state.sourceitemname]
+    columnconfigs = colconfs[state.testsourcemethoditem]
     stagesource = colconfs.get('_source_',DataTree())
     debug(columnconfigs)
     
@@ -159,7 +158,7 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
     return DataTree(output) 
 
 
-def handle_computations(source_data, computations, itemname, state, testconfig):
+def handle_computations(source_data, computations, methoditem_val, state, testconfig):
     
     debug(list(source_data.keys()))
     
@@ -172,7 +171,7 @@ def handle_computations(source_data, computations, itemname, state, testconfig):
             '_columns_': handle_computation_columns,
         }[compname]
         
-        data = compfunc(compvalue, data, state.set(computations=computations, sourceitemname=itemname), testconfig)
+        data = compfunc(compvalue, data, state.set(computations=computations, testsourcemethoditem=methoditem_val), testconfig)
         debug(data)
         
     # raise Exception(data)
@@ -189,13 +188,14 @@ def handle_source(testmethod, methoditems, state, testconfig):
         print(mdBlock("Required input stages not loaded into the environment: env: {} input stages: {}", env.keys(), stage_inputs))
         return DataTree()
 
+    ## Configure sources
     source_inputs = DataTree()    
-    for itemname, itemaction in methoditems.items():
+    for methoditem_val, methoditem_action in methoditems.items():
         try:
-            itemstate = state.set(testmethod=testmethod, methoditem=itemname)
-            ret = handle_source_action(itemname, itemaction, testmethod, itemstate, testconfig)
+            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
+            ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
             debug(ret.keys())
-            source_inputs[itemname] = ret
+            source_inputs[methoditem_val] = ret
             
         except ProcessorException as err:
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
@@ -203,17 +203,18 @@ def handle_source(testmethod, methoditems, state, testconfig):
     
     debug(source_inputs)
     
+    ## Handle Computations
     source_outputs = DataTree()    
-    for itemname, itemaction in methoditems.items():
+    for methoditem_val, methoditem_action in methoditems.items():
         try:
             computations = DataTree()
             computations.update(state.stage.get("_computations_", {}))
-            computations.update(itemaction.get("_computations_", {}))
+            computations.update(methoditem_action.get("_computations_", {}))
             
-            source_input = source_inputs.get(itemname, DataTree())
-            ret = handle_computations(source_input, computations, itemname, itemstate, testconfig)
+            source_input = source_inputs.get(methoditem_val, DataTree())
+            ret = handle_computations(source_input, computations, methoditem_val, itemstate, testconfig)
             
-            source_outputs[itemname] = ret
+            source_outputs[methoditem_val] = ret
             
         except ProcessorException as err:
             print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))

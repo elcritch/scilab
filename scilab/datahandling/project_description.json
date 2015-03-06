@@ -6,9 +6,8 @@
 	"_stages_": [
 		{
 			"_name_": "raw",
-			"_inputs_": { "csv": "_file_" },
 			"_outputs_": { },
-			"_sources_": {
+			"_inputs_": {
 				"preload_csv": {
 					"trends":    { "_csv_": "raw/01 Preloads/*.trends.csv" },
 					"tracking":  { "_csv_": "raw/01 Preloads/*.tracking.csv" }
@@ -30,9 +29,8 @@
 		},
 		{
 			"_name_": "pre",
-			"_inputs_": { "raw": "_stage_" },
 			"_outputs_": [ "matlab", "excel" ],
-			"_sources_": {
+			"_inputs_": {
 				"preload": {
 					"trends":   { "_field_": "raw.precond_csv.trends" },
 					"tracking": { "_field_": "raw.precond_csv.tracking" }
@@ -52,9 +50,8 @@
 		},
 		{
 			"_name_": "norm",
-			"_inputs_": {"pre": "stage" },
 			"_outputs_": [ "matlab", "excel" ],
-			"_sources_": {
+			"_inputs_": {
 		        "preload":  { 
 					"trends":   { "_field_": "pre.preload.trends" },
 					"tracking": { "_field_": "pre.preload.tracking" }
@@ -81,34 +78,34 @@
 			"pre": {
 				"tracking": [
 		            {
-						"column":   { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       }
+						"column":   { "name": "step",           "label": "Step",                    "units": "Nº",  "full": "Step"                                       }
 					},
 		            {
-						"column": { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             }
+						"column": { "name": "totalTime",        "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             }
 					},
 		            {
-						"column": { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" }
+						"column": { "name": "disp",             "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" }
 					},
 		            {
-						"column": { "name": "load_1kN",               "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      }
+						"column": { "name": "load_1kN",         "label": "Load (1kN)",              "units": "N",   "full": "Load(Linear|Load) (N)"                      }
 					},
 		            {
-						"column": { "name": "load_missus",            "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     }
+						"column": { "name": "load_missus",      "label": "Load (Missus)",           "units": "N",   "full": "Load(Linear|Load1) (N)"                     }
 					},
 		            {
-						"column": { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             }
+						"column": { "name": "elapsedCycles",    "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             }
 					},
 		            {
-						"column": { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     }
+						"column": { "name": "cycleElapsedTime", "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     }
 					},
 		            {
-						"column": { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
+						"column": { "name": "totalCycleCount",  "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
 					}
 				],
 				"trends": [
 					
 				],
-				"_source_": { "_stage_": "pre" }
+				"_source_": { "_stage_": "pre.{column.name}.array" }
 			},
 			"norm": {
 				"tracking": [
