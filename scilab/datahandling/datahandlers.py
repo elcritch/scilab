@@ -65,6 +65,12 @@ def resolve(url):
 def userstrtopath(filepattern, testconfig):    
     return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info)))
     
+def action_csv(filevalue, action, testconfig):
+    filepath = userstrtopath(filevalue, testconfig)
+    debug(filepath)
+    data = csvread(filepath)
+    return data
+
     
 def load_project_description(testfolder):
     ## temporary, later lookup test config

@@ -238,6 +238,7 @@ def handle_computations(testmethod, methoditems, state, testconfig):
     computation_outputs = DataTree()    
     for methoditem_val, methoditem_action in sorted(methoditems.items()):
         try:
+            debug(computation_outputs, methoditem_val, methoditem_action)
             computations = DataTree()
             computations.update(state.stage.get("_computations_", {}))
             computations.update(methoditem_action.get("_computations_", {}))

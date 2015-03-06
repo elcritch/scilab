@@ -15,10 +15,34 @@ from scilab.datahandling.datahandlers import *
 
 import numpy as np
 
+
+# @debugger
+def matchfilename(testfolder, pattern, strictmatch=True):
+    print(mdBlock("Matching pattern: `{}` in testfolder: `{}`, strictmatch: {} ", pattern, testfolder, strictmatch))
+    files = sorted(testfolder.rglob(pattern))
+    debug(files)
+    if strictmatch:
+        assertsingle(files)
+    return files[-1]
+
+# @debugger
+def resolve(url):
+    return Path(url).resolve()
+
+def userstrtopath(filepattern, testfolder):    
+    return resolve(matchfilename(testfolder.data, filepattern.format(**{})))
+    
+def action_csv(filevalue, testfolder):
+    filepath = userstrtopath(filevalue, testfolder)
+    debug(filepath)
+    data = csvread(filepath)
+    return data
+
+
 def match_data_description(testfolder):
     
     ## temporary, later lookup test config
-    project_description_url = Path(__file__).parent / "project_description.json"    
+    project_description_url = Path(__file__).parent / "project_description.v1.json"    
     project_description = Json.load_json_from(project_description_url.resolve())
     
     return project_description
@@ -131,6 +155,12 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
     print(mdHeader(3, "Raw Data"))
     rawoutfiles = getfilenames(testfolder, stage="raw", header=header, version=version, matlab=True)
 
+    return rawoutfiles
+    
+def process_method_columns(rawoutfiles, testfolder, csvpath, file_description, version=0, force=DataTree()):
+    
+    header, raw_config, normalized_config = getproperties(file_description)
+    
     if 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
         columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
         save_columns(columnmapping=columnmapping, filenames=rawoutfiles)
@@ -153,23 +183,41 @@ def process_instron_file(testfolder, csvpath, file_description, version=0, force
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
 
-def process_files(testfolder):
+
+def process_files(testfolder, project_description, methodname, method):
     
+    files = DataTree()
     
-    for key, value in flatten(testfolder.raw,sep='.').items():
-        filekind, wavematrix, savemode = key.split('.')[0:]
-        csvpath = value
+    for fileitem, filevalue in method.files.items():
+        
+        if isproperty(filevalue, '_csv_'):
+            filekind, fileglob = getpropertypair(filevalue)
+            csvpath = userstrtopath(fileglob, testfolder)
+        
+        filekind, wavematrix, savemode = 'csv', methodname, fileitem
+        debug(csvpath)
         
         print(mdHeader(2, "Project: {} {} {}".format(filekind, wavematrix, savemode)))
                 
-        project_description_dict = match_data_description(testfolder)
+                
+        file_description = project_description.processors.methods[savemode]
+        debug(file_description)
         
-        if filekind == 'csv' and savemode == 'tracking':
-            
-            file_description = project_description_dict['instron_tracking']
-            forces = DataTree(raw=True, norm=True)
-            process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
+        forces = DataTree(raw=True, norm=True)
+        rawoutfiles = process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
+        
+        process_method_columns(rawoutfiles, testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
+
+
+def process_methods(testfolder):
     
+    project_description = match_data_description(testfolder)
+    
+    methods = project_description.methods
+    for methodrow in methods:
+        methodname, method = getpropertypair(methodrow)
+        
+        process_files(testfolder, project_description, methodname, method)
     
 def main():
     
@@ -185,7 +233,7 @@ def main():
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
 
-    process_files(testfolder)
+    process_methods(testfolder)
     
 if __name__ == '__main__':
     main()
