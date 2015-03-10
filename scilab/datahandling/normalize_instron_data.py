@@ -53,13 +53,13 @@ def process_raw_columns(data, raw_config):
     output = []
     
     for rawcol in raw_config.columns:
-        print(mdBlock("**Raw Column**: {}".format(repr(rawcol))))
+        print(mdBlock("**Raw Column**: {}".format(repr(rawcol.info))))
         # debug([rawcol])
         
-        if rawcol.full not in csv_cols_index_full:
-            raise KeyError("Column Missing from Data: column: `{}` data file columns: `{}`".format(repr(rawcol.full), repr(csv_cols_index_full.keys())))
+        if rawcol.info.full not in csv_cols_index_full:
+            raise KeyError("Column Missing from Data: column: `{}` data file columns: `{}`".format(repr(rawcol.info.full), repr(csv_cols_index_full.keys())))
         
-        output.append((rawcol, csv_cols_index_full[rawcol.full]))
+        output.append((rawcol.info, csv_cols_index_full[rawcol.info.full]))
     
     return output 
 
@@ -85,7 +85,7 @@ def normalize_columns(testdetails, data, norm_config, filenames):
     # @debugger
     def _normalize_column(item):
         
-        column = item.column        
+        column = item.info        
 
         if 'column' in item.source or 'function' in item.source:
             key, sourcefunc = getpropertypair(item.source)
@@ -109,17 +109,17 @@ def normalize_columns(testdetails, data, norm_config, filenames):
     # ====================================================
     # = Process Normalized Columns (one column per item) =
     # ====================================================
-    for item in norm_config.columns:
-        print(mdHeader(4, "Item: "+item.column.name))
-        normedcoldata = _normalize_column(item)
+    for col in norm_config.columns:
+        print(mdHeader(4, "col: "+col.info.name))
+        normedcoldata = _normalize_column(col)
         debug(normedcoldata)
-        print("Normed data name:{} shape:{}".format(item.column.label, normedcoldata.shape))
+        print("Normed data name:{} shape:{}".format(col.info.label, normedcoldata.shape))
         print()
         
         normcol = DataTree(array=normedcoldata, summary=summaryvalues(normedcoldata, np.s_[0:-1]))
         for slicecol in norm_config.get('_slicecolumns_', []):
             normcol['summaries',slicecol] = columnhandlers.summarize(normedcoldata, slicecol)
-        output.append( [ item.column, normcol ] )
+        output.append( [ col.info, normcol ] )
     
     return output 
 
