@@ -33,7 +33,7 @@
 						"info": { "name": "totalCycleCount", "label": "Total Cycle Count", "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)" }
 					}
 				],
-				"_slicecolumns_": ["step"]
+				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
 			},
 			{
 				"name":"normalize",
@@ -66,7 +66,7 @@
 						"conversion": { "constant": "1.0/details.measurements.area.value" }
 					}
 				],
-				"_slicecolumns_": ["step"]
+				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
 			}
 		]
 	},
@@ -77,7 +77,7 @@
 					"name": "tracking",
  					"processor": { "$ref": "#/processors/tracking"},
  					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" },
-					"vars": { "balance": null }
+					"vars": { "balance": "0" }
  				}
  			]
  		},
@@ -87,7 +87,7 @@
 					"name": "tracking",
 					"processor": { "$ref": "#/processors/tracking"},
 					"files": { "_csv_": "raw/02 Preconditions/*.tracking.csv" },
-					"vars": { "balance": "step[2]" }
+					"vars": { "balance": "calc.mean(indexes.step.step_2'])" }
 				}
 			]
 		},

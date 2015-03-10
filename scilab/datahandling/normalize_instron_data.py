@@ -120,7 +120,8 @@ def normalize_columns(data, norm_config, filenames, state):
 def process(testfolder, data, processor, state):
     
     raw_config, normalized_config = processor
-
+    default_index = [{"column":'step',"type":"int"},]
+    
     print(mdHeader(3, "Raw Data"))
     # ================================================
     
@@ -135,7 +136,7 @@ def process(testfolder, data, processor, state):
     if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
         columnmapping = process_raw_columns(data, raw_config)
 
-        indexes = ['step'] + raw_config.get('_slicecolumns_', []) 
+        indexes = default_index + raw_config.get('_slicecolumns_', []) 
         save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.raw.files)
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
@@ -155,7 +156,7 @@ def process(testfolder, data, processor, state):
         debug(type(rawdata), rawdata.keys())
         data = DataTree(raw=rawdata)
         columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
-        indexes = ['step'] + normalized_config.get('_slicecolumns_', []) 
+        indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', []) 
         save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.norm.files)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))

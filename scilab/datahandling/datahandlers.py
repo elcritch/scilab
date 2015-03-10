@@ -141,19 +141,36 @@ def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, nu
 
     return filenames
     
-def save_columns(columnmapping, filenames, indexes=['step']):
+def getindexes(indexes, orderedmapping):
+    """ function to make index data for a column. The inputs must be an array of dicts with column and the key type. 
+    
+    Outputting to matlab format, the keys must be valid variable/function names. So `some_name_1` but not `3.12`. 
+    
+    { 
+        "column": "step",
+        "type": "int",
+    }
+    """
+    keyers = {
+        'int':  lambda val: "idx_{}".format(int(val) if val >= 0 else "neg_"+str(abs(val))),
+    }
+        
+    indexes = { index['column']: columnhandlers.getslices(
+                                orderedmapping[index['column']],
+                                keyer=keyers[index['type']],
+                                astuple=True)
+                            for index in indexes}
+    
+    return indexes
+    
+def save_columns(columnmapping, filenames, indexes=[{'column':'step','type':'int'}]):
     
     if not columnmapping:
         return 
     
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
     
-    indexes = { colname: columnhandlers.getslices(
-                                orderedmapping[colname],
-                                keyer=lambda x: str(int(x)), 
-                                astuple=True)
-                            for colname in indexes }
-    
+    indexes = getindexes(indexes, orderedmapping)
     debug(indexes)
     
     if 'matlab' in filenames.names:
@@ -226,7 +243,7 @@ def load_columns_json(filepath):
 def save_columns_excel(columnmapping, orderedmapping, indexes, file):
     df1 = pd.DataFrame( orderedmapping )
     df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
-    df3 = pd.DataFrame( [ [k]+list(v) for k,v in flatten(indexes).items() ] )
+    df3 = pd.DataFrame( [ [k]+list(v) for k,v in flatten(indexes,sep=".").items() ] )
     
     with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
