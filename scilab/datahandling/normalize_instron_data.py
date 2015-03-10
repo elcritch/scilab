@@ -98,7 +98,7 @@ def normalize_columns(data, norm_config, filenames, state):
         col.info = normedinfo.set(**col.get('info',{}))
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
-            constant_factor = executeexpr(constantexpr, details=state.details, )
+            constant_factor = executeexpr(constantexpr, details=state.details, data=data, variables=state.get('variables',DataTree()))
             normeddata = normeddata * constant_factor
         
         return normeddata
@@ -141,7 +141,6 @@ def process(testfolder, data, processor, state):
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
-
     print(mdHeader(3, "Normalize Data"))
     # ================================================
 
@@ -155,6 +154,16 @@ def process(testfolder, data, processor, state):
         rawdata = load_columns(output.raw.files.names, "matlab") 
         debug(type(rawdata), rawdata.keys())
         data = DataTree(raw=rawdata)
+        
+        debug(state['methoditem','variables'])
+        
+        if state['methoditem','variables',normalized_config.name]:
+            variables_input = state.methoditem.variables[normalized_config.name]
+            variables = getproperty(variables_input, action=True, 
+                                    env=DataTree(details=state.details, testfolder=testfolder, **data))
+            debug(variables_input, variables)
+            state = state.set(variables=variables)
+
         columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
         indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', []) 
         save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.norm.files)
@@ -182,6 +191,7 @@ def process_method(methodname, method, testfolder, projdesc, state):
             data.file = getproperty(methoditem.files, action=True, 
                                     env=DataTree(details=state.details, testfolder=testfolder))        
         
+            
         # ====================
         # = Handle Processor =
         # ====================

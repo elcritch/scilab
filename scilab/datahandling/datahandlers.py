@@ -30,13 +30,14 @@ def isproperty(obj, key=None):
 def executeexpr(expr, **env):
     
     try:
-        # print("executeexpr::expr: `{}`".format(expr))
+        print("executeexpr::expr: `{}`".format(expr))
         
         value = eval(expr, env)
         # print("executeexpr::result:", value,'\n')
         return value
     except Exception as err:
-        print("error:executeexpr:env::",env.keys())
+        print("ERROR:executeexpr:expr::",expr)
+        print("ERROR:executeexpr:env::",env.keys())
         raise err
 
 def builtin_action_lookup(prop, **env):
@@ -48,6 +49,19 @@ def builtin_action_lookup(prop, **env):
         return values[keyvalue]
     else:
         raise KeyError("_look_ failed: `{}` -> `{}` in {}".format(keyexpr, keyvalue, repr(list(values.keys()))))
+
+def builtin_action_exec(values, **env):
+
+    calc = DataTree()
+    for name, item in vars(np).items():
+        calc[name] = item
+        
+    debug("builtin_action_exec",values)
+    results = DataTree()
+    for varname, expr in values.items():
+        results[varname] = executeexpr(expr, calc=calc, **env)
+        
+    return results
 
 @debugger
 def userstrtopath(filepattern, testfolder):
@@ -68,6 +82,8 @@ def handle_builtin_actions(prop, env):
         return builtin_action_lookup(value, **env)
     elif key == '_csv_':
         return builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
+    elif key == '_exec_':
+        return builtin_action_exec(value, **env)
     else:
         raise KeyError("Unknown builtin: `{}`".format(key))
 
@@ -126,7 +142,7 @@ def load_project_description(testfolder):
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
     return project_description
 
-def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=True):
+def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in sorted(flatten(header,ignore='filetype').items()) ])
     filename = testfolder.datacalc / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)

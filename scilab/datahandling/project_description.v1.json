@@ -58,7 +58,7 @@
 					{
 						"info":     { "name":     "stress", "units": "MPa", "label": "Stress" },
 						"source":     { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } },
-						"conversion": { "constant": "1.0/details.measurements.area.value - " }
+						"conversion": { "constant": "1.0/details.measurements.area.value - variables.get('load_balance',0.0)" }
 					},
 					{
 						"info":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
@@ -76,8 +76,7 @@
  				{
 					"name": "tracking",
  					"processor": { "$ref": "#/processors/tracking"},
- 					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" },
-					"vars": { "balance": "0" }
+ 					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" }
  				}
  			]
  		},
@@ -87,7 +86,11 @@
 					"name": "tracking",
 					"processor": { "$ref": "#/processors/tracking"},
 					"files": { "_csv_": "raw/02 Preconditions/*.tracking.csv" },
-					"vars": { "balance": "calc.mean(indexes.step.step_2'])" }
+					"variables": {
+						"normalize": { 
+							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
+						}
+					}
 				}
 			]
 		},
@@ -106,7 +109,11 @@
 							}
 						}
 					},
-					"vars": { "balance": "indexes.step['2']" }
+					"variables": {
+						"normalize": { 
+							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
+						}
+					}
 				}
 			]
 		}
