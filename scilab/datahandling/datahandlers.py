@@ -226,7 +226,7 @@ def load_columns_json(filepath):
 def save_columns_excel(columnmapping, orderedmapping, indexes, file):
     df1 = pd.DataFrame( orderedmapping )
     df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
-    df3 = pd.DataFrame( [ [k,v] for k,v in flatten(indexes).items() ] )
+    df3 = pd.DataFrame( [ [k]+list(v) for k,v in flatten(indexes).items() ] )
     
     with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)

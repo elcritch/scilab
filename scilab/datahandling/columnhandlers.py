@@ -37,7 +37,7 @@ def summaryvalues(array, sl):
     return InstronColumnSummary(mean=array[sl].mean(),std=array[sl].std(),mins=getmin(array[sl]),maxs=getmax(array[sl]))
 
 @unwrap_array
-def getslices(data, keyer=lambda x: str(x), k=1, includeall=True, astuple=False):
+def getslices(data, keyer=lambda x: str(x), k=1, includeall=True, astuple=False, asdict=False):
     """ Return an array of numpy slices for indexing arrays according to changes in the numpy array `data` """
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
     indices_begin = [0] + [ i for i in (indices + 1)] # offset by 1 to get beginning of slices
@@ -45,6 +45,8 @@ def getslices(data, keyer=lambda x: str(x), k=1, includeall=True, astuple=False)
     keyer = keyer or (lambda k: k)
     slicer = lambda i,j,k: np.s_[i:j:k] 
     if astuple:
+        slicer = lambda i,j,k: (i,j,k)
+    if asdict:
         slicer = lambda i,j,k: {"start":i,"stop":j,"step":k}
     
     slices = collections.OrderedDict( (keyer(data[i]), slicer(i,j,k)) for i,j in zip(indices_begin, indices_end) )
