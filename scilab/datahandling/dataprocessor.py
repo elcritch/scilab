@@ -164,7 +164,7 @@ def handle_computation_columns(columninfo, columndata, state, testconfig):
     return DataTree(output) 
 
 
-def handle_computations(source_data, computations, methoditem_val, state, testconfig):
+def handle_method_computations(source_data, computations, methoditem_val, state, testconfig):
     
     # debug(list(source_data.keys()))
     
@@ -201,7 +201,7 @@ def handle_inputs(testmethod, methoditems, state, testconfig):
         try:
             itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
             ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
-            # debug(ret.keys())
+            debug(methoditem_val)
             source_inputs[methoditem_val] = ret
             
         except ProcessorException as err:
@@ -213,7 +213,7 @@ def handle_inputs(testmethod, methoditems, state, testconfig):
     return source_inputs
     
 
-def handle_source(testmethod, methoditems, state, testconfig):
+def handle_sources(testmethod, methoditems, state, testconfig):
 
     ## Configure sources
     source_outputs = DataTree()    
@@ -221,7 +221,7 @@ def handle_source(testmethod, methoditems, state, testconfig):
         try:
             itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
             ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
-            # debug(ret.keys())
+            debug(list(ret.keys()))
             source_outputs[methoditem_val] = ret
             
         except ProcessorException as err:
@@ -243,8 +243,11 @@ def handle_computations(testmethod, methoditems, state, testconfig):
             computations.update(state.stage.get("_computations_", {}))
             computations.update(methoditem_action.get("_computations_", {}))
             
-            source_input = source_inputs.get(methoditem_val, DataTree())
-            ret = handle_computations(source_input, computations, methoditem_val, itemstate, testconfig)
+            debug(flatten_type(state))
+            
+            source_input = state[state.stage._name_, 'sources', testmethod, methoditem_val]
+            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
+            ret = handle_method_computations(source_input, computations, methoditem_val, itemstate, testconfig)
             
             source_outputs[methoditem_val] = ret
             
@@ -267,7 +270,7 @@ def load_testdetails(env, testconfig):
     
 
 def flatten_type(d, ignore=['__builtins__', 'summaries']):
-    kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(env,sep='.',ignore=ignore).items() if not 'summaries' in k)
+    kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(d,sep='.',ignore=ignore).items() if not 'summaries' in k)
     return OrderedDict(kenv)
 
 def process_stage(stage, env, testconfig, projdesc):
@@ -290,8 +293,9 @@ def process_stage(stage, env, testconfig, projdesc):
         env[stage._name_, 'inputs'] = DataTree(inputs)
         
         ## process sources
-        sources = { testmethod: handle_source(testmethod, item, state, testconfig) 
+        sources = { testmethod: handle_sources(testmethod, item, state, testconfig) 
                                     for testmethod, item in stage._sources_.items() }
+        state.sources = sources
         
         debug(sources.keys())
         env[stage._name_, 'sources'] = DataTree(sources)
@@ -300,6 +304,7 @@ def process_stage(stage, env, testconfig, projdesc):
         outputs = { testmethod: handle_computations(testmethod, item, state, testconfig) 
                                     for testmethod, item in stage._sources_.items() }
         
+        state.outputs = outputs
         env[stage._name_, 'outputs'] = DataTree(outputs)
                                     
         if stage._name_ == 'pre':
@@ -309,8 +314,8 @@ def process_stage(stage, env, testconfig, projdesc):
         print(mdHeader(3, "Error Processing Stage: {}", stage._name_))
         debug(stage)
         print()
-        kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(env,sep='.',ignore=['__builtins__', 'summaries']).items() if not 'summaries' in k)
-        debug(OrderedDict(kenv))
+        # kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(env,sep='.',ignore=['__builtins__', 'summaries']).items() if not 'summaries' in k)
+        debug(flatten_type(env))
         
         raise err
                             

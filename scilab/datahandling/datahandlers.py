@@ -17,6 +17,7 @@ import scilab.tools.jsonutils as Json
 import numpy as np
 
 
+
 get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
 re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
             
@@ -28,19 +29,19 @@ def isproperty(obj, key=None):
 def executeexpr(expr, **env):
     
     try:
-        print("executeexpr::expr: `{}`".format(expr))
+        # print("executeexpr::expr: `{}`".format(expr))
         
         value = eval(expr, env)
-        print("executeexpr::result:", value,'\n')
+        # print("executeexpr::result:", value,'\n')
         return value
     except Exception as err:
         print("error:executeexpr:env::",env.keys())
         raise err
 
 def builtin_action_lookup(prop, **env):
-    debug(prop)
+    # debug(prop)
     keyexpr, values = getpropertypair(prop)
-    debug("builtin_action_lookup",keyexpr, values)
+    # debug("builtin_action_lookup",keyexpr, values)
     keyvalue = executeexpr(keyexpr, **env)
     if keyvalue in values:
         return values[keyvalue]
@@ -76,7 +77,7 @@ def getpropertypair(json_object):
 def getproperty(json_object, action=False, errorcheck=True, env=DataTree()):
     #if not isinstance(json_object, (dict, DataTree)):
     
-    print("getproperty::",repr(json_object), isproperty(json_object))
+    # print("getproperty::",repr(json_object), isproperty(json_object))
 
     if not isproperty(json_object):
         if errorcheck:
@@ -89,8 +90,8 @@ def getproperty(json_object, action=False, errorcheck=True, env=DataTree()):
     else:
         return next(json_object.values().__iter__())
     
-def getpropertiesarray(json_array):
-    return [ getproperty(item) for item in json_array ]
+def getpropertiesarray(json_array, errorcheck=True):
+    return [ getproperty(item, errorcheck=errorcheck) for item in json_array ]
 
 def clean(s):
     return s.replace("·",".")
@@ -158,7 +159,13 @@ def save_columns(columnmapping, filenames):
 def save_columns_matlab(columnmapping, orderedmapping, file):
     with open(str(file),'wb') as outfile:
         print("Writing matlab file...")
-        sio.savemat(outfile, {"data":orderedmapping, "columns": { k[0].name: k[0] for k in columnmapping } } , 
+        matlabdata = {
+            "data":orderedmapping, 
+            "columns": { k.name: k for k,v in columnmapping },
+            "summaries": { k.name: v.summary for k,v in columnmapping },
+        }
+         
+        sio.savemat(outfile, matlabdata, 
                     appendmat=False, 
                     format='5',
                     long_field_names=False, 

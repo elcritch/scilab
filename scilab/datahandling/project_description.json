@@ -36,8 +36,8 @@
 					"tracking": { "_field_": "pre.inputs.preload_csv.tracking" }
 				},
 				"fatigue": {
-					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv", "lg": "pre.inputs.cycles_lg_csv"} } },
-					"tracking": { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv", "lg": "pre.inputs.cycles_lg_csv"} } }
+					"trends":   { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv.trends", "lg": "pre.inputs.cycles_lg_csv.trends"} } },
+					"tracking": { "_lookup_": { "details.info.orientation": {"tr": "pre.inputs.cycles_tr_csv.tracking", "lg": "pre.inputs.cycles_lg_csv.tracking"} } }
 				}
 			},
 			"_computations_": {

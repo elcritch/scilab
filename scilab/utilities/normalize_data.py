@@ -26,7 +26,7 @@ def getmin(array):
 @unwrap_array
 def summaryvalues(array, sl):
     array = array[sl]
-    return InstronColumnSummary(mean=array[sl].mean(),std=array[sl].std(),mins=get_min(array[sl]),maxs=get_max(array[sl]))
+    return InstronColumnSummary(mean=array[sl].mean(),std=array[sl].std(),mins=getmin(array[sl]),maxs=getmax(array[sl]))
 
 def summarize(testdata, colname):
     return DataTree({ key:summaryvalues(testdata[colname], stepslice).set(slices=stepslice)

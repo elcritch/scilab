@@ -12,6 +12,7 @@ from scilab.expers.configuration import *
 from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
+import scilab.datahandling.columnhandlers as columnhandlers  
 
 import numpy as np
 
@@ -51,7 +52,7 @@ def process_raw_columns(data, raw_config):
     
     output = []
     
-    for rawcol in raw_config:
+    for rawcol in raw_config.columns:
         print(mdBlock("**Raw Column**: {}".format(repr(rawcol))))
         # debug([rawcol])
         
@@ -63,7 +64,7 @@ def process_raw_columns(data, raw_config):
     return output 
 
 # @debugger
-def normalize_columns(testdetails, data, config, filenames):
+def normalize_columns(testdetails, data, norm_config, filenames):
     
     # TODO: load 'raw' file (from matlab)
     # TODO: load 'info' data (need to update this first?)
@@ -82,8 +83,7 @@ def normalize_columns(testdetails, data, config, filenames):
     re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
             
     # @debugger
-    def normalize_column(item):
-        debug(item)
+    def _normalize_column(item):
         
         column = item.column        
 
@@ -105,21 +105,27 @@ def normalize_columns(testdetails, data, config, filenames):
             raise Exception("Unimplemented normalization conversion mode: "+str(item.conversion))
         
         return normeddata
-        
-    for item in config:
+    
+    # ====================================================
+    # = Process Normalized Columns (one column per item) =
+    # ====================================================
+    for item in norm_config.columns:
         print(mdHeader(4, "Item: "+item.column.name))
-        normedcoldata = normalize_column(item)
+        normedcoldata = _normalize_column(item)
         debug(normedcoldata)
         print("Normed data name:{} shape:{}".format(item.column.label, normedcoldata.shape))
         print()
         
-        output.append( [ item.column, DataTree(array=normedcoldata) ])
+        normcol = DataTree(array=normedcoldata, summary=summaryvalues(normedcoldata, np.s_[0:-1]))
+        for slicecol in norm_config.get('_slicecolumns_', []):
+            normcol['summaries',slicecol] = columnhandlers.summarize(normedcoldata, slicecol)
+        output.append( [ item.column, normcol ] )
     
     return output 
 
 def process(testfolder, data, processor, state):
     
-    raw_config, normalized_config = getpropertiesarray(processor)
+    raw_config, normalized_config = processor
 
     print(mdHeader(3, "Raw Data"))
     # ================================================

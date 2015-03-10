@@ -115,15 +115,18 @@ def getColumnData(headerLine):
 
 # InstronMatrixData = namedtuple('InstronMatrixData', '')
 # InstronField = namedtuple('InstronMatrixData', '')
-def get_index_slices(data, keyer=None):
+def get_index_slices(data, keyer=None, k=1, includeall=False):
     """ Return an array of numpy slices for indexing arrays according to changes in the numpy array `data` """
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
     indices_begin = [0] + [ i for i in (indices + 1)] # offset by 1 to get beginning of slices
     indices_end = [ i for i in (indices + 1)]+[-1]
     keyer = keyer or (lambda k: k)
-    # debug(indices_begin, indices_end)
 
-    return collections.OrderedDict( (keyer(data[i]), np.s_[i:j:1]) for i,j in zip(indices_begin, indices_end) )
+    slices = collections.OrderedDict( (keyer(data[i]), np.s_[i:j:k]) for i,j in zip(indices_begin, indices_end) )
+    if includeall:
+        slices[keyer(-1)] = np.s_[indices_begin[0]:indices_end[-1]:k]
+    
+    return slices
     
 class InstronMatrixData(DataTree):
     def __init__(self, *args, **kwdargs):

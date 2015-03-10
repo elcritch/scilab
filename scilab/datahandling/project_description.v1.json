@@ -1,8 +1,14 @@
 {
+	"preprocessors": {
+		"cycles": {
+			"function": " {'tr':data.raw.load_missus, 'lg': data.raw.load_1kN }[details.info.orientation] " 
+		}
+	},
 	"processors": {
 		"tracking": [
 			{
-				"raw": [
+				"name":"raw",
+				"columns": [
 		            { "name": "step",                   "label": "Step",                    "units": "Nº",  "full": "Step"                                       },
 		            { "name": "totalTime",              "label": "Total Time",              "units": "s",   "full": "Total Time (s)"                             },
 		            { "name": "disp",                   "label": "Displacement",            "units": "mm",  "full": "Displacement(Linear|Digital Position) (mm)" },
@@ -11,10 +17,12 @@
 		            { "name": "elapsedCycles",          "label": "Elapsed Cycles",          "units": "Nº",  "full": "Elapsed Cycles"                             },
 		            { "name": "cycleElapsedTime",       "label": "Cycle Elapsed Time ",     "units": "s",   "full": "Cycle Elapsed Time (s)"                     },
 		            { "name": "totalCycleCount",        "label": "Total Cycle Count",       "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)"         }
-				]
+				],
+				"_slicecolumns_": ["step"]
 			},
 			{
-				"normalize": [
+				"name":"normalize",
+				"columns": [
 					{
 						"column":     { "name":  "totalTime", "units": "s", "label": "Total Time" },
 						"source":     { "column": "data.raw.totalTime" }, 
@@ -50,7 +58,8 @@
 						"source":     { "column":    "data.raw.step" }, 
 						"conversion": { "constant": "1.0/details.measurements.area.value" }
 					}
-				]
+				],
+				"_slicecolumns_": ["step"]
 			}
 		],
 		"trends": [
@@ -133,6 +142,7 @@
 			"cycles": [
 				{
 					"name": "tracking",
+					"preprocessor": { "$ref": "#/preprocessors/cycles"},
 					"processor": { "$ref": "#/processors/tracking"},
 					"files": {
 						"_csv_": {
