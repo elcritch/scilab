@@ -64,20 +64,7 @@ def process_raw_columns(data, raw_config):
     return output 
 
 # @debugger
-def normalize_columns(data, norm_config, filenames, state):
-    
-    # TODO: load 'raw' file (from matlab)
-    # TODO: load 'info' data (need to update this first?)
-    #            - need to save data into "flat excel file"
-    
-    # data = DataTree(data)
-    shortdetails = DataTree(state.details)
-    # testdetails.__dict__['_ignore'] = ['summaries']
-    # debug(type(data))
-    debug( flatten_type( data ) )
-    debug( flatten_type( state ) )
-    print('\n')
-    
+def normalize_columns(data, norm_config, filenames, state):    
     output = []
     
     get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
@@ -152,15 +139,14 @@ def process(testfolder, data, processor, state):
 
     if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
         rawdata = load_columns(output.raw.files.names, "matlab") 
-        debug(type(rawdata), rawdata.keys())
+
         data = DataTree(raw=rawdata)
-        
-        debug(state['methoditem','variables'])
         
         if state['methoditem','variables',normalized_config.name]:
             variables_input = state.methoditem.variables[normalized_config.name]
             variables = getproperty(variables_input, action=True, 
                                     env=DataTree(details=state.details, testfolder=testfolder, **data))
+            
             debug(variables_input, variables)
             state = state.set(variables=variables)
 

@@ -56,7 +56,7 @@ def builtin_action_exec(values, **env):
     for name, item in vars(np).items():
         calc[name] = item
         
-    debug("builtin_action_exec",values)
+    # debug("builtin_action_exec",values)
     results = DataTree()
     for varname, expr in values.items():
         results[varname] = executeexpr(expr, calc=calc, **env)
@@ -77,7 +77,7 @@ def builtin_action_csv(filevalue, testfolder, **env):
     
 def handle_builtin_actions(prop, env):
     key, value = getpropertypair(prop)
-    debug(key, value,)
+    # debug(key, value,)
     if key == '_lookup_':
         return builtin_action_lookup(value, **env)
     elif key == '_csv_':
