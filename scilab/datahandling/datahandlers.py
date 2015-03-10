@@ -162,7 +162,8 @@ def save_columns_matlab(columnmapping, orderedmapping, file):
         matlabdata = {
             "data":orderedmapping, 
             "columns": { k.name: k for k,v in columnmapping },
-            "summaries": { k.name: v.summary for k,v in columnmapping },
+            "summary": { k.name: v.summary for k,v in columnmapping },
+            # "slices": { k.name: v.summaries for k,v in columnmapping },
         }
          
         sio.savemat(outfile, matlabdata, 

@@ -83,26 +83,36 @@ def normalize_columns(testdetails, data, norm_config, filenames):
     re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
             
     # @debugger
-    def _normalize_column(item):
+    def _normalize(col):
+
+        env = DataTree(details=testdetails, **data)
+        sourcecol = getproperty(col.source, action=True, env=env)
+
+        print(mdHeader(4, "Column: {}", sourcecol))
         
-        column = item.info        
-
-        if 'column' in item.source or 'function' in item.source:
-            key, sourcefunc = getpropertypair(item.source)
-            # if key == 'column': # fix attribute accessors ...
-            #     sourcefunc = sourcefunc.split('.')
-            #     sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
-
-            normeddata = executeexpr(sourcefunc, details=testdetails, data=data)
-        else:
-            raise Exception("Unimplemented normalization source mode: "+str(item.source))
+        normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)        
+        normedinfo = executeexpr("raw.columns.{col}".format(col=sourcecol), **env)
+        normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )
+        
+        # print(list( dir(normedinfo)), normedinfo._fieldnames)
+        
+        
+        col.info = normedinfo.set(**col.get('info',{}))
+        
+        # if 'column' in col.source:
+        #     key, sourcefunc = getpropertypair(col.source)
+        #     # if key == 'column': # fix attribute accessors ...
+        #     #     sourcefunc = sourcefunc.split('.')
+        #     #     sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
+        #
+        #     normeddata = executeexpr(sourcefunc, **env)
+        # else:
+        #     raise Exception("Unimplemented normalization source mode: "+str(col.source))
             
-        if 'constant' in item.conversion:
-            key, constantexpr = getpropertypair(item.conversion)
+        if col['conversion','constant']:
+            key, constantexpr = getpropertypair(col.conversion)
             constant_factor = executeexpr(constantexpr, details=testdetails)
             normeddata = normeddata * constant_factor             
-        elif len(item.conversion) >= 1:
-            raise Exception("Unimplemented normalization conversion mode: "+str(item.conversion))
         
         return normeddata
     
@@ -110,8 +120,7 @@ def normalize_columns(testdetails, data, norm_config, filenames):
     # = Process Normalized Columns (one column per item) =
     # ====================================================
     for col in norm_config.columns:
-        print(mdHeader(4, "col: "+col.info.name))
-        normedcoldata = _normalize_column(col)
+        normedcoldata = _normalize(col)
         debug(normedcoldata)
         print("Normed data name:{} shape:{}".format(col.info.label, normedcoldata.shape))
         print()
@@ -157,7 +166,7 @@ def process(testfolder, data, processor, state):
     if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
         rawdata = load_columns(output.raw.files.names, "matlab") 
         debug(type(rawdata), rawdata.keys())
-        data = DataTree(raw=rawdata['data'])
+        data = DataTree(raw=rawdata)
         columnmapping = normalize_columns(state.details, data, normalized_config, output.norm.files)
         save_columns(columnmapping=columnmapping, filenames=output.norm.files)
     else:
