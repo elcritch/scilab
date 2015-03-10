@@ -22,17 +22,74 @@ re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups
             
 
 def isproperty(obj, key=None):
-    return isinstance(obj, collections.Mapping) and (len(obj) == 1) and (key in obj) if key else True
+    return isinstance(obj, collections.Mapping) and (len(obj) == 1) and ((key in obj) if key else True)
     
-def getproperty(json_object):
-    assert len(json_object) == 1
-    return next(json_object.values().__iter__())
+    
+def executeexpr(expr, **env):
+    
+    try:
+        print("executeexpr::expr: `{}`".format(expr))
+        
+        value = eval(expr, env)
+        print("executeexpr::result:", value,'\n')
+        return value
+    except Exception as err:
+        print("error:executeexpr:env::",env.keys())
+        raise err
+
+def builtin_action_lookup(prop, **env):
+    debug(prop)
+    keyexpr, values = getpropertypair(prop)
+    debug("builtin_action_lookup",keyexpr, values)
+    keyvalue = executeexpr(keyexpr, **env)
+    if keyvalue in values:
+        return values[keyvalue]
+    else:
+        raise KeyError("_look_ failed: `{}` -> `{}` in {}".format(keyexpr, keyvalue, repr(list(values.keys()))))
+
+@debugger
+def userstrtopath(filepattern, testfolder):
+    return resolve(matchfilename(testfolder.data, filepattern.format(**{})))
+    
+@debugger
+def builtin_action_csv(filevalue, testfolder, **env):
+    # filetype, filevalue = getpropertypair(prop)
+    filepath = userstrtopath(filevalue, testfolder)
+    data = csvread(filepath)
+    filestruct = DataTree(path=filepath, data=data)
+    return filestruct
+    
+def handle_builtin_actions(prop, env):
+    key, value = getpropertypair(prop)
+    debug(key, value,)
+    if key == '_lookup_':
+        return builtin_action_lookup(value, **env)
+    elif key == '_csv_':
+        return builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
+    else:
+        raise KeyError("Unknown builtin: `{}`".format(key))
 
 def getpropertypair(json_object):
     assert len(json_object) == 1
     return next(json_object.items().__iter__())
 
-def getproperties(json_array):
+def getproperty(json_object, action=False, errorcheck=True, env=DataTree()):
+    #if not isinstance(json_object, (dict, DataTree)):
+    
+    print("getproperty::",repr(json_object), isproperty(json_object))
+
+    if not isproperty(json_object):
+        if errorcheck:
+            raise ValueError(json_object, isinstance(json_object, collections.Mapping))
+        else:
+            return json_object
+        
+    if action and getpropertypair(json_object)[0].startswith('_'):
+        return handle_builtin_actions(json_object, env=env)
+    else:
+        return next(json_object.values().__iter__())
+    
+def getpropertiesarray(json_array):
     return [ getproperty(item) for item in json_array ]
 
 def clean(s):
@@ -62,16 +119,6 @@ def matchfilename(testfolder, pattern, strictmatch=True):
 def resolve(url):
     return Path(url).resolve()
 
-def userstrtopath(filepattern, testconfig):    
-    return resolve(matchfilename(testconfig.folder.data, filepattern.format(**testconfig.info)))
-    
-def action_csv(filevalue, action, testconfig):
-    filepath = userstrtopath(filevalue, testconfig)
-    debug(filepath)
-    data = csvread(filepath)
-    return data
-
-    
 def load_project_description(testfolder):
     ## temporary, later lookup test config
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    

@@ -29,15 +29,6 @@ def matchfilename(testfolder, pattern, strictmatch=True):
 def resolve(url):
     return Path(url).resolve()
 
-def userstrtopath(filepattern, testfolder):    
-    return resolve(matchfilename(testfolder.data, filepattern.format(**{})))
-    
-def action_csv(filevalue, testfolder):
-    filepath = userstrtopath(filevalue, testfolder)
-    debug(filepath)
-    data = csvread(filepath)
-    return data
-
 
 def match_data_description(testfolder):
     
@@ -48,13 +39,14 @@ def match_data_description(testfolder):
     return project_description
 
 
-def process_raw_columns(csvpath, raw_config, rawoutfiles):
+def process_raw_columns(data, raw_config):
 
-    rawdata = csvread(csvpath)
-
-    debug(rawdata)
+    rawdata = data.file.data
+    # debug(rawdata)
     
-    csv_cols_index_full = { v.full: v for v in rawdata.values() if isinstance(v, InstronColumnData) }
+    csv_cols_index_full = { v.full: v for v in data.file.data.values() 
+                                    if isinstance(v, InstronColumnData) }
+    
     debug(list(csv_cols_index_full.keys()))
     
     output = []
@@ -88,23 +80,7 @@ def normalize_columns(testdetails, data, config, filenames):
     
     get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
     re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
-    
-    # @debugger
-    def executeexpr(key, expr, **env):
-        
-        try:
-            # change 'data.a.b.c' accesses into getitem style data['a']['b']...
-            # expr = re_attribs('data',expr) 
-            print("Evaluating key: `{}` with code: `{}`".format(key,expr))
             
-            value = eval(expr, env)
-            print("Evaluated:", value,'\n')
-            return value        
-        except Exception as err:
-            print("executeexpr:env::",env.keys())
-            print("executeexpr:env::",env['data'].keys())
-            raise err
-        
     # @debugger
     def normalize_column(item):
         debug(item)
@@ -117,13 +93,13 @@ def normalize_columns(testdetails, data, config, filenames):
             #     sourcefunc = sourcefunc.split('.')
             #     sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
 
-            normeddata = executeexpr(key, sourcefunc, details=testdetails, data=data)
+            normeddata = executeexpr(sourcefunc, details=testdetails, data=data)
         else:
             raise Exception("Unimplemented normalization source mode: "+str(item.source))
             
         if 'constant' in item.conversion:
             key, constantexpr = getpropertypair(item.conversion)
-            constant_factor = executeexpr(key, constantexpr, details=testdetails)
+            constant_factor = executeexpr(constantexpr, details=testdetails)
             normeddata = normeddata * constant_factor             
         elif len(item.conversion) >= 1:
             raise Exception("Unimplemented normalization conversion mode: "+str(item.conversion))
@@ -139,86 +115,95 @@ def normalize_columns(testdetails, data, config, filenames):
         
         output.append( [ item.column, DataTree(array=normedcoldata) ])
     
-    
     return output 
 
-def process_instron_file(testfolder, csvpath, file_description, version=0, force=DataTree()):
+def process(testfolder, data, processor, state):
     
-    print(mdHeader(3, "File: {} ".format(csvpath.name) ))
-    
-    header, raw_config, normalized_config = getproperties(file_description)
-    
-    print(mdHeader(3, "Header"))
-    debug(header)
-    
-    #################################################
-    print(mdHeader(3, "Raw Data"))
-    rawoutfiles = getfilenames(testfolder, stage="raw", header=header, version=version, matlab=True)
+    raw_config, normalized_config = getpropertiesarray(processor)
 
-    return rawoutfiles
+    print(mdHeader(3, "Raw Data"))
+    # ================================================
     
-def process_method_columns(rawoutfiles, testfolder, csvpath, file_description, version=0, force=DataTree()):
+    output = DataTree()
+    output['raw','files'] = getfilenames(testfolder, 
+                                stage="raw", 
+                                header=DataTree(item=state.methoditem.name), 
+                                version=state.args.version, 
+                                matlab=True)
     
-    header, raw_config, normalized_config = getproperties(file_description)
-    
-    if 'raw' in force or not any(k for k,v in rawoutfiles.names.items() if not v.exists()):
-        columnmapping = process_raw_columns(csvpath, raw_config, rawoutfiles)
-        save_columns(columnmapping=columnmapping, filenames=rawoutfiles)
+    checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
+    if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
+        columnmapping = process_raw_columns(data, raw_config)
+        save_columns(columnmapping=columnmapping, filenames=output.raw.files)
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
-    #################################################
+
     print(mdHeader(3, "Normalize Data"))
+    # ================================================
 
-    normoutfiles = getfilenames(testfolder, stage="norm", header=header, version=version, matlab=True)
+    output['norm','files'] = getfilenames(testfolder, 
+                                stage="norm", 
+                                header=DataTree(item=state.methoditem.name), 
+                                version=state.args.version, 
+                                matlab=True)
 
-    if 'norm' in force or not any(k for k,v in normoutfiles.names.items() if not v.exists()):
-        testdetails = Json.load_json_from(testfolder.details)
-        rawdata = load_columns(rawoutfiles.names, "matlab") 
+    if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
+        rawdata = load_columns(output.raw.files.names, "matlab") 
         debug(type(rawdata), rawdata.keys())
         data = DataTree(raw=rawdata['data'])
-        columnmapping = normalize_columns(testdetails, data, normalized_config, normoutfiles)
-        save_columns(columnmapping=columnmapping, filenames=normoutfiles)
+        columnmapping = normalize_columns(state.details, data, normalized_config, output.norm.files)
+        save_columns(columnmapping=columnmapping, filenames=output.norm.files)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
 
-
-def process_files(testfolder, project_description, methodname, method):
+def process_method(methodname, method, testfolder, projdesc, state):
     
     files = DataTree()
     
-    for fileitem, filevalue in method.files.items():
+    for methoditem in method:
         
-        if isproperty(filevalue, '_csv_'):
-            filekind, fileglob = getpropertypair(filevalue)
-            csvpath = userstrtopath(fileglob, testfolder)
+        print(mdHeader(3, "Method Item: {} ".format(methoditem.name)))
+        # ================================================
+        testdetails = Json.load_json_from(testfolder.details)        
+        state.details = testdetails
+        # = Files =
+        data = DataTree()        
+        if 'files' in methoditem:
+            debug(methoditem.files)
+            data.file = getproperty(methoditem.files, action=True, 
+                                    env=DataTree(details=state.details, testfolder=testfolder))        
         
-        filekind, wavematrix, savemode = 'csv', methodname, fileitem
-        debug(csvpath)
+        # ====================
+        # = Handle Processor =
+        # ====================
+        processorname = methoditem.processor['$ref'].lstrip('#/processors/')
+        print(mdHeader(4, "Processor: {}".format(processorname)))
+        processor = projdesc.processors[processorname]
+
+        process(testfolder=testfolder, data=data, processor=processor, state=state.set(methoditem=methoditem))
+
+def process_methods(testfolder, state, args):
+    
+    projdesc = match_data_description(testfolder)
+    state.projdesc = projdesc
+    
+    for methodprop in projdesc.methods:
+        methodname, method = getpropertypair(methodprop)
         
-        print(mdHeader(2, "Project: {} {} {}".format(filekind, wavematrix, savemode)))
-                
-                
-        file_description = project_description.processors.methods[savemode]
-        debug(file_description)
+        print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
+        process_method(methodname, method, testfolder, projdesc, state=state.set(methodname=methodname))
         
-        forces = DataTree(raw=True, norm=True)
-        rawoutfiles = process_instron_file(testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
-        
-        process_method_columns(rawoutfiles, testfolder=testfolder, csvpath=csvpath, file_description=file_description, force=forces)
+def run(testfolder, args):
+    
+    args.forces = DataTree(raw=True, norm=True)
+    args.version = "0"
+    state = DataTree()
+    state.args = args
+    process_methods(testfolder, state, args)
 
 
-def process_methods(testfolder):
-    
-    project_description = match_data_description(testfolder)
-    
-    methods = project_description.methods
-    for methodrow in methods:
-        methodname, method = getpropertypair(methodrow)
-        
-        process_files(testfolder, project_description, methodname, method)
-    
 def main():
     
     samplefiles = Path(__file__).parent.resolve()/'..'/'..'/'test/instron-test-files'
@@ -233,7 +218,8 @@ def main():
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
 
-    process_methods(testfolder)
+    args = DataTree()
+    run(testfolder, args)
     
 if __name__ == '__main__':
     main()
