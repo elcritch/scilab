@@ -1,7 +1,7 @@
 {
-	"preprocessors": {
+	"preprocessor": {
 		"cycles": {
-			"function": " {'tr': load_missus, 'lg':  load_1kN }[details.info.orientation] " 
+				"_save_": { "details.cycles.balance": {"function:":"mean()"} }
 		}
 	},
 	"processors": {
@@ -23,6 +23,10 @@
 					},
 		            { 
 						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" }
+					},
+		            { 
+						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" },
+						"source": { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } }
 					},
 		            { 
 						"info": { "name": "elapsedCycles", "label": "Elapsed Cycles", "units": "Nº",  "full": "Elapsed Cycles" }
