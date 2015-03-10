@@ -148,7 +148,10 @@ def save_columns(columnmapping, filenames, indexes=['step']):
     
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
     
-    indexes = { colname: columnhandlers.getslices(orderedmapping[colname],astuple=True)
+    indexes = { colname: columnhandlers.getslices(
+                                orderedmapping[colname],
+                                keyer=lambda x: str(int(x)), 
+                                astuple=True)
                             for colname in indexes }
     
     debug(indexes)

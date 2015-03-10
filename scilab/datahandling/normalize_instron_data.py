@@ -94,22 +94,8 @@ def normalize_columns(data, norm_config, filenames, state):
         normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)
         normedinfo = executeexpr("raw.columninfo.{col}".format(col=sourcecol), **env)
         normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )
-        
-        # print(list( dir(normedinfo)), normedinfo._fieldnames)
-        
-        
+                
         col.info = normedinfo.set(**col.get('info',{}))
-        
-        # if 'column' in col.source:
-        #     key, sourcefunc = getpropertypair(col.source)
-        #     # if key == 'column': # fix attribute accessors ...
-        #     #     sourcefunc = sourcefunc.split('.')
-        #     #     sourcefunc = sourcefunc[0] + ''.join([ "['%s']"%f for f in sourcefunc[1:]])
-        #
-        #     normeddata = executeexpr(sourcefunc, **env)
-        # else:
-        #     raise Exception("Unimplemented normalization source mode: "+str(col.source))
-            
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
             constant_factor = executeexpr(constantexpr, details=state.details, )
