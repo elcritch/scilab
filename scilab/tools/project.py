@@ -51,24 +51,6 @@ def todatatree(item,depth=0):
         return item
 
 
-def flatten(d, parent_key='', sep='_', func=None, ignore=[]):
-    items = []
-    
-    if not func:
-        func = lambda p,ks: p + sep + ks
-        
-    for k, v in d.items():
-        ks = str(k)
-        if ks in ignore:
-            continue
-        
-        new_key = func(parent_key, ks) if parent_key else ks
-        if isinstance(v, collections.MutableMapping):
-            items.extend(flatten(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
-    return collections.OrderedDict(items)
-
 def debugger_summary(idx, val, prefix='_', depth=0):
     msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))
     # print('debugger_summary:',str(type(val)).replace('<','≤').replace('>','≥'))

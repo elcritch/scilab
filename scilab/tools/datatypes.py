@@ -122,6 +122,29 @@ class DataTree(dict):
     def __iter__(self):
         return sorted(super().__iter__()).__iter__()
 
+def flatten(d, parent_key='', sep='_', func=None, ignore=[]):
+    items = []
+    
+    if not func:
+        func = lambda p,ks: p + sep + ks
+        
+    for k, v in d.items():
+        ks = str(k)
+        if ks in ignore:
+            continue
+        
+        new_key = func(parent_key, ks) if parent_key else ks
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return collections.OrderedDict(items)
+
+def flatten_type(d, ignore=['__builtins__', 'summaries']):
+    kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(d,sep='.',ignore=ignore).items() if not 'summaries' in k)
+    return collections.OrderedDict(kenv)
+
+
 class DebugData(DataTree):
 
     def __bool__(self):

@@ -64,17 +64,18 @@ def process_raw_columns(data, raw_config):
     return output 
 
 # @debugger
-def normalize_columns(testdetails, data, norm_config, filenames):
+def normalize_columns(data, norm_config, filenames, state):
     
     # TODO: load 'raw' file (from matlab)
     # TODO: load 'info' data (need to update this first?)
     #            - need to save data into "flat excel file"
     
     # data = DataTree(data)
-    shortdetails = DataTree(testdetails)
-    testdetails.__dict__['_ignore'] = ['summaries']
-    debug(type(data))
-    debug(data.keys())
+    shortdetails = DataTree(state.details)
+    # testdetails.__dict__['_ignore'] = ['summaries']
+    # debug(type(data))
+    debug( flatten_type( data ) )
+    debug( flatten_type( state ) )
     print('\n')
     
     output = []
@@ -85,13 +86,13 @@ def normalize_columns(testdetails, data, norm_config, filenames):
     # @debugger
     def _normalize(col):
 
-        env = DataTree(details=testdetails, **data)
+        env = DataTree(details=state.details, **data)
         sourcecol = getproperty(col.source, action=True, env=env)
 
         print(mdHeader(4, "Column: {}", sourcecol))
         
-        normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)        
-        normedinfo = executeexpr("raw.columns.{col}".format(col=sourcecol), **env)
+        normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)
+        normedinfo = executeexpr("raw.columninfo.{col}".format(col=sourcecol), **env)
         normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )
         
         # print(list( dir(normedinfo)), normedinfo._fieldnames)
@@ -111,8 +112,8 @@ def normalize_columns(testdetails, data, norm_config, filenames):
             
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
-            constant_factor = executeexpr(constantexpr, details=testdetails)
-            normeddata = normeddata * constant_factor             
+            constant_factor = executeexpr(constantexpr, details=state.details, )
+            normeddata = normeddata * constant_factor
         
         return normeddata
     
@@ -126,12 +127,10 @@ def normalize_columns(testdetails, data, norm_config, filenames):
         print()
         
         normcol = DataTree(array=normedcoldata, summary=summaryvalues(normedcoldata, np.s_[0:-1]))
-        for slicecol in norm_config.get('_slicecolumns_', []):
-            normcol['summaries',slicecol] = columnhandlers.summarize(normedcoldata, slicecol)
         output.append( [ col.info, normcol ] )
     
     return output 
-
+    
 def process(testfolder, data, processor, state):
     
     raw_config, normalized_config = processor
@@ -149,7 +148,9 @@ def process(testfolder, data, processor, state):
     checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
     if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
         columnmapping = process_raw_columns(data, raw_config)
-        save_columns(columnmapping=columnmapping, filenames=output.raw.files)
+
+        indexes = ['step'] + raw_config.get('_slicecolumns_', []) 
+        save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.raw.files)
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
@@ -167,8 +168,9 @@ def process(testfolder, data, processor, state):
         rawdata = load_columns(output.raw.files.names, "matlab") 
         debug(type(rawdata), rawdata.keys())
         data = DataTree(raw=rawdata)
-        columnmapping = normalize_columns(state.details, data, normalized_config, output.norm.files)
-        save_columns(columnmapping=columnmapping, filenames=output.norm.files)
+        columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
+        indexes = ['step'] + normalized_config.get('_slicecolumns_', []) 
+        save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.norm.files)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
@@ -181,6 +183,9 @@ def process_method(methodname, method, testfolder, projdesc, state):
         
         print(mdHeader(3, "Method Item: {} ".format(methoditem.name)))
         # ================================================
+        debug(methoditem)
+        
+        
         testdetails = Json.load_json_from(testfolder.details)        
         state.details = testdetails
         # = Files =
@@ -197,7 +202,8 @@ def process_method(methodname, method, testfolder, projdesc, state):
         print(mdHeader(4, "Processor: {}".format(processorname)))
         processor = projdesc.processors[processorname]
 
-        process(testfolder=testfolder, data=data, processor=processor, state=state.set(methoditem=methoditem))
+        itemstate = state.set(methoditem=methoditem, methodname=methodname)
+        process(testfolder=testfolder, data=data, processor=processor, state=itemstate)
 
 def process_methods(testfolder, state, args):
     

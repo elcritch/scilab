@@ -269,10 +269,6 @@ def load_testdetails(env, testconfig):
     env.details = testconfig.details
     
 
-def flatten_type(d, ignore=['__builtins__', 'summaries']):
-    kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(d,sep='.',ignore=ignore).items() if not 'summaries' in k)
-    return OrderedDict(kenv)
-
 def process_stage(stage, env, testconfig, projdesc):
     # debug(stage)
     
