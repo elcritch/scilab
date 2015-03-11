@@ -109,16 +109,13 @@ def process(testfolder, data, processor, state):
     raw_config, normalized_config = processor
     default_index = [{"column":'step',"type":"int"},]
     save_config = DataTree(projdesc=json.dumps(state.projdesc))
+    header=OrderedDict(method=state.methodname, item=state.methoditem.name)
     
     print(mdHeader(3, "Raw Data"))
     # ================================================
     
     output = DataTree()
-    output['raw','files'] = getfilenames(testfolder, 
-                                stage="raw", 
-                                header=DataTree(item=state.methoditem.name), 
-                                version=state.args.version, 
-                                matlab=True)
+    output['raw','files'] = getfilenames(testfolder, stage="raw", version=state.args.version, header=header, matlab=True)
     
     checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
     if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
@@ -132,11 +129,7 @@ def process(testfolder, data, processor, state):
     print(mdHeader(3, "Normalize Data"))
     # ================================================
 
-    output['norm','files'] = getfilenames(testfolder, 
-                                stage="norm", 
-                                header=DataTree(item=state.methoditem.name), 
-                                version=state.args.version, 
-                                matlab=True)
+    output['norm','files'] = getfilenames(testfolder, stage="norm", header=header, version=state.args.version, matlab=True)
 
     if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
         rawdata = load_columns(output.raw.files.names, "matlab") 
@@ -154,7 +147,7 @@ def process(testfolder, data, processor, state):
 
         columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
         indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', [])
-        save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
+        save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 

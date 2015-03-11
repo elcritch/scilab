@@ -144,7 +144,7 @@ def load_project_description(testfolder):
 
 def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
-                    for i in sorted(flatten(header,ignore='filetype').items()) ])
+                    for i in flatten(header,ignore='filetype').items() ])
     filename = testfolder.datacalc / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()
