@@ -108,6 +108,7 @@ def process(testfolder, data, processor, state):
     
     raw_config, normalized_config = processor
     default_index = [{"column":'step',"type":"int"},]
+    save_config = DataTree(projdesc=json.dumps(state.projdesc))
     
     print(mdHeader(3, "Raw Data"))
     # ================================================
@@ -124,7 +125,7 @@ def process(testfolder, data, processor, state):
         columnmapping = process_raw_columns(data, raw_config)
 
         indexes = default_index + raw_config.get('_slicecolumns_', []) 
-        save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.raw.files)
+        save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
     else:
         print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 
@@ -149,10 +150,11 @@ def process(testfolder, data, processor, state):
             
             debug(variables_input, variables)
             state = state.set(variables=variables)
+            save_config.variables = variables
 
         columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
-        indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', []) 
-        save_columns(columnmapping=columnmapping, indexes=indexes, filenames=output.norm.files)
+        indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', [])
+        save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
     else:
         print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
 

@@ -179,27 +179,26 @@ def getindexes(indexes, orderedmapping):
     
     return indexes
     
-def save_columns(columnmapping, filenames, indexes=[{'column':'step','type':'int'}]):
+def save_columns(columnmapping, filenames, configuration, indexes=[{'column':'step','type':'int'}]):
     
     if not columnmapping:
-        return 
+        raise Exception("Nothing to save!")
     
-    orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping ) 
-    
+    orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping )
     indexes = getindexes(indexes, orderedmapping)
     debug(indexes)
     
     if 'matlab' in filenames.names:
-        save_columns_matlab(columnmapping, orderedmapping, indexes, filenames.names.matlab)
+        save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, filenames.names.matlab)
     if 'excel' in filenames.names:
-        save_columns_excel(columnmapping, orderedmapping, indexes, filenames.names.excel)
+        save_columns_excel(columnmapping, orderedmapping, configuration, indexes, filenames.names.excel)
     if 'numpy' in filenames.names:
-        save_columns_numpy(columnmapping, orderedmapping, indexes, filenames.names.numpy)
+        save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, filenames.names.numpy)
     if 'pickle' in filenames.names:
-        save_columns_pickle(columnmapping, orderedmapping, indexes, filenames.names.pickle)
+        save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, filenames.names.pickle)
 
 
-def save_columns_matlab(columnmapping, orderedmapping, indexes, file):
+def save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, file):
     with open(str(file),'wb') as outfile:
         print("Writing matlab file...")
         matlabdata = {
@@ -207,6 +206,7 @@ def save_columns_matlab(columnmapping, orderedmapping, indexes, file):
             "columninfo": { k.name: k for k,v in columnmapping },
             "summary": { k.name: v.summary for k,v in columnmapping },
             "indexes": indexes,
+            "configuration": configuration,
         }
          
         sio.savemat(outfile, matlabdata, 
@@ -232,19 +232,19 @@ def load_columns_matlab(filepath):
     with open(str(filepath),'rb') as file:
         data = DataTree()
         sio.loadmat(file, mdict=data, squeeze_me=True, struct_as_record=False,)
-        return data 
-                       
+        return data
 
-def save_columns_numpy(columnmapping, orderedmapping, indexes, file):
+
+def save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, file):
     with open(str(file),'wb') as outfile:
         print("Writing numpy file...")
-        np.savez_compressed(outfile, data=orderedmapping, columninfo={ k[0].name: k[0] for k in columnmapping }, indexes=indexes)
+        np.savez_compressed(outfile, data=orderedmapping, columninfo={ k[0].name: k[0] for k in columnmapping }, indexes=indexes, configuration=configuration)
 
-def save_columns_pickle(columnmapping, orderedmapping, indexes, file):
+def save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, file):
     import pickle
     with open(str(file),'wb') as outfile:
         print("Writing python pickle file...")
-        pickle.dump({'data':orderedmapping, 'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes}, outfile)
+        pickle.dump({'data':orderedmapping, 'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes, 'configuration':configuration}, outfile)
 
 def load_columns_pickle(filepath):
     import pickle
@@ -256,10 +256,11 @@ def load_columns_json(filepath):
     return Json.load_json_from(filepath)
 
 # @debugger
-def save_columns_excel(columnmapping, orderedmapping, indexes, file):
+def save_columns_excel(columnmapping, orderedmapping, configuration, indexes, file):
     df1 = pd.DataFrame( orderedmapping )
     df2 = pd.DataFrame( [ k[0] for k in columnmapping ] )
     df3 = pd.DataFrame( [ [k]+list(v) for k,v in flatten(indexes,sep=".").items() ] )
+    df4 = pd.DataFrame( [ [k, str(v)] for k,v in flatten(configuration,sep=".").items() ] )
     
     with ExcelWriter(str(file)) as writer:
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
@@ -268,6 +269,7 @@ def save_columns_excel(columnmapping, orderedmapping, indexes, file):
         df1.to_excel(writer,'Data')
         df2.to_excel(writer,'ColumnInfo')
         df3.to_excel(writer,'Indexes')
+        df4.to_excel(writer,'Configuration')
         print("Writing excel file...")
         writer.save()
 
