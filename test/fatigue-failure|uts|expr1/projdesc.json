@@ -75,7 +75,7 @@
  			"preload": [
  				{
 					"name": "tracking",
- 					"processor": { "$ref": "#/processors/tracking"},
+ 					"processor": { "$ref": "#/processors/tracking" },
  					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" }
  				}
  			]
@@ -84,11 +84,11 @@
 			"precond": [
 				{
 					"name": "tracking",
-					"processor": { "$ref": "#/processors/tracking"},
+					"processor": { "$ref": "#/processors/tracking" },
 					"files": { "_csv_": "raw/02 Preconditions/*.tracking.csv" },
 					"variables": {
-						"normalize": { 
-							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
+						"normalize": {
+							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" }
 						}
 					}
 				}
@@ -129,9 +129,9 @@
 		        "tests": "02_Tests/",
 		        "results": "04_Results/",
 				"raws": {
-			        "method_01_preload": "{raw}/01 (uts) preloads",
-			        "method_02_precond": "{raw}/02 (uts) preconditions",
-			        "method_03_uts":    " {raw}/04 (uts) uts-test"			
+			        "01 Preload": "{raw}/01 (uts) preloads",
+			        "02 Precond": "{raw}/02 (uts) preconditions",
+			        "03 Uts":    " {raw}/04 (uts) uts-test"			
 				}
 			}
 		},
@@ -139,9 +139,9 @@
 			"_metadata_": "describe folders structure for tests in experiment",
 			"folder": "{tests}/{testinfo.name}",
 			"raws": {
-		        "method_01_preload": "{testinfo.name}-r*",
-		        "method_02_precond": "{testinfo.name}-r*",
-		        "method_03_uts":     "{testinfo.name}-r*"
+		        "01 Preload": "{testinfo.name}-r*",
+		        "02 Precond": "{testinfo.name}-r*",
+		        "03 Uts":     "{testinfo.name}-r*"
 			},
 			"filestructure": {
 		        "raw":            "raw/",
