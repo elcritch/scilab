@@ -51,7 +51,7 @@ class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
 
 class FileStructure(DataTree):
 
-    def __init__(self, projdescpath, verify=True):
+    def __init__(self, projdescpath, testinfo, verify=True):
         projdescpath = Path(str(projdescpath)).resolve()
         
         debug(projdescpath)
@@ -60,6 +60,7 @@ class FileStructure(DataTree):
             
         projdesc = Json.load_json_from(projdescpath)
         self.projdesc = projdesc
+        self._testtnfo = testinfo
         
         names = self.projdesc.experiment_config.name.split('|')
         self.experiment_name = names[0]
@@ -139,7 +140,7 @@ class FileStructure(DataTree):
     def testitemsd(self):
 
         folders = [ (self.infoOrNone(f.name), f)
-                        for f in self.test_parent.glob('*')
+                        for f in self.tests.glob('*')
                             if f.is_dir() ]
         folders = [ (i,f) for i,f in folders if i ]
         folders = sorted(folders, key=lambda item: item[0].short() )
@@ -150,7 +151,7 @@ class FileStructure(DataTree):
 
     def infoOrNone(self, item):
         try:
-            return TestInfo(name=str(item))
+            return self._testtnfo(name=str(item))
         except Exception as err:
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None
@@ -201,7 +202,10 @@ def main():
     pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
     pdp = pdp.resolve()
     print(pdp)
-    fs = FileStructure(projdescpath=pdp,verify=True)
+    
+    import scilab.expers.mechanical.fatigue.uts as exper_uts
+    
+    fs = FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
 
     ti = DataTree(name='dec01(gf10.1-llm)-wa-lg-l6-x1')
     tf = fs.testfolder(ti)
@@ -210,6 +214,14 @@ def main():
     for k,v in flatten(tf).items():
         print("key:",k, '\n', "val:",v.relative_to(pdp.parent) if isinstance(v,Path) else v,'\n')
 
+    print("## Test: testitemsd ##")
+    
+    tests = fs.testitemsd()
+    
+    for test in tests:
+        print("test:", test,'\n')
+    
+    
 if __name__ == '__main__':
     main()
 
