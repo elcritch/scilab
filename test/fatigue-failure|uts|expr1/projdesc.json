@@ -138,10 +138,10 @@
 		"testfolder" : {
 			"_metadata_": "describe folders structure for tests in experiment",
 			"folder": "{tests}/{testinfo.name}",
-			"sources": {
-		        "method_01_preload": "raw/{testinfo.name}-r*",
-		        "method_02_precond": "raw/{testinfo.name}-r*",
-		        "method_03_uts":     "raw/{testinfo.name}-r*"
+			"raws": {
+		        "method_01_preload": "{testinfo.name}-r*",
+		        "method_02_precond": "{testinfo.name}-r*",
+		        "method_03_uts":     "{testinfo.name}-r*"
 			},
 			"filestructure": {
 		        "raw":            "raw/",

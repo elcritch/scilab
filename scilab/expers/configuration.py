@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import shutil, re, sys, os, itertools, collections, logging
+import shutil, re, sys, os, itertools, collections, logging, glob
 from pathlib import Path
 from functools import partial
 
@@ -108,12 +108,16 @@ class FileStructure(DataTree):
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv) )
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
         
-        for name, test in tf.sources.items():
-            test = test.format(testinfo=testinfo, **folder)
-            # debug(testdir, test)
-            sources = list(testdir.rglob(test))
-            # debug(sources)
-            folder.sources = sources
+        for name, test in tf.raws.items():
+            test = test.format(**testenv)
+            sources = map(Path, glob.glob(str(self._files.raws[name] / test)))
+            sources = sorted( [ t for t in sources if t.is_dir() ], key=lambda x: x.stem)
+            source = sources[-1]
+            if len(sources) > 1:
+                logging.warn("Multiple raw test folders match, chose: %s from %s"%(
+                                source.name, [ i.name for i in sources ]))
+            
+            folder['sources',name] = sources
     
         # debug(folder)
     
@@ -203,7 +207,7 @@ def main():
     tf = fs.testfolder(ti)
     
     print("## Test: TF ##")
-    for k,v in tf.items():
+    for k,v in flatten(tf).items():
         print("key:",k, '\n', "val:",v.relative_to(pdp.parent) if isinstance(v,Path) else v,'\n')
 
 if __name__ == '__main__':
