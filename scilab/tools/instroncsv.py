@@ -7,7 +7,7 @@ import collections, itertools, logging
 from collections import OrderedDict, namedtuple
 
 from scilab.tools.project import *
-from scilab.utilities.normalize_data import *
+# from scilab.utilities.normalize_data import *
 
 
 class NamedTuple():

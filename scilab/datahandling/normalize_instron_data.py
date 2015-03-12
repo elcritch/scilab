@@ -16,28 +16,9 @@ import scilab.datahandling.columnhandlers as columnhandlers
 
 import numpy as np
 
-
-# @debugger
-def matchfilename(testfolder, pattern, strictmatch=True):
-    print(mdBlock("Matching pattern: `{}` in testfolder: `{}`, strictmatch: {} ", pattern, testfolder, strictmatch))
-    files = sorted(testfolder.rglob(pattern))
-    debug(files)
-    if strictmatch:
-        assertsingle(files)
-    return files[-1]
-
 # @debugger
 def resolve(url):
     return Path(url).resolve()
-
-
-def match_data_description(testfolder):
-    
-    ## temporary, later lookup test config
-    project_description_url = Path(__file__).parent / "project_description.v1.json"    
-    project_description = Json.load_json_from(project_description_url.resolve())
-    
-    return project_description
 
 
 def process_raw_columns(data, raw_config):
@@ -185,8 +166,8 @@ def process_method(methodname, method, testfolder, projdesc, state):
 
 def process_methods(testfolder, state, args):
     
-    projdesc = match_data_description(testfolder)
-    state.projdesc = projdesc
+    projdesc = Json.load_json_from(testfolder._fs.projdesc)
+    state.projdesc = projdesc 
     
     for methodprop in projdesc.methods:
         methodname, method = getpropertypair(methodprop)

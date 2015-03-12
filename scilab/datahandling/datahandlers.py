@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib, re, collections
+import os, sys, pathlib, re, collections, glob
 import pandas as pd
 import numpy as np
 import scipy.io as sio
@@ -65,7 +65,8 @@ def builtin_action_exec(values, **env):
 
 @debugger
 def userstrtopath(filepattern, testfolder):
-    return resolve(matchfilename(testfolder.data, filepattern.format(**{})))
+    debug(filepattern, testfolder)
+    return resolve(matchfilename(filepattern.format(**testfolder)))
     
 @debugger
 def builtin_action_csv(filevalue, testfolder, **env):
@@ -125,13 +126,13 @@ def assertsingle(xs):
     return xs
 
 # @debugger
-def matchfilename(testfolder, pattern, strictmatch=True):
-    print(mdBlock("Matching pattern: `{}` in testfolder: `{}`, strictmatch: {} ", pattern, testfolder, strictmatch))
-    files = sorted(testfolder.rglob(pattern))
+def matchfilename(pattern, strictmatch=True):
+    print(mdBlock("Matching pattern: `{}` strictmatch: {} ", pattern, strictmatch))
+    files = sorted(map(Path, glob.glob(pattern)), reverse=True)
     debug(files)
     if strictmatch:
         assertsingle(files)
-    return files[-1]
+    return next(files)
 
 # @debugger
 def resolve(url):

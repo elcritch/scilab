@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys, pathlib
-sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
+# sys.path.insert(0,[ str(p) for p in pathlib.Path('.').resolve().parents if (p/'scilab').exists() ][0] )
 
 
 from scilab.tools.project import *

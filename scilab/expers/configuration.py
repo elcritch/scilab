@@ -54,7 +54,6 @@ class FileStructure(DataTree):
     def __init__(self, projdescpath, testinfo, verify=True):
         projdescpath = Path(str(projdescpath)).resolve()
         
-        debug(projdescpath)
         if not projdescpath.exists():
             raise Exception(projdescpath)
             
@@ -78,8 +77,6 @@ class FileStructure(DataTree):
         for name, file in self._files.items():
             self[name] = file
     
-        debug(self._files)
-    
     def parsefolders(self, files, verify, parent, env=DataTree()):
         
         _files = DataTree()
@@ -100,15 +97,15 @@ class FileStructure(DataTree):
     def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, verify=False):
         
         tf = DataTree(self.projdesc.experiment_config.testfolder)
-        debug(tf['folder'], self._files)
         
         testdir = Path(tf['folder'].format(testinfo=testinfo, **self._files))
         testenv = DataTree(folder=testdir,testinfo=testinfo)
-        debug(testenv)
+
         folder = DataTree()
+        folder._fs = self
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv) )
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
-        
+        # folder._filestructure = self
         for name, test in tf.raws.items():
             test = test.format(**testenv)
             sources = map(Path, glob.glob(str(self._files.raws[name] / test)))
@@ -119,9 +116,7 @@ class FileStructure(DataTree):
                                 source.name, [ i.name for i in sources ]))
             
             if source:
-                folder['sources',name] = source
-    
-        # debug(folder)
+                folder['raws',name] = source
     
         if ensure_folders_exists:
             for v in sorted(folder.values(), key=lambda x: str(x)):
@@ -129,14 +124,6 @@ class FileStructure(DataTree):
                     v.mkdir()
 
         return folder
-
-    def findRaws(self, testinfo):
-        
-        testraws = DataTree()
-        for name, datafolder in self.raws.items():            
-            testraws[name] = self.findTestCsv(testinfo, datafolder)
-        
-        return testraws
 
     def testitemsd(self):
 
@@ -156,48 +143,6 @@ class FileStructure(DataTree):
         except Exception as err:
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None
-
-    def findTestCsv(self, testinfo, rawfolder):
-                        
-        globfiles = rawfolder.glob( testinfo.name+'*' )
-        
-        testfolders = sorted( [ t for t in globfiles if t.is_dir() ], key=lambda x: x.stem)
-        
-        if not testfolders:
-            return DataTree(tracking=None, trends=None, stop=None)
-        
-        testfolder = testfolders[-1]
-        
-        if len(testfolders) > 1:
-            logging.warn("Multiple csv test folders match, chose: %s from %s"%(testfolder.name, [ i.name for i in testfolders ]))
-        
-        tracking = next(testfolder.glob('*.tracking.csv'),None)
-        trends   = next(testfolder.glob('*.trends.csv'),None)
-        stop     = next(testfolder.glob('*.stop.csv'),None)
-        
-        # if tracking or trends or stop:
-        return DataTree(tracking=tracking, trends=trends, stop=stop)
-        # else:
-            # return DataTree()
-
-class TestData(DataTree):
-    
-    # def __init__(self, *args, **kwargs):
-        # super().__init__(*arg, **kwargs)
-        
-    def __str__(self):
-        return "TestData[%s]"%super().__str__()
-    
-class TestDetails(DataTree):
-
-    # def __init__(self, *args, **kwargs):
-        # super().__init__(*arg, **kwargs)
-
-    def __str__(self):
-        return "TestDetails[%s]"%super().__str__()
-
-class TestOverview(DataTree):
-    pass
 
 def main():
     pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
