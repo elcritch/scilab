@@ -117,5 +117,38 @@
 				}
 			]
 		}
-	]
+	],
+	"experiment_config": {
+		"name": "fatigue-failure|uts|expr1",
+		"start": "2014-12",
+		"projectfolder" : {
+			"_metadata_": "describe project folders",
+			
+			"filestructure": {
+		        "raw": "01_Raw/",
+		        "tests": "02_Tests/",
+		        "results": "04_Results/",
+				"raws": {
+			        "method_01_preload": "{raw}/01 (uts) preloads",
+			        "method_02_precond": "{raw}/02 (uts) preconditions",
+			        "method_03_uts":    " {raw}/04 (uts) uts-test"			
+				}
+			}
+		},
+		"testfolder" : {
+			"_metadata_": "describe folders structure for tests in experiment",
+			"testfolder": "{testinfo_name}",
+			"filestructure": {
+		        "raw":            "{testfolder}/raw/",
+		        "data":           "{testfolder}/data/",
+		        "graphs":         "{testfolder}/graphs/",
+		        "json":           "{testfolder}/json",
+		        "jsoncalc":       "{testfolder}/json/calculated",
+		        "images":         "{testfolder}/images",
+		        "datasheet":      "{testfolder}/{testname}.xlsx",
+		        "details":        "{testfolder}/{json}/{testname}.calculated.json'"
+			}			
+		}
+	} 
+	
 }

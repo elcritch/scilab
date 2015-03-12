@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import shutil, re, sys, os, itertools, collections
+import shutil, re, sys, os, itertools, collections, logging
 from pathlib import Path
 from functools import partial
 
@@ -10,6 +10,7 @@ if __name__ == '__main__':
     
 from scilab.tools.project import *
 from scilab.tools.helpers import *
+import scilab.tools.jsonutils as Json
 
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
@@ -50,51 +51,71 @@ class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
 
 class FileStructure(DataTree):
 
-    def __init__(self, experiment_name:str, test_name):
+    def __init__(self, projdescpath, verify=True):
+        projdescpath = Path(str(projdescpath)).resolve()
+        
+        debug(projdescpath)
+        if not projdescpath.exists():
+            raise Exception(projdescpath)
+            
+        projdesc = Json.load_json_from(projdescpath)
+        self.projdesc = projdesc
+        
+        names = self.projdesc.experiment_config.name.split('|')
+        self.experiment_name = names[0]
+        self.test_name = names[1:]
 
-        self.experiment_name = experiment_name
-        self.test_name = test_name
+        self.project = projdescpath.parent
 
-        self.project = None
-        for path in Path('.').resolve().parents:
-#            print(path.name, self.experiment_name)
-            if path.name == self.experiment_name:
-                self.project = path
+        if not (self.project / '.git').is_dir():
+            logging.warn("No git folder present for project: {}".format(self.project))
+            if verify:
+                raise Exception("No git folder present!")
 
-        if not self.project:
-            raise Exception("Could not find experiment (project) path: "+experiment_name)
-
-        project = self.project
-        raw = self.raw = self.project / '01_Raw'
-
-        self.raws = DataTree()
-        self.raws.preload_csv    = raw / '01 Preloads'
-        self.raws.preconds_csv   = raw / '02 Preconditions'
-        self.raws.cycles_lg_csv     = raw / '03 Fatigue Cycles (LG)'
-        self.raws.cycles_tr_csv     = raw / '03 Fatigue Cycles (TR)'
-
-        self.test_parent         = project / '02_Tests' / self.test_name
-        self.results_dir         = project / '04_Results'
-
-        for name in (self.test_parent, self.results_dir, self.raw):
-            logging.info("FileStructure: Resolving: "+str(name))
-            name.resolve()
-
-    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False):
-        test_dir = self.test_parent / testinfo.name
-
-        def findFilesIn(testfolder, pattern='*', kind='png'):
-            return list( testfolder.glob('{pattern}.{kind}'.format(**locals())) )
-
+        files = DataTree(projdesc.experiment_config.projectfolder.filestructure)
+        self._files = self.parsefolders(files, verify, parent=self.project)
+        for name, file in self._files.items():
+            self[name] = file
+    
+        debug(self._files)
+    
+    def parsefolders(self, files, verify, parent, env=DataTree()):
+        
+        _files = DataTree()
+        env.update(files)
+        
+        for foldername, folderitem in flatten(files, sort=True, tolist=True):
+            folder = parent / folderitem.format(**env).strip()
+            if verify:
+                try:
+                    folder = folder.resolve()
+                except FileNotFoundError as err:
+                    raise FileNotFoundError("Folder: `{}`".format(folder))
+                
+            _files[foldername] = folder
+        
+        return _files
+        
+    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, verify=False):
+        
+        tf = DataTree(self.projdesc.experiment_config.testfolder)
+        debug(tf['folder'], self._files)
+        
+        testdir = Path(tf['folder'].format(testinfo=testinfo, **self._files))
+        testenv = DataTree(folder=testdir,testinfo=testinfo)
+        debug(testenv)
         folder = DataTree()
-        folder.project_dir = self.project
-        folder.testfs = self
-        folder.graphs         = test_dir / 'graphs'
-        folder.json           = test_dir / 'json'
-        folder.jsoncalc       = folder.json / 'calculated'
-        folder.images         = test_dir / 'images'
-        folder.raws           = self.findRaws(testinfo)
-        folder.datasheet      = next(test_dir.glob('data_sheet*.xlsx'), None)
+        folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv) )
+        folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
+        
+        for name, test in tf.sources.items():
+            test = test.format(testinfo=testinfo, **folder)
+            # debug(testdir, test)
+            sources = list(testdir.rglob(test))
+            # debug(sources)
+            folder.sources = sources
+    
+        # debug(folder)
     
         if ensure_folders_exists:
             for v in sorted(folder.values(), key=lambda x: str(x)):
@@ -173,54 +194,17 @@ class TestOverview(DataTree):
     pass
 
 def main():
+    pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
+    pdp = pdp.resolve()
+    print(pdp)
+    fs = FileStructure(projdescpath=pdp,verify=True)
+
+    ti = DataTree(name='dec01(gf10.1-llm)-wa-lg-l6-x1')
+    tf = fs.testfolder(ti)
     
-    pass
-
-    # print("Test TestInfo")
-    #
-    # ti = TestInfo(name='nov26(gf9.2-llm)-wf-tr-l9-x1')
-    # print(ti)
-    #
-    # ti = TestInfo('xx',*TestInfo.reTestName.match('nov26(gf9.2-rmm)-wf-tr-l9-x1-r1').groups())
-    # ti.short()
-    # print(ti.short())
-    #
-    # print("Success")
-    # print()
-    #
-    # print("Good:")
-    # ti = TestInfo(name='nov26(gf9.2-rmm)-wf-tr-l9-x1-r1')
-    # print("Validate:", ti, ti.validate())
-    # print()
-    # ti = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
-    # print("Validate:", ti, ti.validate())
-    # print()
-    #
-    # print("Fail:")
-    # ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
-    # print("Validate:", ti, ti.validate())
-    # print()
-    #
-    # print("\nSet\n")
-    # # import Set
-    # ti = TestInfo(name='nov26(gf9.2-rlm)-wf-tr-l9-x1-r1')
-    # tj = TestInfo(name='nov26(gf9.2-rlm)-wa-tr-l9-x1-r1')
-    #
-    # si = set( (k,v) for k,v in zip(ti._fields,ti))
-    # sj = set( (k,v) for k,v in zip(tj._fields,tj))
-    #
-    # print(si)
-    # print(sj)
-    # print(si-sj)
-    # print(ti.differenceOf(tj))
-    #
-    # print("## FileStructure")
-    # fs = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
-    #
-    # debug(fs)
-    #
-    # print("\n\nTests:\n\n",fs.testitemsd())
-
+    print("## Test: TF ##")
+    for k,v in tf.items():
+        print("key:",k, '\n', "val:",v.relative_to(pdp.parent) if isinstance(v,Path) else v,'\n')
 
 if __name__ == '__main__':
     main()

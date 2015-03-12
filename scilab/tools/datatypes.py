@@ -122,23 +122,39 @@ class DataTree(dict):
     def __iter__(self):
         return sorted(super().__iter__()).__iter__()
 
-def flatten(d, parent_key='', sep='_', func=None, ignore=[]):
+    def astuples(self):
+        return flatten(self, astuple=True, sort=True)
+
+def mapd(d, valuef=lambda v: v, keyf=lambda k: k):
+    return DataTree({ keyef(k): valuef(v) for k,v in d.items() })
+
+def mapl(*args, **kwargs):
+    return list(map(*args, **kwargs))
+
+def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort=True, tolist=False):
     items = []
     
-    if not func:
-        func = lambda p,ks: p + sep + ks
+    if tolist:   astuple = True
+    if astuple:  func = lambda p,ks: tuple(p)+(ks,)
+    if not func: func = lambda p,ks: (p + sep + ks if p else ks)
         
     for k, v in d.items():
         ks = str(k)
         if ks in ignore:
             continue
         
-        new_key = func(parent_key, ks) if parent_key else ks
+        new_key = func(parent_key, ks) 
         if isinstance(v, collections.MutableMapping):
-            items.extend(flatten(v, new_key, sep=sep).items())
+            items.extend(flatten(v, new_key, sep=sep, func=func, ignore=ignore).items())
         else:
             items.append((new_key, v))
-    return collections.OrderedDict(items)
+    
+    sorter = sorted if sort else (lambda x: x)
+    items = sorter(items)
+    if tolist:
+        return items
+    else:
+        return collections.OrderedDict(items) 
 
 def flatten_type(d, ignore=['__builtins__', 'summaries']):
     kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(d,sep='.',ignore=ignore).items() if not 'summaries' in k)
@@ -260,4 +276,24 @@ if __name__ == '__main__':
             assert d1 == {'a':{'b':{'bb':'foo'}}, 'c':{'subc':True}}
             assert d1['a','b','bb'] == 'foo'
             assert d1['a','b','bb','not','here'] == None
+            
+        @test_in(tests)
+        def test_flatten():
+            
+            d1 = DataTree()
+            print()
+            
+            d1['c','subc'] = True            
+            d1['a','b','bb'] = 'foo'
+            
+            print(d1)
+            
+            fd1 = flatten(d1,sep='_')
+            assert fd1 == {'a_b_bb':'foo', 'c_subc':True}
+            
+            fd2 = flatten(d1, astuple=True)
+            
+            print(fd2)
+            assert fd2 == { ('a','b','bb'): 'foo', ('c','subc'):True }
+            
             

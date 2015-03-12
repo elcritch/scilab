@@ -1,0 +1,37 @@
+{
+    "id": "1001-1LG-601",
+    "other": {
+        "precond_amp": 0.58268,
+        "stress_uts": "#VALUE!",
+        "target_position": null,
+        "max_force": "-",
+        "target_gauge": 7,
+        "est_rate": 0.29134,
+        "est_precond": 1.16536,
+        "precond_amt": 0.08
+    },
+    "info": {
+        "layer": "6",
+        "orientation": "lg",
+        "sample": "1",
+        "run": null,
+        "wedge": "a",
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "date": "dec01",
+        "side": "llm",
+        "set": "gf10.1"
+    },
+    "gauge": {
+        "init_position": -0.092,
+        "units": "mm",
+        "base": -14.659,
+        "value": 14.567
+    },
+    "notes": {
+        "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+        "distance": "0.5mm",
+        "location": "bottom",
+        "failue": "unsure"
+    },
+    "name": "dec01(gf10.1-llm)-wa-lg-l6-x1"
+}

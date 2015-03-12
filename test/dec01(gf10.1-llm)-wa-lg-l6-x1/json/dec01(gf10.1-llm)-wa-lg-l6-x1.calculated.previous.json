@@ -1,0 +1,474 @@
+{
+    "2015-2-20_0:59:53": {
+        "gauge": {
+            "value": 14.567,
+            "units": "mm",
+            "init_position": -0.092,
+            "base": -14.659
+        },
+        "notes": {
+            "location": "bottom",
+            "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+            "failue": "unsure",
+            "distance": "0.5mm"
+        },
+        "other": {
+            "max_force": "-",
+            "stress_uts": "#VALUE!",
+            "precond_amt": 0.08,
+            "target_position": null,
+            "est_rate": 0.29134,
+            "est_precond": 1.16536,
+            "target_gauge": 7,
+            "precond_amp": 0.58268
+        },
+        "dynmodfits": {
+            "3third": {
+                "value": 256.48698110001936,
+                "slope_strain": 0.16269074241357023,
+                "slope_stress": 41.72805737457751
+            },
+            "toe": {
+                "value": 67.00854254388831,
+                "slope_strain": 0.1604595535317623,
+                "slope_stress": 10.752160819406418
+            },
+            "1third": {
+                "value": 39.40032754874459,
+                "slope_strain": 0.15836839959432528,
+                "slope_stress": 6.239766817386886
+            },
+            "2thirds": {
+                "value": 144.27676537191473,
+                "slope_strain": 0.1633169057586838,
+                "slope_stress": 23.562834893412735
+            },
+            "in": {
+                "value": 229.297205719443,
+                "slope_strain": 0.16359404614420905,
+                "slope_stress": 37.51165765320476
+            }
+        },
+        "measurements": {
+            "area": {
+                "value": 0.8163476978639798,
+                "units": "mm^2"
+            },
+            "depth": {
+                "value": 0.6829923746874368,
+                "units": "mm",
+                "stdev": 0.0348525047947398
+            },
+            "width": {
+                "value": 1.195251554949748,
+                "units": "mm",
+                "stdev": 0.12774367485085053
+            },
+            "image": {
+                "other": {}
+            }
+        },
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "calculations": {
+            "balances": {
+                "slices": "slice(0, 496, 1)",
+                "load": {
+                    "mean": -0.06966983463855521,
+                    "mins": -0.146768987178802,
+                    "std": 0.024541605738491346,
+                    "maxs": -0.000183470547199249
+                },
+                "offset": {
+                    "load": -0.06966983463855521
+                },
+                "displacement": {
+                    "mean": -0.0008180706899976717,
+                    "mins": -0.000942517051541153,
+                    "std": 3.426941585051988e-05,
+                    "maxs": -0.000656470642171428
+                }
+            },
+            "maxes": {
+                "strain": {
+                    "value": 1.0300745432839913,
+                    "idx": 7080
+                },
+                "load": {
+                    "value": 18.595432318116156,
+                    "idx": 1385
+                },
+                "displacement": {
+                    "value": 15.0050958720179,
+                    "idx": 7080
+                },
+                "load_peak_displacement": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "stress_peak_strain": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "stress": {
+                    "value": 22.77881393770346,
+                    "idx": 1385
+                }
+            }
+        },
+        "info": {
+            "wedge": "a",
+            "orientation": "lg",
+            "date": "dec01",
+            "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+            "set": "gf10.1",
+            "layer": "6",
+            "side": "llm",
+            "sample": "1",
+            "run": null
+        },
+        "id": "1001-1LG-601"
+    },
+    "2015-2-19_10:32:0": {
+        "gauge": {
+            "value": 14.567,
+            "units": "mm",
+            "init_position": -0.092,
+            "base": -14.659
+        },
+        "notes": {
+            "location": "bottom",
+            "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+            "failue": "unsure",
+            "distance": "0.5mm"
+        },
+        "other": {
+            "max_force": "-",
+            "stress_uts": "#VALUE!",
+            "precond_amt": 0.08,
+            "target_position": null,
+            "est_rate": 0.29134,
+            "est_precond": 1.16536,
+            "target_gauge": 7,
+            "precond_amp": 0.58268
+        },
+        "info": {
+            "wedge": "a",
+            "orientation": "lg",
+            "date": "dec01",
+            "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+            "set": "gf10.1",
+            "layer": "6",
+            "side": "llm",
+            "sample": "1",
+            "run": null
+        },
+        "id": "1001-1LG-601",
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "measurements": {
+            "area": {
+                "value": 0.8163476978639798,
+                "units": "mm^2"
+            },
+            "depth": {
+                "value": 0.6829923746874368,
+                "units": "mm",
+                "stdev": 0.0348525047947398
+            },
+            "width": {
+                "value": 1.195251554949748,
+                "units": "mm",
+                "stdev": 0.12774367485085053
+            },
+            "image": {
+                "other": {}
+            }
+        }
+    },
+    "2015-2-19_22:35:17": {
+        "gauge": {
+            "value": 14.567,
+            "units": "mm",
+            "init_position": -0.092,
+            "base": -14.659
+        },
+        "notes": {
+            "location": "bottom",
+            "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+            "failue": "unsure",
+            "distance": "0.5mm"
+        },
+        "other": {
+            "max_force": "-",
+            "stress_uts": "#VALUE!",
+            "precond_amt": 0.08,
+            "target_position": null,
+            "est_rate": 0.29134,
+            "est_precond": 1.16536,
+            "target_gauge": 7,
+            "precond_amp": 0.58268
+        },
+        "measurements": {
+            "area": {
+                "value": 0.8163476978639798,
+                "units": "mm^2"
+            },
+            "depth": {
+                "value": 0.6829923746874368,
+                "units": "mm",
+                "stdev": 0.0348525047947398
+            },
+            "width": {
+                "value": 1.195251554949748,
+                "units": "mm",
+                "stdev": 0.12774367485085053
+            },
+            "image": {
+                "other": {}
+            }
+        },
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "calculations": {
+            "balances": {
+                "slices": "slice(0, 496, 1)",
+                "load": {
+                    "mean": -0.06966983463855521,
+                    "mins": -0.146768987178802,
+                    "std": 0.024541605738491346,
+                    "maxs": -0.000183470547199249
+                },
+                "offset": {
+                    "load": -0.06966983463855521
+                },
+                "displacement": {
+                    "mean": -0.0008180706899976717,
+                    "mins": -0.000942517051541153,
+                    "std": 3.426941585051988e-05,
+                    "maxs": -0.000656470642171428
+                }
+            },
+            "maxes": {
+                "strain": {
+                    "value": 1.0300745432839913,
+                    "idx": 7080
+                },
+                "load": {
+                    "value": 18.595432318116156,
+                    "idx": 1385
+                },
+                "displacement": {
+                    "value": 15.0050958720179,
+                    "idx": 7080
+                },
+                "load_peak_displacement": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "stress_peak_strain": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "stress": {
+                    "value": 22.77881393770346,
+                    "idx": 1385
+                }
+            }
+        },
+        "info": {
+            "wedge": "a",
+            "orientation": "lg",
+            "date": "dec01",
+            "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+            "set": "gf10.1",
+            "layer": "6",
+            "side": "llm",
+            "sample": "1",
+            "run": null
+        },
+        "id": "1001-1LG-601"
+    },
+    "2015-2-20_1:1:17": {
+        "gauge": {
+            "value": 14.567,
+            "init_position": -0.092,
+            "units": "mm",
+            "base": -14.659
+        },
+        "notes": {
+            "location": "bottom",
+            "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+            "failue": "unsure",
+            "distance": "0.5mm"
+        },
+        "other": {
+            "est_rate": 0.29134,
+            "est_precond": 1.16536,
+            "target_gauge": 7,
+            "max_force": "-",
+            "stress_uts": "#VALUE!",
+            "precond_amp": 0.58268,
+            "target_position": null,
+            "precond_amt": 0.08
+        },
+        "calculations": {
+            "balances": {
+                "slices": "slice(0, 496, 1)",
+                "load": {
+                    "maxs": -0.000183470547199249,
+                    "mins": -0.146768987178802,
+                    "std": 0.024541605738491346,
+                    "mean": -0.06966983463855521
+                },
+                "offset": {
+                    "load": -0.06966983463855521
+                },
+                "displacement": {
+                    "maxs": -0.000656470642171428,
+                    "mins": -0.000942517051541153,
+                    "std": 3.426941585051988e-05,
+                    "mean": -0.0008180706899976717
+                }
+            },
+            "maxes": {
+                "strain": {
+                    "value": 1.0300745432839913,
+                    "idx": 7080
+                },
+                "stress": {
+                    "value": 22.77881393770346,
+                    "idx": 1385
+                },
+                "displacement": {
+                    "value": 15.0050958720179,
+                    "idx": 7080
+                },
+                "load_peak_displacement": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "stress_peak_strain": {
+                    "value": 2.10454720169209,
+                    "idx": 1385
+                },
+                "load": {
+                    "value": 18.595432318116156,
+                    "idx": 1385
+                }
+            }
+        },
+        "dynmodfits": {
+            "3third": {
+                "value": 256.48698110001936,
+                "slope_strain": 0.16269074241357023,
+                "slope_stress": 41.72805737457751
+            },
+            "toe": {
+                "value": 67.00854254388831,
+                "slope_strain": 0.1604595535317623,
+                "slope_stress": 10.752160819406418
+            },
+            "1third": {
+                "value": 39.40032754874459,
+                "slope_strain": 0.15836839959432528,
+                "slope_stress": 6.239766817386886
+            },
+            "2thirds": {
+                "value": 144.27676537191473,
+                "slope_strain": 0.1633169057586838,
+                "slope_stress": 23.562834893412735
+            },
+            "in": {
+                "value": 229.297205719443,
+                "slope_strain": 0.16359404614420905,
+                "slope_stress": 37.51165765320476
+            }
+        },
+        "id": "1001-1LG-601",
+        "info": {
+            "run": null,
+            "wedge": "a",
+            "orientation": "lg",
+            "date": "dec01",
+            "side": "llm",
+            "set": "gf10.1",
+            "layer": "6",
+            "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+            "sample": "1"
+        },
+        "measurements": {
+            "area": {
+                "value": 0.8163476978639798,
+                "units": "mm^2"
+            },
+            "depth": {
+                "value": 0.6829923746874368,
+                "units": "mm",
+                "stdev": 0.0348525047947398
+            },
+            "width": {
+                "value": 1.195251554949748,
+                "units": "mm",
+                "stdev": 0.12774367485085053
+            },
+            "image": {
+                "other": {}
+            }
+        },
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1"
+    },
+    "2015-2-19_10:28:17": {
+        "gauge": {
+            "value": 14.567,
+            "preloaded": -0.092,
+            "units": "mm",
+            "base": -14.659
+        },
+        "notes": {
+            "location": "bottom",
+            "notes": "the failure stress seemed alright, but it was really soft near the clamp site. ",
+            "failue": "unsure",
+            "distance": "0.5mm"
+        },
+        "other": {
+            "max_force": "-",
+            "stress_uts": "#VALUE!",
+            "precond_amt": 0.08,
+            "target_position": null,
+            "est_rate": 0.29134,
+            "est_precond": 1.16536,
+            "target_gauge": 7,
+            "precond_amp": 0.58268
+        },
+        "info": {
+            "wedge": "a",
+            "orientation": "lg",
+            "date": "dec01",
+            "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+            "set": "gf10.1",
+            "layer": "6",
+            "side": "llm",
+            "sample": "1",
+            "run": null
+        },
+        "id": "1001-1LG-601",
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "measurements": {
+            "area": {
+                "value": 0.8163476978639798,
+                "units": "mm^2"
+            },
+            "depth": {
+                "value": 0.6829923746874368,
+                "units": "mm",
+                "stdev": 0.0348525047947398
+            },
+            "width": {
+                "value": 1.195251554949748,
+                "units": "mm",
+                "stdev": 0.12774367485085053
+            },
+            "image": {
+                "other": {}
+            }
+        }
+    }
+}

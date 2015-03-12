@@ -1,0 +1,34 @@
+{
+    "id": "1001-1LG-601",
+    "info": {
+        "layer": "6",
+        "orientation": "lg",
+        "sample": "1",
+        "run": null,
+        "wedge": "a",
+        "name": "dec01(gf10.1-llm)-wa-lg-l6-x1",
+        "date": "dec01",
+        "side": "llm",
+        "set": "gf10.1"
+    },
+    "measurements": {
+        "image": {
+            "other": {}
+        },
+        "width": {
+            "units": "mm",
+            "stdev": 0.12774367485085053,
+            "value": 1.195251554949748
+        },
+        "area": {
+            "units": "mm^2",
+            "value": 0.8163476978639798
+        },
+        "depth": {
+            "units": "mm",
+            "stdev": 0.0348525047947398,
+            "value": 0.6829923746874368
+        }
+    },
+    "name": "dec01(gf10.1-llm)-wa-lg-l6-x1"
+}

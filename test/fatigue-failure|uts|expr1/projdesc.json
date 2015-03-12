@@ -1,0 +1,160 @@
+{
+	"processors": {
+		"tracking": [
+			{
+				"name":"raw",
+				"columns": [
+		            { 
+						"info": { "name": "step", "label": "Step", "units": "Nº",  "full": "Step" }
+					},
+		            { 
+						"info": { "name": "totalTime", "label": "Total Time", "units": "s",   "full": "Total Time (s)" }
+					},
+		            { 
+						"info": { "name": "disp", "label": "Displacement", "units": "mm", "full": "Displacement(Linear|Digital Position) (mm)" }
+					},
+		            { 
+						"info": { "name": "load_1kN", "label": "Load (1kN)", "units": "N", "full": "Load(Linear|Load) (N)" }
+					},
+		            { 
+						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" }
+					},
+		            { 
+						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" },
+						"source": { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } }
+					},
+		            { 
+						"info": { "name": "elapsedCycles", "label": "Elapsed Cycles", "units": "Nº",  "full": "Elapsed Cycles" }
+					},
+		            { 
+						"info": { "name": "cycleElapsedTime", "label": "Cycle Elapsed Time ", "units": "s",   "full": "Cycle Elapsed Time (s)" }
+					},
+		            { 
+						"info": { "name": "totalCycleCount", "label": "Total Cycle Count", "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)" }
+					}
+				],
+				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
+			},
+			{
+				"name":"normalize",
+				"columns": [
+					{
+						"source":     { "column": " totalTime" }
+					},
+					{ 
+						"source":     { "column": " elapsedCycles" }
+					},
+					{
+						"source":     { "column": " totalCycleCount" }
+					},
+					{
+						"source":     { "column": " cycleElapsedTime" }
+					},
+					{
+						"info":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
+						"source":     { "column":   " disp"},
+						"conversion": { "constant": "1.0/details.gauge.value" }
+					},
+					{
+						"info":     { "name":     "stress", "units": "MPa", "label": "Stress" },
+						"source":     { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } },
+						"conversion": { "constant": "1.0/details.measurements.area.value - variables.get('load_balance',0.0)" }
+					},
+					{
+						"info":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
+						"source":     { "column":    " step" }, 
+						"conversion": { "constant": "1.0/details.measurements.area.value" }
+					}
+				],
+				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
+			}
+		]
+	},
+	"methods": [
+ 		{
+ 			"preload": [
+ 				{
+					"name": "tracking",
+ 					"processor": { "$ref": "#/processors/tracking"},
+ 					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" }
+ 				}
+ 			]
+ 		},
+		{
+			"precond": [
+				{
+					"name": "tracking",
+					"processor": { "$ref": "#/processors/tracking"},
+					"files": { "_csv_": "raw/02 Preconditions/*.tracking.csv" },
+					"variables": {
+						"normalize": { 
+							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
+						}
+					}
+				}
+			]
+		},
+		{
+			"cycles": [
+				{
+					"name": "tracking",
+					"processor": { "$ref": "#/processors/tracking"},
+					"files": {
+						"_csv_": {
+							"_lookup_": { 
+								"details.info.orientation": {
+									"tr": "raw/03 Fatigue Cycles (TR)/*.tracking.csv",
+									"lg": "raw/03 Fatigue Cycles (LG)/*.tracking.csv"
+								}
+							}
+						}
+					},
+					"variables": {
+						"normalize": { 
+							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
+						}
+					}
+				}
+			]
+		}
+	],
+	"experiment_config": {
+		"name": "fatigue-failure|uts|expr1",
+		"start": "2014-12",
+		"projectfolder" : {
+			"_metadata_": "describe project folders",
+			
+			"filestructure": {
+		        "raw": "01_Raw/",
+		        "tests": "02_Tests/",
+		        "results": "04_Results/",
+				"raws": {
+			        "method_01_preload": "{raw}/01 (uts) preloads",
+			        "method_02_precond": "{raw}/02 (uts) preconditions",
+			        "method_03_uts":    " {raw}/04 (uts) uts-test"			
+				}
+			}
+		},
+		"testfolder" : {
+			"_metadata_": "describe folders structure for tests in experiment",
+			"folder": "{tests}/{testinfo.name}",
+			"sources": {
+		        "method_01_preload": "raw/{testinfo.name}-r*",
+		        "method_02_precond": "raw/{testinfo.name}-r*",
+		        "method_03_uts":     "raw/{testinfo.name}-r*"
+			},
+			"filestructure": {
+		        "raw":            "raw/",
+		        "data":           "data/",
+		        "graphs":         "graphs/",
+		        "json":           "json/",
+		        "jsoncalc":       "json/calculated/",
+		        "images":         "images/"
+			},
+			"files": {
+		        "datasheet":      "{testinfo.name}.xlsx",
+		        "details":        "{json}/{testinfo.name}.calculated.json'"
+			}			
+		}
+	} 
+}
