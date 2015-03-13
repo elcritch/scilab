@@ -92,7 +92,7 @@ class Empty(object):
         return self
 
 
-def debugger_str(val, tablefmt="pipe", ignores=[]):
+def debugger_str(val, tablefmt="html", ignores=[]):
     if 'ndarray' == val.__class__.__name__:
         return "ndarray: "+str(val.shape)
     elif hasattr(val, '__summary__'):

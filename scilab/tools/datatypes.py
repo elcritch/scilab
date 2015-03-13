@@ -131,7 +131,10 @@ def mapd(d, valuef=(lambda v: v), keyf=(lambda k: k) ):
 def mapl(*args, **kwargs):
     return list(map(*args, **kwargs))
 
-def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort=True, tolist=False):
+def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort=True, tolist=False, dolist=False):
+    if not isinstance(d, collections.MutableMapping):
+        return d
+    
     items = []
     
     if tolist:   astuple = True
@@ -146,11 +149,14 @@ def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort
         new_key = func(parent_key, ks) 
         if isinstance(v, collections.MutableMapping):
             items.extend(flatten(v, new_key, sep=sep, func=func, ignore=ignore).items())
+        elif dolist and isinstance(v, list):
+            dv = collections.OrderedDict(enumerate(v))
+            items.extend(flatten( dv, new_key, sep=sep, func=func, ignore=ignore).items())
         else:
             items.append((new_key, v))
     
     sorter = sorted if sort else (lambda x: x)
-    items = sorter(items)
+    items = sorter(items,key=lambda x: x[0])
     if tolist:
         return items
     else:

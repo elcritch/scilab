@@ -75,7 +75,7 @@ def getColumnData(headerLine):
 
     ## Make Columns
     for idx, column in enumerate(headers):
-        columnData = getcolumninfo(idx, column, longname=False)
+        columnData = getcolumninfo(idx, column, longname=True)
         # print('IDX:',idx, columnData.idx)
         columns.append(columnData)
     

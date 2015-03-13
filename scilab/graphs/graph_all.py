@@ -24,14 +24,17 @@ import numpy as np
 
 from scilab.graphs.graph_shared import *
 
-def graph(testinfo:TestInfo, testdetails, testdata, testargs):
+def graph(test, matdata, args, step_idx='idx_neg1', norm=True):
+    data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
+    stepslice = getattr(indexes.step,step_idx)
+    sliced = lambda xs: xs.set(array=data.xs[stepslice])
     
-    stepslice = testdata.steps['step_all']
-    sliced = lambda xs: xs.set(array=xs.array[stepslice])
-    print("Stepslice:",stepslice)
-    
-    # t, y, x = testdata.total_time, testdata.disp, testdata.load
-    t, y, x = testdata.total_time, testdata.strain, testdata.stress
+    if norm:
+        t, x, y = data.totalTime, data.stress, data.strain
+        info_t, info_x, info_y = info.totalTime, info.stress, info.strain
+    else:
+        t, x, y = data.totalTime, data.disp, data.load
+        info_t, info_x, info_y = info.totalTime, info.disp, info.load
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=1, figsize=(14,6))
@@ -39,25 +42,27 @@ def graph(testinfo:TestInfo, testdetails, testdata, testargs):
     ax2 = ax1.twinx()
     
     ## First Plot ##
-    ax1_title = "%s vs %s"%(x.label, t.label)
-    ax1.plot(t.array, x.array, label=x.label)
-    ax1.set_xlabel(t.label)
-    ax1.set_ylabel(x.label)
-    ax2.set_ylabel(y.label)
+    ax1_title = "%s vs %s"%(info_x.label, info_t.label)
+    ax1.plot(t, x, label=info_x.label)
+    ax1.set_xlabel(info_t.label)
+    ax1.set_ylabel(info_x.label)
+    ax2.set_ylabel(info_y.label)
     
     ax1.legend(loc=2, fontsize=10)
     ax1.set_title(ax1_title)
     
-    for step, stepslice in testdata.steps.items():
-        ax1.axvline(t.array[stepslice.start], *ax1.get_ybound(), color='purple')
+    for idx in indexes.step._fieldnames:
+        sl = getattr(indexes.step, idx)
+        debug(idx, sl)
+        ax1.axvline(t[stepslice[0]], *ax1.get_ybound(), color='purple')
         
     
     ## y2 Plot ##
+    ax2.plot(t, y, color='darkgrey', label=info_y.label)
     ax2.legend(loc=1, fontsize=10)
-    ax2.plot(t.array, y.array, color='darkgrey', label=y.label)
     
-    # set_secondary_label(ax1, xx=x.strain, xp=data.displacement,
-    #             convertfunc=lambda x: x*details.gauge.value)
+    # set_secondary_label(ax1, xx=stress.strain, xp=data.displacement,
+    #             convertfunc=lambda stress: x*details.gauge.value)
                 
     return fig, axes
 
@@ -69,7 +74,7 @@ def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testd
     data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, 
                                balancestep='step_2', data_kind='tracking')
     
-    data.total_time = csvdata.totalTime
+    data.total_time = csvt
     # data.summaries = DataTree()
     
     # debug(displayjson(data))

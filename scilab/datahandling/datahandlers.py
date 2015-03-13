@@ -36,8 +36,7 @@ def executeexpr(expr, **env):
         # print("executeexpr::result:", value,'\n')
         return value
     except Exception as err:
-        print("ERROR:executeexpr:expr::",expr)
-        print("ERROR:executeexpr:env::",env.keys())
+        # debughere()
         raise err
 
 def builtin_action_lookup(prop, **env):
@@ -143,10 +142,11 @@ def load_project_description(testfolder):
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
     return project_description
 
-def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
+def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
-    filename = testfolder.data / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)
+    filename = testfolder.data / 'data (test={short} | stage={stage} |{header} v{ver}).txt'.format(
+                    short=test.info.short(), stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()
     filenames.stage = stage

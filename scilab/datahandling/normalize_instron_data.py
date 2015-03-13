@@ -81,7 +81,12 @@ def normalize_columns(data, norm_config, filenames, state):
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
             constant_factor = executeexpr(constantexpr, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            debug(constant_factor)
             normeddata = normeddata * constant_factor
+        if col['conversion','func']:
+            key, constantexpr = getpropertypair(col.conversion)
+            normeddata = executeexpr(constantexpr, x=normeddata, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            
         
         return normeddata
     
@@ -111,7 +116,9 @@ def process(testfolder, data, processor, state):
         # ================================================
     
         output = DataTree()
-        output['raw','files'] = getfilenames(testfolder, stage="raw", version=state.args.version, header=header, matlab=True, excel=False)
+        output['raw','files'] = getfilenames(
+            test=state.args.testinfo, testfolder=testfolder, stage="raw", 
+            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
     
         checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
         if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
@@ -125,7 +132,9 @@ def process(testfolder, data, processor, state):
         print(mdHeader(3, "Normalize Data"))
         # ================================================
 
-        output['norm','files'] = getfilenames(testfolder, stage="norm", header=header, version=state.args.version, matlab=True, excel=False)
+        output['norm','files'] = getfilenames(
+            test=state.args.testinfo, testfolder=testfolder, stage="norm", 
+            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
 
         if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
             rawdata = load_columns(output.raw.files.names, "matlab") 
@@ -147,7 +156,7 @@ def process(testfolder, data, processor, state):
         else:
             print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
     except Exception as err:
-        debughere()
+        # debughere()
         raise err
 
 def handle_files(data, methoditem, state, testfolder):
@@ -222,6 +231,7 @@ def run(filestructure, testfolder, args):
     
     args.forces = DataTree(raw=True, norm=True)
     args.version = "0"
+    args.excel = True 
     
     state = DataTree()
     state.args = args
@@ -254,9 +264,11 @@ def test_folder():
     import scilab.expers.configuration as config
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
-    parentdir = Path("/Users/jaremycreechley/proj/expers/") / "fatigue-failure|uts|expr1"
+    parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     
     pdp = parentdir / 'projdesc.json' 
+    print(pdp)
+    print(pdp.resolve())
     
     fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
     # Test test images for now
@@ -294,7 +306,9 @@ def test_folder():
     
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
         debug(folder.data.relative_to(parentdir))
-    
+        
+        args.testname = name
+        args.testinfo = test
     
         run(fs, folder, args)
     
