@@ -231,7 +231,7 @@ def run(filestructure, testfolder, args):
     
     args.forces = DataTree(raw=True, norm=True)
     args.version = "0"
-    args.excel = True 
+    args.excel = False 
     
     state = DataTree()
     state.args = args

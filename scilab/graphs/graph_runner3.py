@@ -27,18 +27,20 @@ def display(*args, **kwargs):
 def HTML(arg):
     return arg
     
-def tag(fmt, msg, *args, env={}):
-    return "<{name}>{fmt}</{name}>".format(name=name,fmt=msg.format(*args, **env))
+def tag(*args, env={}, **kwargs):
+    pair = getpropertypair(kwargs)
+    return "<{name}>{fmt}</{name}>".format(name=pair[0],fmt=pair[1].format(*args, **env))
 
 def datacombinations(test, args):
     stages = ["raw", "norm"]
     methods = ["precond", "uts", "preload"]
-    items = ["tracking", "trends"]
+    items = ["tracking",]
+    # items = ["tracking", "trends"]
     
     datafiles = DataTree()
     for (stage, method, item) in itertools.product(stages, methods, items):
     
-        header = OrderedDict(method="uts", item="tracking")
+        header = OrderedDict(method=method, item=item)
 
         files = getfilenames(
             test=test, testfolder=test.folder, stage=stage, 
@@ -59,14 +61,14 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     # testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
     
     ## Figure ##
-    fig, ax = graph(test=test, matdata=matdata, args=args, step_idx='idx_neg_1', norm=zconfig['stage']=="norm")
+    fig, ax = graph(test=test, matdata=matdata, args=args, step_idx='idx_neg_1', zconfig=zconfig)
     
-    plt.show(block=True)
+    # plt.show(block=True)
     
     figname = "graph (test={short} | stage={stage} | item={item} | method={method} | v{version})"
     figname = figname.format(short=test.info.short(), version=args.version, **zconfig)
     print(tag(b=figname))
-    testfolder.save_graph(name=figname, fig=fig)
+    test.folder.save_graph(name=figname, fig=fig)
     
     plt.close()
     
@@ -76,21 +78,29 @@ def handle_grapher(graph, test, matdata, args, zconfig):
 
 import scilab.graphs.graph_all as graph_all
 
-def run(test, args):
+def run_config(test, args, config, configfile):
     
-    # debug(test, args)
-    # print(debugger_summary("run", locals()))
-
-    datafiles = datacombinations(test, args)
-    
-    # config = (stage, method, item)
-    config = ("raw", "uts", "tracking")
-    matdata = load_columns_matlab(datafiles[config])
+    # filepath = datafiles[config]
+    debug(configfile)
+    matdata = load_columns_matlab(configfile)
     
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
     
     handle_grapher(graph_all.graph, test, matdata, args, zconfig)
+
+
+def run(test, args):
+    # debug(test, args)
+    # print(debugger_summary("run", locals()))
+    datafiles = datacombinations(test, args)
+    
+    config = ("raw", "uts", "tracking")
+    
+    for config, configfile in flatten(datafiles,astuple=True).items():
+        print("Config:",config)
+        run_config(test, args, config, configfile)
+
 
 def test_folder():
     
@@ -116,7 +126,7 @@ def test_folder():
     args = DataTree()
     
     
-    for name, test in sorted( testitems.items() )[:1]:
+    for name, test in sorted( testitems.items() )[:]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         

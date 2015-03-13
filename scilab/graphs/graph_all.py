@@ -24,12 +24,12 @@ import numpy as np
 
 from scilab.graphs.graph_shared import *
 
-def graph(test, matdata, args, step_idx='idx_neg1', norm=True):
+def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
     data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
     stepslice = getattr(indexes.step,step_idx)
     sliced = lambda xs: xs.set(array=data.xs[stepslice])
     
-    if norm:
+    if zconfig['stage'] == "norm":
         t, x, y = data.totalTime, data.stress, data.strain
         info_t, info_x, info_y = info.totalTime, info.stress, info.strain
     else:
@@ -42,7 +42,7 @@ def graph(test, matdata, args, step_idx='idx_neg1', norm=True):
     ax2 = ax1.twinx()
     
     ## First Plot ##
-    ax1_title = "%s vs %s"%(info_x.label, info_t.label)
+    ax1_title = "Graph All: {} ({})".format(test.info.short(), repr(zconfig))
     ax1.plot(t, x, label=info_x.label)
     ax1.set_xlabel(info_t.label)
     ax1.set_ylabel(info_x.label)
@@ -53,7 +53,7 @@ def graph(test, matdata, args, step_idx='idx_neg1', norm=True):
     
     for idx in indexes.step._fieldnames:
         sl = getattr(indexes.step, idx)
-        debug(idx, sl)
+        # debug(idx, sl)
         ax1.axvline(t[stepslice[0]], *ax1.get_ybound(), color='purple')
         
     
