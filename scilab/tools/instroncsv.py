@@ -76,7 +76,7 @@ def getColumnData(headerLine):
     ## Make Columns
     for idx, column in enumerate(headers):
         columnData = getcolumninfo(idx, column, longname=False)
-        print('IDX:',idx, columnData.idx)
+        # print('IDX:',idx, columnData.idx)
         columns.append(columnData)
     
     # Handle issue when column names are not unique, such as totalCycleCount

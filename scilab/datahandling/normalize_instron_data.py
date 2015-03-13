@@ -37,7 +37,7 @@ def process_raw_columns(data, raw_config):
         print(mdBlock("**Raw Column**: {}".format(repr(rawcol.info))))
         
         
-        fulls = rawcol.info.get('fulls',[])
+        fulls = rawcol.get('fulls',[])
         if rawcol.info.get('full', None):
             fulls.append(rawcol.info.full)
         
@@ -207,7 +207,7 @@ def process_method(methodname, method, testfolder, projdesc, state):
 
 def process_methods(testfolder, state, args):
 
-    debug(state.filestructure.projdesc)
+    # debug(state.filestructure.projdesc)
     
     projdesc = state.filestructure.projdesc
     state.projdesc = projdesc
@@ -277,7 +277,10 @@ def test_folder():
     args = DataTree()
     
     
-    for name, test in sorted( testitems.items() )[:1]:
+    for name, test in sorted( testitems.items() )[:]:
+        # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
+        #     continue
+        
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short(), name)))
     
