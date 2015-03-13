@@ -43,9 +43,10 @@ def graphs2_handler(testinfo, testfolder, testdata, args, savePrevious=True):
 
 def handler(testinfo, testfolder, args, savePrevious=True):
     
-    testcalc = (testfolder.json / (testinfo.name + '.calculated.json'))
+    testname = testinfo.short()
+    testcalc = (testfolder.json / (testname + '.calculated.json'))
     
-    subcalcs = testfolder.jsoncalc.glob(testinfo.name+'.*.calculated.json')
+    subcalcs = testfolder.jsoncalc.glob(testname+'.*.calculated.json')
 
     def getJson(subcalc):
         debug(subcalc.name)
@@ -67,7 +68,7 @@ def handler(testinfo, testfolder, args, savePrevious=True):
                 json_url=testcalc.with_suffix('.previous.json').name, default={}, dbg=False)
         
     
-    print("Updating: "+testinfo.name+" "+str([str(s) for s in json_updated.keys()]))
+    print("Updating: "+testname+" "+str([str(s) for s in json_updated.keys()]))
     Json.write_json(testcalc.parent.as_posix(), json_updated, 
             json_url=testcalc.name, dbg=False)
     
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         
         testjs = handler(testfile=test, testinfo=testinfo, args=args)
     
-        mergedjs[testinfo.name] = testjs
+        mergedjs[testname] = testjs
         
     Json.write_json(experJson.as_posix(), mergedjs, 
                 json_url="all.calculated.json", dbg=False)

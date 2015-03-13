@@ -146,7 +146,9 @@ def write_json(parentdir,json_data, json_url="data.json", **kwargs):
     json_path = Path(str(parentdir)).resolve() / json_url
     return write_json_to(json_path=json_path, json_data=json_data, **kwargs)
 
-
+def dump_json(json_data):
+    return json.dumps(json_data, indent=4, sort_keys=True, cls=CustomJsonEncoder)    
+    
 @debugger
 def write_json_to(json_path, json_data, dbg=None, ):
 

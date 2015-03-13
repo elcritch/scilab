@@ -36,8 +36,7 @@ def process_raw_columns(data, raw_config):
     output = []
     
     for rawcol in raw_config.columns:
-        print(mdBlock("**Raw Column**: {}".format(repr(rawcol.info))))
-        
+        print("<i>Raw Column:<i> {}".format(repr(rawcol.info)))        
         
         fulls = rawcol.get('fulls',[])
         if rawcol.info.get('full', None):
@@ -104,6 +103,28 @@ def normalize_columns(data, norm_config, filenames, state):
         output.append( [ col.info, normcol ] )
     
     return output 
+
+def process_variables(state, name, kind:"pre|post", data):
+            
+    debug(state['methoditem','variables', name, kind])
+    
+    if not state['methoditem','variables', name, kind]:
+        return 
+    
+    debug(state.methoditem.variables[name][kind])
+    
+    variables_input = state.methoditem.variables[name][kind]
+    
+    
+    env = DataTree(details=state.details, **data)
+    variables = getproperty(variables_input, action=True, env=env)
+
+    debug(variables_input, variables)
+    
+    state.variables = variables
+    
+    return variables
+    
     
 def process(testfolder, data, processor, state):    
     try:
@@ -137,32 +158,32 @@ def process(testfolder, data, processor, state):
             version=state.args.version, header=header, matlab=True, excel=state.args.excel)
 
         if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
-            rawdata = load_columns(output.raw.files.names, "matlab") 
-
+            
+            normstate = state.set(processorname=normalized_config.name)
+            
+            rawdata = load_columns(output.raw.files.names, "matlab")
+            
             data = DataTree(raw=rawdata)
-        
-        
-            # ====== Save Variables ====== #
-            if state['methoditem','variables',normalized_config.name]:
-                variables_input = state.methoditem.variables[normalized_config.name]
-                variables = getproperty(variables_input, action=True, 
-                                        env=DataTree(details=state.details, testfolder=testfolder, **data))
-                
-                debug(variables_input, variables)
-                state = state.set(variables=variables)
-                save_config.variables = variables
-                
-                debug(state.position)
-                vardict = DataTree()
-                vardict[ tuple( i[1] for i in state.position )+('norm',) ] = variables
-                debug(vardict)
-                testfolder.save_calculated_json(test=state.args.testconf, name='normalization', data=vardict)
+            
+            # ======   Save Pre Variables  ====== #
+            process_variables(normstate, normalized_config.name, "pre", data)
 
-            columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
+            # ====== Normalize Columns ====== #
+            columnmapping = normalize_columns(data, normalized_config, output.norm.files, normstate)
             indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', [])
+            
+            # ======   Save Post Variables  ====== #
+            normdata = columnmapping_vars(columnmapping)
+            data.norm = DataTree(**columnmapping_vars(columnmapping))
+            process_variables(state, normalized_config.name, "post", data)
+            
             save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
+            
         else:
             print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
+            
+            
+            
     except Exception as err:
         # debughere()
         raise err
@@ -310,6 +331,9 @@ def test_folder():
     args = DataTree()
     
     for name, testconf in sorted( testitems.items() )[:]:
+    # for name, testconf in sorted( testitems.items() )[:1]:
+    # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
+    # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         

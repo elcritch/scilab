@@ -159,7 +159,7 @@ def getfileheaders(name, test, headers):
     return filename
     
 
-def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
+def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=True, config=False, numpy=False, pickle=False, json=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
     filename = testfolder.data / 'data (test={short} | stage={stage} |{header} v{ver}).txt'.format(
@@ -172,6 +172,8 @@ def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=Tr
     if excel: filenames['names','excel'] = filename.with_suffix('.xlsx')
     if numpy: filenames['names','numpy'] = filename.with_suffix('.npz')
     if pickle: filenames['names','pickle'] = filename.with_suffix('.pickle')
+    if json: filenames['names','json'] = filename.with_suffix('.json')
+    if config: filenames['names','config'] = filename.with_suffix('.config.json')
 
     return filenames
 
@@ -242,21 +244,47 @@ def save_columns(columnmapping, filenames, configuration, indexes=[{'column':'st
             save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, filenames.names.numpy)
         if 'pickle' in filenames.names:
             save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, filenames.names.pickle)
+        if 'json' in filenames.names:
+            save_columns_json(columnmapping, orderedmapping, configuration, indexes, filenames.names.json)
+        if 'config' in filenames.names:
+            save_columns_json_config(columnmapping, orderedmapping, configuration, indexes, filenames.names.config)
     except Exception as err:
         debughere()
         raise err
 
+def columnmapping_vars(columnmapping, indexes=[{'column':'step','type':'int'}]):
+    
+    orderedmapping = DataTree( (k.name, v.array) for k,v in columnmapping )
+    indexecols = getindexes(indexes, orderedmapping)
+    
+    matlabdata = DataTree(
+        data = orderedmapping, 
+        columninfo = DataTree( (k.name, k) for k,v in columnmapping ),
+        summary = DataTree( (k.name, v.summary) for k,v in columnmapping ),
+        indexes = indexecols,
+        # "configuration": configuration,
+    )
+    
+    return matlabdata
+
+def columnmapping_matlab(columnmapping, orderedmapping, indexes):
+        
+    matlabdata = DataTree(
+        data = orderedmapping, 
+        columninfo = OrderedDict( (k.name, k) for k,v in columnmapping ),
+        summary = OrderedDict( (k.name, v.summary) for k,v in columnmapping ),
+        indexes = indexes,
+        # "configuration": configuration,
+    )
+    
+    return matlabdata
+
 def save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, file):
     with open(str(file),'wb') as outfile:
         print("Writing matlab file...")
-        matlabdata = {
-            "data":orderedmapping, 
-            "columninfo": { k.name: k for k,v in columnmapping },
-            "summary": { k.name: v.summary for k,v in columnmapping },
-            "indexes": indexes,
-            "configuration": configuration,
-        }
-         
+        
+        matlabdata = columnmapping_matlab(columnmapping, orderedmapping, indexes)
+        
         sio.savemat(outfile, matlabdata, 
                     appendmat=False, 
                     format='5',
@@ -288,11 +316,25 @@ def save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, fi
         print("Writing numpy file...")
         np.savez_compressed(outfile, data=orderedmapping, columninfo={ k[0].name: k[0] for k in columnmapping }, indexes=indexes, configuration=configuration)
 
+def save_columns_json(columnmapping, orderedmapping, configuration, indexes, file):
+
+    print("Writing json file...")
+    json_data = {'data':orderedmapping, 'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes, 'configuration':configuration}
+    Json.write_json_to(file, json_data)
+    
+def save_columns_json_config(columnmapping, orderedmapping, configuration, indexes, file):
+
+    print("Writing json file...")
+    json_data = {'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes, 'configuration':configuration}
+    Json.write_json_to(file, json_data)
+
 def save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, file):
     import pickle
     with open(str(file),'wb') as outfile:
         print("Writing python pickle file...")
-        pickle.dump({'data':orderedmapping, 'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes, 'configuration':configuration}, outfile)
+        json_data = {'data':orderedmapping, 'columninfo':{ k[0].name: k[0] for k in columnmapping }, 'indexes':indexes, 'configuration':configuration}
+        Json.dump_json(json_data)
+        
 
 def load_columns_pickle(filepath):
     import pickle

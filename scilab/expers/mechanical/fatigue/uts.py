@@ -27,7 +27,7 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         else:
             return super().__new__(self, name, *args, **kwargs)
 
-
+    @property
     def short(self):
         """ Return a short mnemonic test name. """
         s = self
