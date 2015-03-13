@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import argparse, re, os, glob, sys, collections
+import argparse, re, os, glob, sys, collections, inspect
 import itertools, inspect, logging, pathlib 
 
 Path = pathlib.Path
@@ -18,6 +18,7 @@ import scilab.tools.datatypes as datatypes
 from scilab.tools.datatypes import *
 from scilab.tools.tables import *
 from scilab.tools.testingtools import Tests, test_in
+import tabulate 
 
 Testing = testingtools
 collections = collections
@@ -50,32 +51,72 @@ def todatatree(item,depth=0):
         print('.'*depth, "todatatree:item",str(type(item)).replace('<','≤'))
         return item
 
+def catcher(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs), None
+    except Exception as err:
+        return '', err    
 
-def debugger_summary(idx, val, prefix='_', depth=0):
-    msg = "{}+ [{}]<{}>: ".format(prefix*depth, idx, str(type(val)))
-    # print('debugger_summary:',str(type(val)).replace('<','≤').replace('>','≥'))
+def debughere(msg=None, ignores=[]):
+    
+    ignores += ['self']
+    stack = list(reversed(inspect.stack()))
+    f_locals = [ s[0].f_locals for s in stack ]
+    f_names = ' -> '.join( "{}:{}".format(s[3],s[0].f_lineno) for s in stack )
+    print(debugger_summary(f_names, f_locals[-2], ignores=ignores))
+
+    if msg:
+        raise Exception(msg)
+    
+def safefmt(strval, *args, **kwargs):
+    retval, reterr = catcher( lambda: strval.format(*args, **kwargs))
+    
+    if reterr:
+        funcs = '.'.join( f[3] for f in reversed(inspect.stack()) )
+        args_d = { i:a for i,a in enumerate(args) }
+        args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
+        kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
+        raise Exception("Error formatting string: {}".format(strval), reterr)
+    
+    return retval
+    
+class Empty(object):
+
+    def __call__(self, *args, **kwargs):
+        return self
+        
+    def __bool__(self):
+        return False
+        
+    def __getattr__(self, name):
+        return self
+
+
+def debugger_str(val, tablefmt="pipe", ignores=[]):
     if 'ndarray' == val.__class__.__name__:
-        return msg + "ndarray: "+str(val.shape)
+        return "ndarray: "+str(val.shape)
     elif hasattr(val, '__summary__'):
-        return msg + val.__summary__()
+        return val.__summary__()
     elif isinstance(val, dict):
-        # print('items:', flush=True, file=sys.stderr)
-        ignore = getattr(val, '_ignore', [] )
-        print('debugger_summary:ignore:'+str(ignore))
-        for k,v in flatten(val, sep='.').items():
-            if any([i in k for i in ignore]):
-                # msg += '\nignored key: {} type:{}'.format(k,type(v))
-                continue
-            msg += '\n' + debugger_summary(k, v, depth=depth+1)
-        return msg
+        rows = [ (k, debugger_str(v)) for k,v in flatten(val, sep='.').items() if not any(i in k for i in ignores) ]
+        tbstr = str( tabulate.tabulate( rows, headers=['Key', 'Value'], tablefmt=tablefmt ) ).strip()
+        return tbstr.replace('\n','')
     else:
-        return msg+str(val)
+        return repr(val)
+    
+    
+def debugger_summary(idx, val, prefix='', depth=0, fmt="<h1>Debug:<b>{idx}</b>: {val})</1>", ifmt="\n{}", tablefmt="html", ignores=[]):
+    msg = fmt.format(pre=prefix*depth, idx=idx, val=str(type(val)).replace('<','≤').replace('>','≥'))
+    
+    return msg + ifmt.format(debugger_str(val, tablefmt=tablefmt, ignores=ignores))
 
 def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """
-    pd = lambda *a, **kw: print(*a, end=' ', flush=True, file=sys.stderr, **kw)
-    pdln = lambda *a, **kw: print(*a, flush=True, file=sys.stderr, **kw)
     
+    def display(msg, *args, flush=True, file=sys.stderr, end='', sep=' ', **kwargs):
+        print(msg.format(*args, **kwargs).strip(), flush=True, file=sys.stderr, end=end, sep=sep)
+        # with open('/tmp/1','a') as fl1: fl1.write(msg.format(*args, **kwargs)+end)
+        
     # np.set_printoptions(threshold=10)
     def debugger_wrapper(*args, **kwargs):
         try:
@@ -83,13 +124,15 @@ def debugger(func, debug=False):
         except Exception as err:
             args = itertools.chain( enumerate(args), kwargs.items())
             # args = [ "{}-> {}".format(k, str(v)) for k,v in args ]
-            print("Trace:", func.__name__,' Args :=\n+ ', flush=True,file=sys.stderr)
+            display("<h2>Trace: Func `{}`</h2>\n Args := \n <ol>", func.__name__)
             
             for idx, arg in args:
-                print('+ [{}]<{}>'.format(idx, type(arg)), end=' ', flush=True, file=sys.stderr)
+                display('<li> [{idx}]({tp}) </li> '.format(idx=idx, tp=type(arg)) )
                 if hasattr(arg, '_asdict'):
                      arg = vars(arg)
-                print(debugger_summary(idx, arg), flush=True, file=sys.stderr)
+                display("<ul>{}</ul>", debugger_summary(idx, arg, fmt="<li> <u>{idx}:</u> {val} </li>").strip(), ifmt="{}")
+            
+            display("</ol>")
             
             raise err
             

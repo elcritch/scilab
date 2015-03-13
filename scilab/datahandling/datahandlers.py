@@ -64,16 +64,16 @@ def builtin_action_exec(values, **env):
     return results
 
 @debugger
-def userstrtopath(filepattern, testfolder):
-    debug(filepattern, testfolder)
-    return resolve(matchfilename(filepattern.format(**testfolder)))
+def userstrtopath(filepattern, env):
+    return resolve(matchfilename(filepattern.format(**env)))
     
 @debugger
-def builtin_action_csv(filevalue, testfolder, **env):
+def builtin_action_csv(filevalue, **env):
     # filetype, filevalue = getpropertypair(prop)
-    filepath = userstrtopath(filevalue, testfolder)
-    data = csvread(filepath)
-    filestruct = DataTree(path=filepath, data=data)
+    
+    # filepath = userstrtopath(filevalue, env)
+    data = csvread(filevalue)
+    filestruct = DataTree(path=filevalue, data=data)
     return filestruct
     
 def handle_builtin_actions(prop, env):
@@ -132,7 +132,7 @@ def matchfilename(pattern, strictmatch=True):
     debug(files)
     if strictmatch:
         assertsingle(files)
-    return next(files)
+    return next(files.__iter__(), None)
 
 # @debugger
 def resolve(url):
@@ -146,7 +146,7 @@ def load_project_description(testfolder):
 def getfilenames(testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
-    filename = testfolder.datacalc / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)
+    filename = testfolder.data / 'data (stage={stage} |{header} v{ver}).txt'.format(stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()
     filenames.stage = stage
@@ -189,15 +189,18 @@ def save_columns(columnmapping, filenames, configuration, indexes=[{'column':'st
     indexes = getindexes(indexes, orderedmapping)
     debug(indexes)
     
-    if 'matlab' in filenames.names:
-        save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, filenames.names.matlab)
-    if 'excel' in filenames.names:
-        save_columns_excel(columnmapping, orderedmapping, configuration, indexes, filenames.names.excel)
-    if 'numpy' in filenames.names:
-        save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, filenames.names.numpy)
-    if 'pickle' in filenames.names:
-        save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, filenames.names.pickle)
-
+    try:
+        if 'matlab' in filenames.names:
+            save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, filenames.names.matlab)
+        if 'excel' in filenames.names:
+            save_columns_excel(columnmapping, orderedmapping, configuration, indexes, filenames.names.excel)
+        if 'numpy' in filenames.names:
+            save_columns_numpy(columnmapping, orderedmapping, configuration, indexes, filenames.names.numpy)
+        if 'pickle' in filenames.names:
+            save_columns_pickle(columnmapping, orderedmapping, configuration, indexes, filenames.names.pickle)
+    except Exception as err:
+        debughere()
+        raise err
 
 def save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, file):
     with open(str(file),'wb') as outfile:

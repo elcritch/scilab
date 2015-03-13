@@ -102,21 +102,26 @@ class FileStructure(DataTree):
         testenv = DataTree(folder=testdir,testinfo=testinfo)
 
         folder = DataTree()
-        folder._fs = self
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv) )
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
-        # folder._filestructure = self
+        
+        # Handle Raw Data #
         for name, test in tf.raws.items():
-            test = test.format(**testenv)
-            sources = map(Path, glob.glob(str(self._files.raws[name] / test)))
+            
+            test = safefmt(test, raw=folder.raw)
+            rawdir = Path(test)
+            
+            if not rawdir.exists():
+                debughere("Missing raw file: {}: {} raw: {}".format(name, test, rawdir))
+                
+            sources = map(Path, glob.glob(str( rawdir / test)))
             sources = sorted( [ t for t in sources if t.is_dir() ], key=lambda x: x.stem, reverse=True)
             source = next(sources.__iter__(), None)
             if len(sources) > 1:
                 logging.warn("Multiple raw test folders match, chose: %s from %s"%(
                                 source.name, [ i.name for i in sources ]))
             
-            if source:
-                folder['raws',name] = source
+            folder['raws',name] = source
     
         if ensure_folders_exists:
             for v in sorted(folder.values(), key=lambda x: str(x)):
