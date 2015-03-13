@@ -54,7 +54,10 @@ def builtin_action_exec(values, **env):
     calc = DataTree()
     for name, item in vars(np).items():
         calc[name] = item
-        
+    
+    for name, item in vars(columnhandlers).items():
+        calc[name] = item
+    
     # debug("builtin_action_exec",values)
     results = DataTree()
     for varname, expr in values.items():
@@ -142,6 +145,20 @@ def load_project_description(testfolder):
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
     return project_description
 
+def getfileheaders(name, test, headers):
+    hdrs = flatten(header,ignore='filetype').items() if isinstance(headers, dict) else headers
+    
+    hdrs = ''.join([ " {}={} |".format(*i) 
+                    for i in hdrs ])
+    
+    debug(hdrs)
+    
+    filename = "{name} (test={short} | stage={stage} |{header} v{ver}).txt".format(
+            name=name, short=test.info.short(), header=hdrs, ver=version)
+    
+    return filename
+    
+
 def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=True, numpy=False, pickle=False):
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
@@ -157,7 +174,34 @@ def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=Tr
     if pickle: filenames['names','pickle'] = filename.with_suffix('.pickle')
 
     return filenames
+
+print("datahandlers")
+
+def datacombinations(test, args,
+                     stages = ["raw", "norm"],
+                     methods = ["precond", "uts", "preload"],
+                     items = ["tracking","trends"],
+                     ):
     
+    datafiles = DataTree()
+    for (stage, method, item) in itertools.product(stages, methods, items):
+    
+        header = OrderedDict(method=method, item=item)
+
+        files = getfilenames(
+            test=test, testfolder=test.folder, stage=stage, 
+            version=args.version, header=header, matlab=True, excel=False)
+    
+        # debug(files.names.matlab)
+        # debug(files.names.matlab.exists())
+        
+        datafiles[(stage, method, item)] = files.names.matlab
+    
+    # debug(datafiles)
+    
+    return datafiles
+
+
 def getindexes(indexes, orderedmapping):
     """ function to make index data for a column. The inputs must be an array of dicts with column and the key type. 
     

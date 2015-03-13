@@ -31,29 +31,6 @@ def tag(*args, env={}, **kwargs):
     pair = getpropertypair(kwargs)
     return "<{name}>{fmt}</{name}>".format(name=pair[0],fmt=pair[1].format(*args, **env))
 
-def datacombinations(test, args):
-    stages = ["raw", "norm"]
-    methods = ["precond", "uts", "preload"]
-    items = ["tracking",]
-    # items = ["tracking", "trends"]
-    
-    datafiles = DataTree()
-    for (stage, method, item) in itertools.product(stages, methods, items):
-    
-        header = OrderedDict(method=method, item=item)
-
-        files = getfilenames(
-            test=test, testfolder=test.folder, stage=stage, 
-            version=args.version, header=header, matlab=True, excel=False)
-    
-        # debug(files.names.matlab)
-        # debug(files.names.matlab.exists())
-        
-        datafiles[(stage, method, item)] = files.names.matlab
-    
-    # debug(datafiles)
-    
-    return datafiles
 
 def handle_grapher(graph, test, matdata, args, zconfig):
     
@@ -65,10 +42,11 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     
     # plt.show(block=True)
     
-    figname = "graph (test={short} | stage={stage} | item={item} | method={method} | v{version})"
-    figname = figname.format(short=test.info.short(), version=args.version, **zconfig)
+    figname = getfileheaders("graph", test, headers=list(zconfig.items())+[('graph',graph.__name__)])
+    # figname = "graph (test={short} | stage={stage} | item={item} | method={method} | v{version})"
+    # figname = figname.format(short=test.info.short(), version=args.version, **zconfig)
     print(tag(b=figname))
-    test.folder.save_graph(name=figname, fig=fig)
+    # test.folder.save_graph(name=figname, fig=fig)
     
     plt.close()
     
@@ -93,7 +71,7 @@ def run_config(test, args, config, configfile):
 def run(test, args):
     # debug(test, args)
     # print(debugger_summary("run", locals()))
-    datafiles = datacombinations(test, args)
+    datafiles = datacombinations(test, args, items=["tracking"], )
     
     config = ("raw", "uts", "tracking")
     
@@ -126,7 +104,7 @@ def test_folder():
     args = DataTree()
     
     
-    for name, test in sorted( testitems.items() )[:]:
+    for name, test in sorted( testitems.items() )[:1]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         

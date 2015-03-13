@@ -13,6 +13,8 @@ from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
+import scilab.utilities.make_data_json as make_data_json
+import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 
@@ -58,7 +60,6 @@ def process_raw_columns(data, raw_config):
     
     return output 
 
-# @debugger
 def normalize_columns(data, norm_config, filenames, state):    
     output = []
     
@@ -104,8 +105,7 @@ def normalize_columns(data, norm_config, filenames, state):
     
     return output 
     
-def process(testfolder, data, processor, state):
-    
+def process(testfolder, data, processor, state):    
     try:
         raw_config, normalized_config = processor
         default_index = [{"column":'step',"type":"int"},]
@@ -117,7 +117,7 @@ def process(testfolder, data, processor, state):
     
         output = DataTree()
         output['raw','files'] = getfilenames(
-            test=state.args.testinfo, testfolder=testfolder, stage="raw", 
+            test=state.args.testconf, testfolder=testfolder, stage="raw", 
             version=state.args.version, header=header, matlab=True, excel=state.args.excel)
     
         checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
@@ -133,7 +133,7 @@ def process(testfolder, data, processor, state):
         # ================================================
 
         output['norm','files'] = getfilenames(
-            test=state.args.testinfo, testfolder=testfolder, stage="norm", 
+            test=state.args.testconf, testfolder=testfolder, stage="norm", 
             version=state.args.version, header=header, matlab=True, excel=state.args.excel)
 
         if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
@@ -141,14 +141,22 @@ def process(testfolder, data, processor, state):
 
             data = DataTree(raw=rawdata)
         
+        
+            # ====== Save Variables ====== #
             if state['methoditem','variables',normalized_config.name]:
                 variables_input = state.methoditem.variables[normalized_config.name]
                 variables = getproperty(variables_input, action=True, 
                                         env=DataTree(details=state.details, testfolder=testfolder, **data))
-            
+                
                 debug(variables_input, variables)
                 state = state.set(variables=variables)
                 save_config.variables = variables
+                
+                debug(state.position)
+                vardict = DataTree()
+                vardict[ tuple( i[1] for i in state.position )+('norm',) ] = variables
+                debug(vardict)
+                testfolder.save_calculated_json(test=state.args.testconf, name='normalization', data=vardict)
 
             columnmapping = normalize_columns(data, normalized_config, output.norm.files, state)
             indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', [])
@@ -184,10 +192,12 @@ def handle_files(data, methoditem, state, testfolder):
             
             raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name))
 
-    
+
+def push(state, key, value):
+    state['position'] = state.position + [ (key, value) ]
 
 def process_method(methodname, method, testfolder, projdesc, state):
-    
+        
     files = DataTree()
     
     for methoditem in method:
@@ -212,7 +222,11 @@ def process_method(methodname, method, testfolder, projdesc, state):
         processor = projdesc.processors[processorname]
 
         itemstate = state.set(methoditem=methoditem, methodname=methodname)
+        push(itemstate, 'methoditem',methoditem.name)        
+        debug(itemstate.position)
+        
         process(testfolder=testfolder, data=data, processor=processor, state=itemstate)
+
 
 def process_methods(testfolder, state, args):
 
@@ -225,7 +239,9 @@ def process_methods(testfolder, state, args):
         methodname, method = getpropertypair(methodprop)
         
         print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
-        process_method(methodname, method, testfolder, projdesc, state=state.set(methodname=methodname))
+        substate = state.set(methodname=methodname, method=method)
+        push(substate, 'methodname',methodname)
+        process_method(methodname, method, testfolder, projdesc, state=substate)
         
 def run(filestructure, testfolder, args):
     
@@ -236,6 +252,11 @@ def run(filestructure, testfolder, args):
     state = DataTree()
     state.args = args
     state.filestructure = filestructure
+    state.position = []
+    
+    # push(state, 'testinfo', args.testconf.info.short())
+    # push(state,  'testfolder', testfolder)
+    
     process_methods(testfolder, state, args)
 
 
@@ -251,7 +272,7 @@ def test_run():
     ## create fake folder structure 
     testfolder = DataTree()
     testfolder['data'] = samplefiles / 'data' 
-    testfolder['details'] = samplefiles / 'data' / 'instron-test.details.json'
+    testfolder['details'] = samplefiles / 'data' / 'instron-testconf.details.json'
     testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
@@ -288,17 +309,18 @@ def test_folder():
     
     args = DataTree()
     
-    
-    for name, test in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         
         print("\n")
-        display(HTML("<h2>{} | {}</h2>".format(test.info.short(), name)))
+        display(HTML("<h2>{} | {}</h2>".format(testconf.info.short(), name)))
     
-        folder = fs.testfolder(testinfo=test.info)
+
+        
+        folder = fs.testfolder(testinfo=testconf.info)
     
-    #     debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
+        debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
         
         data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                     for k,v in flatten(folder).items() ]
@@ -308,11 +330,18 @@ def test_folder():
         debug(folder.data.relative_to(parentdir))
         
         args.testname = name
-        args.testinfo = test
+        args.testconf = testconf
+        args.report = sys.stdout
+        
+        testconf.folder = folder
+        
+        # update json details
+        make_data_json.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
     
         run(fs, folder, args)
     
-    
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+        
 
 def main():
     

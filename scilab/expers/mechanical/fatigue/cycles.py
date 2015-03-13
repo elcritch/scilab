@@ -60,50 +60,6 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
 
-class TestFileStructure(DataTree):
-    pass
-
-    def load(self,name='details'):
-        
-        data = Json.load_json_from(testfolder.self[name])
-        
-        return data
-
-    def save_calculated_json(self, name, data, **kwargs):
-        return self.save_calculated_json_raw(name, {name:data}, **kwargs)
-        
-    def save_calculated_json_raw(self, name, json_data, suffix="calculated", field="{name}", **kwargs):
-        filename = "{testinfo}.{name}.{suffix}json".format(
-                    testinfo=self._testinfo.name,
-                    name=name,
-                    suffix = suffix+"." if suffix else "",
-                    )
-        
-        json_path = self.jsoncalc / filename
-        
-        logging.info("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
-        logging.info("Saving json file `{filename}` with fields: {fields}".format(
-                filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
-        
-        return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
-    
-    def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
-        
-        namefmt = "{testname} | name={name} | test={testinfo} | {version}.{imgkind}"
-        
-        filename = namefmt.format(
-                name=name,
-                testname=self.testfs.test_name,
-                testinfo=self._testinfo.short(),
-                version=self.testfs.version,
-                imgkind=imgkind,
-                )
-        
-        imgpath = self.graphs / filename
-        logging.info("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
-        
-        return fig.savefig(str(imgpath), **savefig_kws)
-        
         
 
 class FileStructure(DataTree):

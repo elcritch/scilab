@@ -50,7 +50,6 @@ class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
 
 class TestFileStructure(DataTree):
-    pass
 
     def load(self,name='details'):
         
@@ -58,12 +57,12 @@ class TestFileStructure(DataTree):
         
         return data
 
-    def save_calculated_json(self, name, data, **kwargs):
-        return self.save_calculated_json_raw(name, {name:data}, **kwargs)
+    def save_calculated_json(self, test, name, data, **kwargs):
+        return self.save_calculated_json_raw(test, name, {name:data}, **kwargs)
         
-    def save_calculated_json_raw(self, name, json_data, suffix="calculated", field="{name}", **kwargs):
-        filename = "{testinfo}.{name}.{suffix}json".format(
-                    testinfo=self._testinfo.name,
+    def save_calculated_json_raw(self, test, name, json_data, suffix="calculated", field="{name}", **kwargs):
+        filename = "{short}.{name}.{suffix}json".format(
+                    short=test.info.short(),
                     name=name,
                     suffix = suffix+"." if suffix else "",
                     )
@@ -76,27 +75,23 @@ class TestFileStructure(DataTree):
         
         return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
     
-    def save_graph(self, name, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
+    def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         
-        # namefmt = "graph (name={name} | test={testinfo} | {version}).{imgkind}"
+        namefmt = "{testname} | name={name} | test={testinfo} | {version}.{imgkind}"
         
-        filename = "{}.{}".format(name, imgkind)
-        
-        # filename = namefmt.format(
-        #         name=name,
-        #         # testname=test.test_name,
-        #         testinfo=self._testinfo.short(),
-        #         version=self.testfs.version,
-        #         imgkind=imgkind,
-        #         )
+        filename = namefmt.format(
+                name=name,
+                testname=self.testfs.test_name,
+                testinfo=self._testinfo.short(),
+                version=self.testfs.version,
+                imgkind=imgkind,
+                )
         
         imgpath = self.graphs / filename
-        print("Saving json file `{filename}` into the test's graph `{graphs}` ".format(filename=filename, graphs=self.graphs))
+        logging.info("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
         
         return fig.savefig(str(imgpath), **savefig_kws)
         
-        
-
 class FileStructure(DataTree):
 
     def __init__(self, projdescpath, testinfo, verify=True):

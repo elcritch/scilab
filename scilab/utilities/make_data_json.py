@@ -8,7 +8,7 @@ import openpyxl
 from openpyxl import load_workbook
 
 import scilab.tools.scriptrunner as ScriptRunner
-from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
+# from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
 
 import logging
 
@@ -17,7 +17,7 @@ from scilab.tools.project import *
 
 import scilab.tools.jsonutils as Json
 # from scilab.expers.mechanical.fatigue.uts import TestInfo
-from scilab.expers.mechanical.fatigue.helpers import flatten
+# from scilab.expers.mechanical.fatigue.helpers import flatten
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
     
 ## Main
@@ -84,10 +84,10 @@ def parse_fatigue_data_sheet_v1(ws):
     
     return data
     
-def parse_data_from_worksheet(testinfo, testfolder, args, **kwargs):
+def parse_data_from_worksheet(testconf, args, **kwargs):
 
     try:
-        excelfile = testfolder.datasheet 
+        excelfile = testconf.folder.datasheet 
         excelfile = excelfile.resolve()
         debug(excelfile)
         
@@ -100,12 +100,12 @@ def parse_data_from_worksheet(testinfo, testfolder, args, **kwargs):
     ws = wb.worksheets[0]
     return parse_fatigue_data_sheet_v1(ws)    
 
-def process_image_measurements_v1(testinfo, imgdata):
+def process_image_measurements_v1(testconf, imgdata):
     """ UTS based v1 """
     data = {}
     data['info'] = DataTree()
-    data['info'].update( testinfo.as_dict() )
-    data['info']['set'] = testinfo.name
+    data['info'].update( testconf.info.as_dict() )
+    data['info']['set'] = testconf.info.name
     
     # debug('\n'.join(map(str,flatten(imgdata,sep='.').items())))
     
@@ -113,7 +113,7 @@ def process_image_measurements_v1(testinfo, imgdata):
     measurements.width.value = imgdata.front.widths.average.mean
     
     if not 'side' in imgdata:
-        logging.warn("Could not find side measurement for: "+str(testinfo))
+        logging.warn("Could not find side measurement for: "+str(testconf.info))
         measurements.depth.value = 1.00
         measurements.depth.stdev = -1.0
     else:
@@ -134,12 +134,12 @@ def process_image_measurements_v1(testinfo, imgdata):
     
     return data
 
-def process_image_measurements(testinfo, imgdata):
+def process_image_measurements(testconf, imgdata):
         
     data = {}
     data['info'] = DataTree()
-    data['info'].update( testinfo.as_dict() )
-    data['info']['set'] = testinfo.name
+    data['info'].update( testconf.info.as_dict() )
+    data['info']['set'] = testconf.info.name
     
     # debug('\n'.join(map(str,flatten(imgdata,sep='.').items())))
     
@@ -147,7 +147,7 @@ def process_image_measurements(testinfo, imgdata):
     measurements.width.value = imgdata.front.mm.summaries.widths.average.mean
     
     if not 'side' in imgdata:
-        logging.warn("Could not find side measurement for: "+str(testinfo))
+        logging.warn("Could not find side measurement for: "+str(testconf.info))
         measurements.depth.value = 1.00
         measurements.depth.stdev = -1.0
     else:
@@ -172,56 +172,55 @@ def process_image_measurements(testinfo, imgdata):
     return data
 
 
-def parse_from_image_measurements(testinfo, testfolder, args):
+def parse_from_image_measurements(testconf, args):
 
-    # imgMeasureFile = testfolder.image / 'processed' / (testinfo.name + '.measurements.json')
-    imgMeasureFile = testfolder.images / 'processed' / 'data.json'
+    # imgMeasureFile = testconf.folder.image / 'processed' / (testconf.info.name + '.measurements.json')
+    imgMeasureFile = testconf.folder.images / 'processed' / 'data.json'
     imgMeasureFile = imgMeasureFile.resolve()        
     
     imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
     # debug(imgMeasurements)
     
     try:
-        data = process_image_measurements(testinfo, imgMeasurements)
+        data = process_image_measurements(testconf, imgMeasurements)
     except:
-        data = process_image_measurements_v1(testinfo, imgMeasurements)
+        data = process_image_measurements_v1(testconf, imgMeasurements)
 
     return data
 
-def graphs2_handler(testinfo, testfolder, args, testdata, **kwargs):
+def graphs2_handler(testconf, args, **kwargs):
     
-    excelfile = testfolder.datasheet
+    excelfile = testconf.folder.datasheet
     
     debug(excelfile)
     try:
-        handler(testinfo, testfolder, excelfile=excelfile, args=args, )
+        handler(testconf.info, testconf.folder, excelfile=excelfile, args=args, )
     except FileNotFoundError as err:
-        logging.error("FileNotFoundError:", testinfo.name, err)
+        logging.error("FileNotFoundError:", testconf.info.name, err)
     except:
         return
     
 
-def handler(testinfo, testfolder, excelfile, args):
+def handler(testconf, excelfile, args):
     
     
-    print(mdHeader(2, "Test: "+testinfo.name), file=args.report)
+    print(mdHeader(2, "Test: "+testconf.info.name), file=args.report)
 
     def updateMetaData(data):
         ## Handle Names    
-        data['name'] = testinfo.name
-        data['id'] = testinfo.short()
-        data['info'] = testinfo.as_dict()
+        data['name'] = testconf.info.name
+        data['id'] = testconf.info.short()
+        data['info'] = testconf.info.as_dict()
     
     
-    debug(testfolder.jsoncalc.as_posix())
+    debug(testconf.folder.jsoncalc.as_posix())
     
-    print(str(testinfo), file=args.report)
+    print(str(testconf.info), file=args.report)
     
     ## Update with Excel Values    
     data = parse_data_from_worksheet(
         testpath=excelfile,
-        testinfo=testinfo,
-        testfolder=testfolder,
+        testconf=testconf,
         args=args,
         )
 
@@ -229,18 +228,17 @@ def handler(testinfo, testfolder, excelfile, args):
     print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
     updateMetaData(data)
     
-    testfolder.save_calculated_json_raw(name='excel',json_data=data)
+    testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=data)
     
     ## Update with Image Measurements
     
     data = parse_from_image_measurements(
-        testinfo=testinfo,
-        testfolder=testfolder,
+        testconf=testconf,
         args=args)
     
     updateMetaData(data)
 
-    testfolder.save_calculated_json_raw(name='measurements',json_data=data)
+    testconf.folder.save_calculated_json_raw(test=testconf, name='measurements',json_data=data)
     
     return
 
@@ -262,12 +260,12 @@ if __name__ == '__main__':
     
     files = experExcel.glob('*.xlsx')
 
-    test_args = []
-    # test_args = ["--glob", fileglob]
-    # test_args += ['-1'] # only first
+    testconf._args = []
+    # testconf._args = ["--glob", fileglob]
+    # testconf._args += ['-1'] # only first
     
-    args = parser.parse_args( test_args )    
-    args = parser.parse_args( test_args )    
+    args = parser.parse_args( testconf._args )    
+    args = parser.parse_args( testconf._args )    
 
     experUtsCsv = projectpath / '04 (uts) uts-test' 
     experUtsPreconds = projectpath / '02 (uts) preconditions' 

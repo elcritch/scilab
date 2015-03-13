@@ -92,7 +92,7 @@ class Empty(object):
         return self
 
 
-def debugger_str(val, tablefmt="html", ignores=[]):
+def debugger_str(val, tablefmt="pipe", ignores=[]):
     if 'ndarray' == val.__class__.__name__:
         return "ndarray: "+str(val.shape)
     elif hasattr(val, '__summary__'):
@@ -105,7 +105,7 @@ def debugger_str(val, tablefmt="html", ignores=[]):
         return repr(val)
     
     
-def debugger_summary(idx, val, prefix='', depth=0, fmt="<h1>Debug:<b>{idx}</b>: {val})</1>", ifmt="\n{}", tablefmt="html", ignores=[]):
+def debugger_summary(idx, val, prefix='', depth=0, fmt="<h1>Debug:<b>{idx}</b>:</h1> {val})</1>", ifmt="\n{}", tablefmt="html", ignores=[]):
     msg = fmt.format(pre=prefix*depth, idx=idx, val=str(type(val)).replace('<','≤').replace('>','≥'))
     
     return msg + ifmt.format(debugger_str(val, tablefmt=tablefmt, ignores=ignores))

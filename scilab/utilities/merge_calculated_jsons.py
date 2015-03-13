@@ -10,8 +10,8 @@ from collections import OrderedDict
 import openpyxl
 from openpyxl import load_workbook
 
-import scilab.tools.scriptrunner as ScriptRunner
-from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
+# import scilab.tools.scriptrunner as ScriptRunner
+# from scilab.tools.scriptrunner import RESEARCH, RAWDATA, debug
 
 import logging
 
