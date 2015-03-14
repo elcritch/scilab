@@ -55,7 +55,7 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         return that-this
 
     def __str__(self):
-        return "{name} ({short})".format(name=self.name, short=self.short())
+        return "{name} ({short})".format(name=self.name, short=self.short)
 
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
@@ -111,7 +111,7 @@ class FileStructure(DataTree):
         folder.jsoncalc       = folder.json / 'calculated'
         folder.images         = test_dir / 'images'
         folder.raws           = self.findRaws(testinfo)
-        folder.datasheet      = next(test_dir.glob('data_sheet*{}*.xlsx'.format(testinfo.short())), None)
+        folder.datasheet      = next(test_dir.glob('data_sheet*{}*.xlsx'.format(testinfo.short)), None)
         folder.details        = folder.json / '{testname}.calculated.json'.format(testname=testinfo.name)
     
         if ensure_folders_exists:
@@ -135,7 +135,7 @@ class FileStructure(DataTree):
                         for f in self.test_parent.glob('*')
                             if f.is_dir() ]
         folders = [ (i,f) for i,f in folders if i ]
-        folders = sorted(folders, key=lambda item: item[0].short() )
+        folders = sorted(folders, key=lambda item: item[0].short )
         folderd = collections.OrderedDict(folders)
 
         return folderd
@@ -180,8 +180,8 @@ def main():
     print(ti)
 
     ti = TestInfo('xx',*TestInfo.reTestName.match('nov26(gf9.2-rmm)-wf-tr-l9-x1-r1').groups())
-    ti.short()
-    print(ti.short())
+    ti.short
+    print(ti.short)
 
     print("Success")
     print()

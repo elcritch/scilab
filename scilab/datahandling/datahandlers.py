@@ -154,7 +154,7 @@ def getfileheaders(name, test, headers):
     debug(hdrs)
     
     filename = "{name} (test={short} | stage={stage} |{header} v{ver}).txt".format(
-            name=name, short=test.info.short(), header=hdrs, ver=version)
+            name=name, short=test.info.short, header=hdrs, ver=version)
     
     return filename
     
@@ -163,7 +163,7 @@ def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=Tr
     hdrs = ''.join([ " {}={} |".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
     filename = testfolder.data / 'data (test={short} | stage={stage} |{header} v{ver}).txt'.format(
-                    short=test.info.short(), stage=stage, header=hdrs, ver=version)
+                    short=test.info.short, stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()
     filenames.stage = stage
@@ -233,7 +233,7 @@ def save_columns(columnmapping, filenames, configuration, indexes=[{'column':'st
     
     orderedmapping = OrderedDict( (k.name, v.array) for k,v in columnmapping )
     indexes = getindexes(indexes, orderedmapping)
-    debug(indexes)
+    # debug(indexes)
     
     try:
         if 'matlab' in filenames.names:

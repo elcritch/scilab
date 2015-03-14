@@ -43,7 +43,7 @@ def graphs2_handler(testinfo, testfolder, testdata, args, savePrevious=True):
 
 def handler(testinfo, testfolder, args, savePrevious=True):
     
-    testname = testinfo.short()
+    testname = testinfo.short
     testcalc = (testfolder.json / (testname + '.calculated.json'))
     
     subcalcs = testfolder.jsoncalc.glob(testname+'.*.calculated.json')
@@ -61,11 +61,11 @@ def handler(testinfo, testfolder, args, savePrevious=True):
     for js in subjsons:
         json_updated = jsonmerge.merge(json_updated, js)
         
-    debug(json_updated)
+    # debug(json_updated)
     
     if savePrevious:
         Json.update_json(testcalc.parent.as_posix(), {handleForNow(): json_updated}, 
-                json_url=testcalc.with_suffix('.previous.json').name, default={}, dbg=False)
+                json_url=testcalc.with_suffix('.previous.json').name)
         
     
     print("Updating: "+testname+" "+str([str(s) for s in json_updated.keys()]))

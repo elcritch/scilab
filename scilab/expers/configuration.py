@@ -44,7 +44,7 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         return that-this
 
     def __str__(self):
-        return "{name} ({short})".format(name=self.name, short=self.short())
+        return "{name} ({short})".format(name=self.name, short=self.short)
 
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
@@ -62,18 +62,18 @@ class TestFileStructure(DataTree):
         
     def save_calculated_json_raw(self, test, name, json_data, suffix="calculated", field="{name}", **kwargs):
         filename = "{short}.{name}.{suffix}json".format(
-                    short=test.info.short(),
+                    short=test.info.short,
                     name=name,
                     suffix = suffix+"." if suffix else "",
                     )
         
         json_path = self.jsoncalc / filename
         
-        logging.info("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
-        logging.info("Saving json file `{filename}` with fields: {fields}".format(
+        print("Saving json file `{filename}` into the test's TestFileStructure".format(filename=filename))
+        print("Saving json file `{filename}` with fields: {fields}".format(
                 filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
         
-        return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
+        return Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
     
     def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         
@@ -82,13 +82,13 @@ class TestFileStructure(DataTree):
         filename = namefmt.format(
                 name=name,
                 testname=self.testfs.test_name,
-                testinfo=self._testinfo.short(),
+                testinfo=self._testinfo.short,
                 version=self.testfs.version,
                 imgkind=imgkind,
                 )
         
         imgpath = self.graphs / filename
-        logging.info("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
+        print("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
         
         return fig.savefig(str(imgpath), **savefig_kws)
         
@@ -179,7 +179,7 @@ class FileStructure(DataTree):
                         for f in self.tests.glob('*')
                             if f.is_dir() ]
         folders = [ (i,f) for i,f in folders if i ]
-        folders = sorted(folders, key=lambda item: item[0].short() )
+        folders = sorted(folders, key=lambda item: item[0].short )
         folderd = collections.OrderedDict(folders)
 
         return folderd

@@ -42,7 +42,7 @@ def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
     ax2 = ax1.twinx()
     
     ## First Plot ##
-    ax1_title = "Graph All: {} ({})".format(test.info.short(), repr(zconfig))
+    ax1_title = "Graph All: {} ({})".format(test.info.short, repr(zconfig))
     ax1.plot(t, x, label=info_x.label)
     ax1.set_xlabel(info_t.label)
     ax1.set_ylabel(info_x.label)

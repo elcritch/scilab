@@ -447,7 +447,7 @@ def processTest(coun,test):
     if not pd.exists():
         pd.mkdir()
 
-    print(mdHeader(1, "Test {}: {} ({})".format(count,test.info.name, test.info.short()) ) )
+    print(mdHeader(1, "Test {}: {} ({})".format(count,test.info.name, test.info.short) ) )
 
     locations = scilab.tools.jsonutils.load_json(
                         str(test.parent / 'measured'),

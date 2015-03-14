@@ -104,9 +104,9 @@ def normalize_columns(data, norm_config, filenames, state):
     
     return output 
 
-def process_variables(state, name, kind:"pre|post", data):
+def process_variables(testfolder, state, name, kind:"pre|post", data):
             
-    debug(state['methoditem','variables', name, kind])
+    # debug(state['methoditem','variables', name, kind])
     
     if not state['methoditem','variables', name, kind]:
         return 
@@ -119,9 +119,12 @@ def process_variables(state, name, kind:"pre|post", data):
     env = DataTree(details=state.details, **data)
     variables = getproperty(variables_input, action=True, env=env)
 
-    debug(variables_input, variables)
-    
     state.variables = variables
+
+    vardict = DataTree()
+    vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
+    debug(vardict)
+    testfolder.save_calculated_json(test=state.args.testconf, name='normalization', data=vardict)
     
     return variables
     
@@ -166,7 +169,7 @@ def process(testfolder, data, processor, state):
             data = DataTree(raw=rawdata)
             
             # ======   Save Pre Variables  ====== #
-            process_variables(normstate, normalized_config.name, "pre", data)
+            process_variables(testfolder, normstate, normalized_config.name, "pre", data)
 
             # ====== Normalize Columns ====== #
             columnmapping = normalize_columns(data, normalized_config, output.norm.files, normstate)
@@ -175,7 +178,7 @@ def process(testfolder, data, processor, state):
             # ======   Save Post Variables  ====== #
             normdata = columnmapping_vars(columnmapping)
             data.norm = DataTree(**columnmapping_vars(columnmapping))
-            process_variables(state, normalized_config.name, "post", data)
+            process_variables(testfolder, state, normalized_config.name, "post", data)
             
             save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
             
@@ -266,7 +269,7 @@ def process_methods(testfolder, state, args):
         
 def run(filestructure, testfolder, args):
     
-    args.forces = DataTree(raw=True, norm=True)
+    args.forces = DataTree(raw=False, norm=False)
     args.version = "0"
     args.excel = False 
     
@@ -275,7 +278,7 @@ def run(filestructure, testfolder, args):
     state.filestructure = filestructure
     state.position = []
     
-    # push(state, 'testinfo', args.testconf.info.short())
+    # push(state, 'testinfo', args.testconf.info.short)
     # push(state,  'testfolder', testfolder)
     
     process_methods(testfolder, state, args)
@@ -326,7 +329,7 @@ def test_folder():
         print(*args, **kwargs)
     
     def HTML(arg):
-        return arg
+        return arg.replace('\n','')
     
     args = DataTree()
     
@@ -338,7 +341,7 @@ def test_folder():
         #     continue
         
         print("\n")
-        display(HTML("<h2>{} | {}</h2>".format(testconf.info.short(), name)))
+        display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
     
 
         
@@ -350,6 +353,7 @@ def test_folder():
                     for k,v in flatten(folder).items() ]
         data = sorted(data)
     
+        print()
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
         debug(folder.data.relative_to(parentdir))
         
@@ -360,10 +364,15 @@ def test_folder():
         testconf.folder = folder
         
         # update json details
+        
+        print(mdHeader(2, "Make JSON Data"))
         make_data_json.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-    
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+        
+        print(mdHeader(2, "Run"))
         run(fs, folder, args)
     
+        print(mdHeader(2, "Merging JSON Data"))
         merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
         
 

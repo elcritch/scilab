@@ -117,7 +117,7 @@ if __name__ == '__main__':
         return [ i[idx] for i in iterable if i[idx] ]
     
     
-    toset = lambda fl: set(lmap(lambda x: x.short(), grab(1,fl)))
+    toset = lambda fl: set(lmap(lambda x: x.short, grab(1,fl)))
     baseline = toset(baselineExcelsTests)
     
     # debug(baseline)

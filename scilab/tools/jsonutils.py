@@ -178,13 +178,18 @@ def write_json_to(json_path, json_data, dbg=None, ):
     return
 
 
-def update_json(parentdir, update_data, json_url="data.json", default=None, dbg=None):
+def update_json(parentdir, update_data, json_url="data.json", **kwargs):
+    json_path = Path(str(parentdir)) / json_url
+    return update_json_at(json_path, update_data, **kwargs)
+
+
+def update_json_at(update_path, update_data, dbg=None):
     """ Simple update method. Needs to handle merging better.  """
 
-    json_data = load_json(parentdir,json_url=json_url, default=default)
+    json_data = load_json_from(update_path)
     json_to_write = jsonmerge.merge(json_data, update_data)
 
-    write_json(parentdir, json_to_write, json_url=json_url, dbg=dbg)
+    write_json_to(update_path, json_to_write, dbg=dbg)
 
     return
 

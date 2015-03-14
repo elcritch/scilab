@@ -200,22 +200,24 @@ def graphs2_handler(testconf, args, **kwargs):
     except:
         return
     
+def HTML(arg):
+    return arg.replace('\n','')
 
 def handler(testconf, excelfile, args):
     
     
-    print(mdHeader(2, "Test: "+testconf.info.name), file=args.report)
+    # print(mdHeader(3, ": {}",testconf.info.name))
 
     def updateMetaData(data):
         ## Handle Names    
         data['name'] = testconf.info.name
-        data['id'] = testconf.info.short()
+        data['id'] = testconf.info.short
         data['info'] = testconf.info.as_dict()
     
     
     debug(testconf.folder.jsoncalc.as_posix())
     
-    print(str(testconf.info), file=args.report)
+    # print(str(testconf.info), file=args.report)
     
     ## Update with Excel Values    
     data = parse_data_from_worksheet(
@@ -224,8 +226,14 @@ def handler(testconf, excelfile, args):
         args=args,
         )
 
-    print(mdBlock("Excel Sheet Data:"),file=args.report)
-    print(mdBlock("```json\n"+json.dumps(data,indent=4)+"\n```"),file=args.report)
+    print(mdBlock("Excel Sheet Data:"))
+    rows = [ (k,v) for k,v in flatten(data).items() ]
+    rows = sorted(rows)
+
+    print()
+    print(HTML(tabulate.tabulate( rows, [ "Key", "Value", ], tablefmt ='html' )))
+    
+    # print(mdBlock("<pre>\n"+json.dumps(data,indent=4)+"\n</pre>"))
     updateMetaData(data)
     
     testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=data)

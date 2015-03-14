@@ -44,7 +44,7 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     
     figname = getfileheaders("graph", test, headers=list(zconfig.items())+[('graph',graph.__name__)])
     # figname = "graph (test={short} | stage={stage} | item={item} | method={method} | v{version})"
-    # figname = figname.format(short=test.info.short(), version=args.version, **zconfig)
+    # figname = figname.format(short=test.info.short, version=args.version, **zconfig)
     print(tag(b=figname))
     # test.folder.save_graph(name=figname, fig=fig)
     
@@ -109,7 +109,7 @@ def test_folder():
         #     continue
         
         print("\n")
-        display(HTML("<h2>{} | {}</h2>".format(test.info.short(), name)))
+        display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
     
         folder = fs.testfolder(testinfo=test.info)
     

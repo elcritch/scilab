@@ -58,7 +58,7 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         return that-this
 
     def __str__(self):
-        return "{name} ({short})".format(name=self.name, short=self.short())
+        return "{name} ({short})".format(name=self.name, short=self.short)
 
 class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
@@ -136,7 +136,7 @@ class FileStructure(DataTree):
                         for f in self.test_parent.glob('*')
                             if f.is_dir() ]
         folders = [ (i,f) for i,f in folders if i ]
-        folders = sorted(folders, key=lambda item: item[0].short() )
+        folders = sorted(folders, key=lambda item: item[0].short )
         folderd = collections.OrderedDict(folders)
 
         return folderd
@@ -181,8 +181,8 @@ def main():
     print(ti)
 
     ti = TestInfo('xx',*TestInfo.reTestName.match('nov26(gf9.2-rmm)-wf-tr-l9-x1-r1').groups())
-    ti.short()
-    print(ti.short())
+    ti.short
+    print(ti.short)
 
     print("Success")
     print()

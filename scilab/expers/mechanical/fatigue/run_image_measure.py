@@ -42,7 +42,7 @@ def processSpecimenImages(testinfo, testfolder, testimages):
     pd = testfolder.images / 'processed'
     if not pd.exists(): pd.mkdir()
 
-    print(mdHeader(1, "Test {}: {}".format(testinfo.name, testinfo.short()) ) )
+    print(mdHeader(1, "Test {}: {}".format(testinfo.name, testinfo.short) ) )
 
     orient = testinfo.orientation
     locations=None

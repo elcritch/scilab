@@ -46,7 +46,7 @@ def info_table(testinfo, out):
     
     infoTable = MarkdownTable()
 
-    row = ['**{}**'.format(testinfo.short()) ]
+    row = ['**{}**'.format(testinfo.short) ]
     row += testinfo[1:] 
     infoTable.add_row( row )
 
@@ -144,7 +144,7 @@ def print_csv_data(testinfo, testfolder, details, report):
         loads = ['loadLinearLoad1Maximum','loadLinearLoad1Maximum']
         loadsTracking = 'loadLinearLoad1'
     
-    debug(testinfo.short(), trendsfolder)
+    debug(testinfo.short, trendsfolder)
     
     if not trendsfolder.trends or not trendsfolder.trends.exists():
         print("Error: couldn't find trend files! (%s)"%(str(testinfo),), file=report)
@@ -178,7 +178,7 @@ def print_csv_data(testinfo, testfolder, details, report):
         return name.replace('Linear', '').replace('displacement', 'disp').replace('DigitalPosition','')
     
     
-    fatigue_dict = fatigue_dicts.get(testinfo.short(),None) 
+    fatigue_dict = fatigue_dicts.get(testinfo.short,None) 
     quartile1 = 'Cycles (1st Quartile)'
     quartile4 = 'Cycles (4th Quartile)'
     print(mdBlock("Fatigue Data:"+str(fatigue_dict)), file=report)

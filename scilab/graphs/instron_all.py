@@ -302,7 +302,7 @@ def graph(testinfo, t, x, y, z, details, stepIdx, npslice, args, cycles=None, do
     debug(imgpath)
 
     # plt.show(block=True, )
-    Graphing.fig_save(fig, str(imgpath), name="%s (%s)"%(ax1_title, testinfo.short()), type='.png', lgd=lgd1, lgd2=lgd2)
+    Graphing.fig_save(fig, str(imgpath), name="%s (%s)"%(ax1_title, testinfo.short), type='.png', lgd=lgd1, lgd2=lgd2)
     
     plt.close()
     
