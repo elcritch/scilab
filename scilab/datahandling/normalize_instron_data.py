@@ -28,7 +28,7 @@ def process_raw_columns(data, raw_config, state):
     rawdata = data.file.data
     # debug(rawdata)
     
-    csv_cols_index_full = { v.full: v for v in data.file.data.values() 
+    csv_cols_index_full = { v.full.strip(): v for v in data.file.data.values() 
                                     if isinstance(v, InstronColumnData) }
     
     debug(list(csv_cols_index_full.keys()))
@@ -46,6 +46,8 @@ def process_raw_columns(data, raw_config, state):
             sourcecol = getproperty(rawcol.source, action=True, env=env)
             # fullsourcename = next([ o.full for o in output if o.name == sourcecol])
             # fulls.append(fullsourcename)
+            if sourcecol[0].isspace():
+                raise ValueError("Column Names cannot include spaces!", sourcecol, rawcol)
             debug(sourcecol, [ (rc.name, oc.name,rc.name==sourcecol, sourcecol) for rc,oc in output ])
             origcol = [ oc for rc,oc in output if rc.name == sourcecol ][0]
             output.append((rawcol.info, origcol))
@@ -285,9 +287,13 @@ def process_methods(testfolder, state, args):
         
 def run(filestructure, testfolder, args):
     
+    # ==================
+    # = Set Arguements =
+    # ==================
     args.forces = DataTree(raw=False, norm=False)
     args.version = "0"
-    args.excel = True
+    # args.excel = True
+    args.excel = False
     
     state = DataTree()
     state.args = args
@@ -316,7 +322,7 @@ def test_run():
     testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
-
+    
     args = DataTree()
     run(testfolder, args)
     
@@ -353,8 +359,8 @@ def test_folder():
     # for name, testconf in sorted( testitems.items() )[:1]:
     # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
     # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
-        if name not in ["dec20(gf10.8-llm)-wa-tr-l5-x2"]:
-            continue
+        # if name not in ["dec20(gf10.8-llm)-wa-tr-l5-x2"]:
+            # continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
