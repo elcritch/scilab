@@ -38,7 +38,9 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     # testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
     
     ## Figure ##
-    fig, ax = graph(test=test, matdata=matdata, args=args, step_idx='idx_neg_1', zconfig=zconfig)
+    args.step_idx = 'idx_neg_1' 
+    
+    fig, ax = graph(test=test, matdata=matdata, args=args, zconfig=zconfig)
     
     # plt.show(block=True)
     
@@ -48,7 +50,7 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     print(tag(b=figname))
     # test.folder.save_graph(name=figname, fig=fig)
     
-    plt.close()
+    # plt.close()
     
     # testfolder.save_graph(name='graph_all_'+testname, fig=fig)
     plt.close()
@@ -104,7 +106,6 @@ def test_folder():
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
 
     args = DataTree()
-    
     
     for name, test in sorted( testitems.items() )[:1]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:

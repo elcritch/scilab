@@ -24,7 +24,10 @@ import numpy as np
 
 from scilab.graphs.graph_shared import *
 
-def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
+def graph(test, matdata, args, zconfig=DataTree()):
+    
+    step_idx = args.get('step_idx', 'idx_neg1')
+    
     data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
     stepslice = getattr(indexes.step,step_idx)
     sliced = lambda xs: xs.set(array=data.xs[stepslice])
