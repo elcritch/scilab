@@ -2,8 +2,8 @@
 
 # Import PySide classes
 import sys, collections
-from PyQt.QtCore import *
-from PyQt.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 
 from scilab.tools.project import *
 from pathlib import *

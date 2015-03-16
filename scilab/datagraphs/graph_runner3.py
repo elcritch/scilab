@@ -53,7 +53,9 @@ def handle_grapher(graph, test, matdata, args, zconfig):
     # testfolder.save_graph(name='graph_all_'+testname, fig=fig)
     plt.close()
 
-
+# =================
+# = Graphs Import =
+# =================
 import scilab.graphs.graph_all as graph_all
 
 def run_config(test, args, config, configfile):
