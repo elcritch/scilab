@@ -23,7 +23,7 @@ def resolve(url):
     return Path(url).resolve()
 
 
-def process_raw_columns(data, raw_config):
+def process_raw_columns(data, raw_config, state):
 
     rawdata = data.file.data
     # debug(rawdata)
@@ -38,24 +38,40 @@ def process_raw_columns(data, raw_config):
     for rawcol in raw_config.columns:
         print("<i>Raw Column:<i> {}".format(repr(rawcol.info)))        
         
-        fulls = rawcol.get('fulls',[])
-        if rawcol.info.get('full', None):
-            fulls.append(rawcol.info.full)
+        # ============================================================
+        # = Handle Raw Columns with multiple possible row conditions =
+        # ============================================================
+        if rawcol.get('source', None):
+            env = DataTree(details=state.details, **data)
+            sourcecol = getproperty(rawcol.source, action=True, env=env)
+            # fullsourcename = next([ o.full for o in output if o.name == sourcecol])
+            # fulls.append(fullsourcename)
+            debug(sourcecol, [ (rc.name, oc.name,rc.name==sourcecol, sourcecol) for rc,oc in output ])
+            origcol = [ oc for rc,oc in output if rc.name == sourcecol ][0]
+            output.append((rawcol.info, origcol))
+        else:
+            # otherwise process "full" name(s)
+            fulls = rawcol.get('fulls',[])
+            
+            # first add any single names
+            if rawcol.info.get('full', None):
+                fulls.append(rawcol.info.full)
         
-        for full in fulls:
-            rawcol.info.full = full
-            if full in csv_cols_index_full:
-                break
+            # next check for 
+            for full in fulls:
+                rawcol.info.full = full
+                if full in csv_cols_index_full:
+                    break
         
-        if full not in csv_cols_index_full:
-            debughere()
-            cols = ''.join(map("<li>{}</li>".format, csv_cols_index_full.keys()))
-            msg = "Column Missing from Data: column: `{}` data file columns: \n<ul>{}</ul>".format(
-                repr(rawcol.info.full), cols)
-            print(msg)
-            raise KeyError(msg)        
+            if full not in csv_cols_index_full:
+                debughere()
+                cols = ''.join(map("<li>{}</li>".format, csv_cols_index_full.keys()))
+                msg = "Column Missing from Data: column: `{}` data file columns: \n<ul>{}</ul>".format(
+                    repr(rawcol.info.full), cols)
+                print(msg)
+                raise KeyError(msg)        
         
-        output.append((rawcol.info, csv_cols_index_full[full]))
+            output.append((rawcol.info, csv_cols_index_full[full]))
     
     return output 
 
@@ -146,7 +162,7 @@ def process(testfolder, data, processor, state):
     
         checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
         if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
-            columnmapping = process_raw_columns(data, raw_config)
+            columnmapping = process_raw_columns(data, raw_config, state)
 
             indexes = default_index + raw_config.get('_slicecolumns_', []) 
             save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
@@ -271,7 +287,7 @@ def run(filestructure, testfolder, args):
     
     args.forces = DataTree(raw=False, norm=False)
     args.version = "0"
-    args.excel = False 
+    args.excel = True
     
     state = DataTree()
     state.args = args
@@ -337,8 +353,8 @@ def test_folder():
     # for name, testconf in sorted( testitems.items() )[:1]:
     # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
     # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
-        # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
-        #     continue
+        if name not in ["dec20(gf10.8-llm)-wa-tr-l5-x2"]:
+            continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))

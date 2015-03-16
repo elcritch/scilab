@@ -85,38 +85,6 @@ def getElapsedStarts(data, npslice):
 
 def data_cleanup_relaxation(testinfo:TestInfo, data, details, args):
 
-    debug(data.keys())
-
-    data.maxes = {}
-    data.maxes['displacement'] = data_find_max('displacement', data.displacement.array)
-
-    if 'load' not in data.keys():
-
-        if testinfo.orientation == 'tr':
-            loads = [ l for l in ['loadLinearMissus','loadLinearLoad1'] if l in data ]
-        if testinfo.orientation == 'lg':
-            loads = [ l for l in ['loadLinearLoad'] if l in data ]
-
-        logging.warn("Choosing loads: "+repr(loads))
-        data.load = data[loads[0]]
-
-    # if 'load' not in data.keys():
-    #     if 'loadLinearLoad1' in data:
-    #         data.load = data.loadLinearLoad1 # choose Instron
-    #     elif 'loadLinearLoad' in data:
-    #         data.load = data.loadLinearLoad
-
-    # debug(details.area)
-    stress = data.load.array/details.measurements.area.value
-    strain = data.displacement.array/details.gauge.value
-
-    data.maxes['stress'] = data_find_max('stress', stress)
-    data.maxes['strain'] = data_find_max('strain', strain)
-
-    data.stress = PlotData(array=stress, label="Stress", units="MPa", max=None)
-    data.strain = PlotData(array=strain, label="Stress", units="∆", max=None)
-
-    debug(data._getslices('step'))
     npslice = data._getslices('step')[args.step]
     debug(args.step, npslice)
 
