@@ -92,7 +92,7 @@ class Empty(object):
         return self
 
 
-def debugger_str(val, tablefmt="pipe", ignores=[]):
+def debugger_str(val, tablefmt="pipe", ignores=[], end=''):
     if 'ndarray' == val.__class__.__name__:
         return "ndarray: "+str(val.shape)
     elif hasattr(val, '__summary__'):
@@ -100,7 +100,11 @@ def debugger_str(val, tablefmt="pipe", ignores=[]):
     elif isinstance(val, dict):
         rows = [ (k, debugger_str(v)) for k,v in flatten(val, sep='.').items() if not any(i in k for i in ignores) ]
         tbstr = str( tabulate.tabulate( rows, headers=['Key', 'Value'], tablefmt=tablefmt ) ).strip()
-        return tbstr.replace('\n','')
+        
+        if end != '\n':
+            return tbstr.replace('\n',end)
+        else:
+            return tbstr
     else:
         return repr(val)
     

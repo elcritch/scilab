@@ -292,8 +292,8 @@ def run(filestructure, testfolder, args):
     # ==================
     args.forces = DataTree(raw=False, norm=False)
     args.version = "0"
-    # args.excel = True
-    args.excel = False
+    args.excel = True
+    # args.excel = False
     
     state = DataTree()
     state.args = args
@@ -355,7 +355,7 @@ def test_folder():
     
     args = DataTree()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[1::2]:
     # for name, testconf in sorted( testitems.items() )[:1]:
     # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
     # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:

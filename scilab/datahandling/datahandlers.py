@@ -145,7 +145,7 @@ def load_project_description(testfolder):
     project_description = Json.load_json_from(testfolder.projectdescription.resolve())    
     return project_description
 
-def getfileheaders(name, test, headers):
+def getfileheaders(name, test, headers, version, suffix='txt'):
     hdrs = flatten(header,ignore='filetype').items() if isinstance(headers, dict) else headers
     
     hdrs = ''.join([ " {}={} |".format(*i) 
@@ -153,8 +153,10 @@ def getfileheaders(name, test, headers):
     
     debug(hdrs)
     
-    filename = "{name} (test={short} | stage={stage} |{header} v{ver}).txt".format(
-            name=name, short=test.info.short, header=hdrs, ver=version)
+    filename = "{name} (test={short} | {header} v{ver}).{suffix}".format(
+            name=name, short=test.info.short, header=hdrs, ver=version,
+            suffix=suffix,
+            )
     
     return filename
     

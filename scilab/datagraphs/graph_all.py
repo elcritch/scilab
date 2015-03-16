@@ -4,36 +4,21 @@ import sys, os, glob, logging
 from collections import namedtuple
 from pathlib import Path
 
-import matplotlib
-matplotlib.use('Agg')
-
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter, MaxNLocator
-
-sys.path.insert(0,[ str(p) for p in Path('.').resolve().parents if (p/'scilab').exists() ][0] )
 
 from scilab.tools.project import *
-import scilab.tools.scriptrunner as ScriptRunner
-from scilab.tools.instroncsv import csvread
-import scilab.tools.jsonutils as Json
-import scilab.tools.project as Project
-import scilab.tools.excel as Excel
-import scilab.tools.graphing as Graphing
-from scilab.tools.graphing import DataMax
 import numpy as np
-
-from scilab.graphs.graph_shared import *
 
 def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
     data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
-    stepslice = getattr(indexes.step,step_idx)
+    stepslice = slice(*getattr(matdata.indexes.step, args.get('step_idx',step_idx)))
     sliced = lambda xs: xs.set(array=data.xs[stepslice])
     
     if zconfig['stage'] == "norm":
-        t, x, y = data.totalTime, data.stress, data.strain
+        t, y, x = data.totalTime, data.stress, data.strain
         info_t, info_x, info_y = info.totalTime, info.stress, info.strain
     else:
-        t, x, y = data.totalTime, data.disp, data.load
+        t, y, x = data.totalTime, data.load, data.disp
         info_t, info_x, info_y = info.totalTime, info.disp, info.load
     
     ## Setup plot
@@ -53,8 +38,8 @@ def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
     
     for idx in indexes.step._fieldnames:
         sl = getattr(indexes.step, idx)
-        # debug(idx, sl)
-        ax1.axvline(t[stepslice[0]], *ax1.get_ybound(), color='purple')
+        debug(idx, sl)
+        ax1.axvline(t[sl[0]], *ax1.get_ybound(), color='purple')
         
     
     ## y2 Plot ##
@@ -64,44 +49,4 @@ def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
     # set_secondary_label(ax1, xx=stress.strain, xp=data.displacement,
     #             convertfunc=lambda stress: x*details.gauge.value)
                 
-    return fig, axes
-
-def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
-    
-    testname = 'cycles'
-    csvdata = testdata.tests[testname].tracking
-    
-    data = data_configure_load(testinfo=testinfo, data=csvdata, details=details, 
-                               balancestep='step_2', data_kind='tracking')
-    
-    data.total_time = csvt
-    # data.summaries = DataTree()
-    
-    # debug(displayjson(data))
-    
-    updated = lambda d1,d2: [ d1.summaries[k].update(v) for k,v in d2.items() ]
-    
-    data.update( data_normalize(testinfo, data, details) )
-    
-    ## Save Summaries ##
-    testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
-    
-    ## Figure ##
-    fig, ax = graph(testinfo=testinfo, testdata=data, testdetails=details, testargs=args)    
-    # plt.show(block=True)
-    testfolder.save_graph(name='graph_all_'+testname, fig=fig)
-    plt.close()
-    
-    
-    return {}
-
-def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
-    
-    return handler(testinfo, testfolder, details=testdata.details, testdata=testdata, args=args, )    
-
-    
-if __name__ == '__main__':
-    
-    import scilab.graphs.graph_runner2
-    scilab.graphs.graph_runner2.main()
-
+    return DataTree(fig=fig, axes=axes, calcs=DataTree())

@@ -75,18 +75,26 @@ class TestFileStructure(DataTree):
         
         return Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
     
-    def save_graph(self, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
+    def save_graph_raw(self, testinfo, version, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         
         namefmt = "{testname} | name={name} | test={testinfo} | {version}.{imgkind}"
         
+        
         filename = namefmt.format(
                 name=name,
-                testname=self.testfs.test_name,
-                testinfo=self._testinfo.short,
-                version=self.testfs.version,
+                testname=testconf.info.name,
+                testinfo=testconf.info.short,
+                version=testconf.folder.version,
                 imgkind=imgkind,
                 )
         
+        imgpath = self.graphs / filename
+        print("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
+        
+        return fig.savefig(str(imgpath), **savefig_kws)
+        
+    def save_graph(self, filename, fig, savefig_kws=DataTree(bbox_inches='tight')):
+                
         imgpath = self.graphs / filename
         print("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
         
