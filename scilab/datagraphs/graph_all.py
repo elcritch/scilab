@@ -9,11 +9,9 @@ import matplotlib.pyplot as plt
 from scilab.tools.project import *
 import numpy as np
 
-def graph(test, matdata, args, step_idx='idx_neg1', zconfig=DataTree()):
+def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
     data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
-    stepslice = slice(*getattr(matdata.indexes.step, args.get('step_idx',step_idx)))
-    sliced = lambda xs: xs.set(array=data.xs[stepslice])
     
     if zconfig['stage'] == "norm":
         t, y, x = data.totalTime, data.stress, data.strain

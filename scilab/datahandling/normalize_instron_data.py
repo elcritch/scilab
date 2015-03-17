@@ -355,7 +355,7 @@ def test_folder():
     
     args = DataTree()
     
-    for name, testconf in sorted( testitems.items() )[1::2]:
+    for name, testconf in sorted( testitems.items() )[:2]:
     # for name, testconf in sorted( testitems.items() )[:1]:
     # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
     # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
@@ -364,11 +364,9 @@ def test_folder():
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
-    
-
         
         folder = fs.testfolder(testinfo=testconf.info)
-    
+        
         debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
         
         data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 

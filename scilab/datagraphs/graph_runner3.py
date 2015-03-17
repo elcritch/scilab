@@ -46,29 +46,23 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     # testfolder.save_calculated_json(name='summaries', data={'step04_cycles':data.summaries})
     
     ## Figure ##
-<<<<<<< HEAD
     graphdata = graphmod.graph(test=test, matdata=matdata, args=args, 
                 step_idx=gconfigs[tuple(zconfig.values())+(graphname, 'step_idx',)],
                 zconfig=zconfig)
-=======
-    args.step_idx = 'idx_neg_1' 
+
     
-    fig, ax = graph(test=test, matdata=matdata, args=args, zconfig=zconfig)
->>>>>>> fa645d26af14c5c32e8d28eb2cb5f7a17a7b8611
+
     
     if not graphdata:
         return
     
     plt.show(block=True)
     
-<<<<<<< HEAD
     figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname)], version=args.version)
     print(tag(b="Figure: "+figname))
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
-=======
-    # plt.close()
->>>>>>> fa645d26af14c5c32e8d28eb2cb5f7a17a7b8611
+    
     
     plt.close()
 
@@ -132,12 +126,7 @@ def test_folder():
 
     args = DataTree()
     
-<<<<<<< HEAD
-    
-    for name, test in sorted( testitems.items() )[0:1]:
-=======
     for name, test in sorted( testitems.items() )[:1]:
->>>>>>> fa645d26af14c5c32e8d28eb2cb5f7a17a7b8611
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         
