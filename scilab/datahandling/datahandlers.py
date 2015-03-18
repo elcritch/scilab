@@ -301,10 +301,11 @@ def load_columns(filenames, filetype):
         json=load_columns_json,
     )[filetype](filenames[filetype])
 
-def load_columns_matlab(filepath):
-    print("Reading matlab file: `{}` ...".format(str(filepath)))
-    debug(sio.whosmat(str(filepath)))
-    print()
+def load_columns_matlab(filepath, dbg=DebugNone()):
+    if dbg:
+        print("Reading matlab file: `{}` ...".format(str(filepath)))
+        debug(sio.whosmat(str(filepath)))
+        print()
     
     # http://stackoverflow.com/questions/6273634/access-array-contents-from-a-mat-file-loaded-using-scipy-io-loadmat-python
     with open(str(filepath),'rb') as file:

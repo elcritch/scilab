@@ -79,7 +79,6 @@ def run_config(test, args, config, configfile):
     debug(configfile)
     matdata = load_columns_matlab(configfile)
     
-    
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
     

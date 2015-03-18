@@ -45,41 +45,54 @@ def fit_modulus(time, strain, stress, sl):
     
     return modulus
 
-def graph(test, matdata, args, step_idx='idx_1', zconfig=DataTree(), **graph_opts):
+def graph(test, matdata, args, step_idx='idx_1', zconfig=DataTree(), **graph_args):
 
-    if not ( zconfig == DataTree(item='tracking', method='precond', stage='norm')):
-        return None
+    data = matdata.data
+    colinfo = matdata.columninfo
+    
+    debug(zconfig)
+    
+    if not (zconfig == DataTree(stage='norm', method='precond', item='tracking')):
+        print("Not the graph!!")
+        return DataTree()
+    else:
+        print("GRAPH!!")
+    
+    debug(matdata.indexes.step._fieldnames)
+    sl = slice( *matdata.indexes.step.idx_2 )
+    
+    # sl = slice(*getattr(matdata.indexes.step, 'idx_1'))
 
-    data, colinfo, indexes = matdata.data, matdata.columninfo, matdata.indexes
-    
-    sl = slice(*getattr(matdata.indexes.step, args.get('step_idx',step_idx)))
-    debug(sl)
-    
     cycletime = data.elapsedCycles[sl]+data.cycleElapsedTime[sl]
     cycletime_3final = cycletime.searchsorted([18,19,20])
+
+    debug(sl, cycletime, cycletime_3final, )
     
     cycle_num = 20.0
     timerange_cycle = cycle_num+0.5*np.array([2/3, 3/3])
-    
+
     sl_fit = slice(*cycletime.searchsorted( timerange_cycle ))
     sl_cycle = slice(*cycletime.searchsorted([cycle_num, cycle_num+1]))
+
+    # debughere()
     
     fig, (ax1,ax2) = plt.subplots(ncols=1,nrows=2)
-    
+
     ax1.plot(
         cycletime[sl_cycle], 
         data.stress [sl][sl_cycle],
-        label=colinfo.stress.full)
-        
+        label=colinfo.stress.name)
+
     ax2.plot(
         cycletime[sl_cycle], 
         data.strain [sl][sl_cycle],
-        label=colinfo.strain.full)
-    
-    
-    ## Fit Stuff
+        label=colinfo.strain.name)
 
-    # modulus = fit_modulus(time=cycletime, strain=strain, stress=stress, sl=sl_fit)
+    return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree())
+
+    # # Fit Stuff
+    #
+    # modulus = fit_modulus(time=cycletime, strain=data.strain[sl], stress=data.stress[sl], sl=sl_fit)
     #
     # ax1.plot(cycletime[sl_fit], modulus.fits.stress_linear( cycletime[sl_fit]),
     #         '--', label='{}: R²:{:.1f}'.format("Fit", modulus.fits.stress_linear.rsquared),
@@ -105,6 +118,3 @@ def graph(test, matdata, args, step_idx='idx_1', zconfig=DataTree(), **graph_opt
     #
     # ax1.legend()
     # ax2.legend()
-
-    return DataTree(fig=fig)
-    # return DataTree(fig=fig, calcs=modulus)
