@@ -17,6 +17,7 @@ from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
+import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,16 +50,17 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     graphdata = graphmod.graph(test=test, matdata=matdata, args=args, 
                 step_idx=gconfigs[tuple(zconfig.values())+(graphname, 'step_idx',)],
                 zconfig=zconfig)
-
     
-
+    
     
     if not graphdata:
         return
     
-    plt.show(block=True)
+    # plt.show(block=True)
     
-    figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname)], version=args.version)
+    test.folder.save_calculated_json(test=test, name='graphs', data=graphdata.calcs)
+    
+    figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname.lstrip('graph_'))], version=args.version)
     print(tag(b="Figure: "+figname))
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
@@ -71,6 +73,7 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
 # =================
 import scilab.datagraphs.graph_all as graph_all
 import scilab.datagraphs.graph_precond_fit as graph_precond_fit
+import scilab.datagraphs.graph_uts as graph_uts
 
 def run_config(test, args, config, configfile):
     
@@ -86,8 +89,12 @@ def run_config(test, args, config, configfile):
     sns.set_style("ticks")
     sns.set_style("whitegrid")
     
-    # handle_grapher(graph_all, test, matdata, args, zconfig)
+    handle_grapher(graph_all, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
+    handle_grapher(graph_uts, test, matdata, args, zconfig)
+
+    print(mdHeader(2, "Merging JSON Data"))
+    merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
 
 
 def run(test, args):
@@ -125,7 +132,7 @@ def test_folder():
 
     args = DataTree()
     
-    for name, test in sorted( testitems.items() )[:1]:
+    for name, test in sorted( testitems.items() )[:]:
         # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
         #     continue
         

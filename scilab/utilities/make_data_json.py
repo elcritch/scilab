@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-import shutil, re, sys, os, itertools, argparse, json
+import shutil, re, sys, os, itertools, argparse, json, collections
 from pathlib import Path
 
 import openpyxl
@@ -236,7 +236,9 @@ def handler(testconf, excelfile, args):
     # print(mdBlock("<pre>\n"+json.dumps(data,indent=4)+"\n</pre>"))
     updateMetaData(data)
     
-    testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=data)
+    excel_data = DataTree(notes=data.pop("notes"), other=data.pop("other"))
+    json_data = collections.OrderedDict(excel=excel_data, **data)
+    testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=json_data)
     
     ## Update with Image Measurements
     

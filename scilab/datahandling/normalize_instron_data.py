@@ -124,7 +124,8 @@ def normalize_columns(data, norm_config, filenames, state):
 
 def process_variables(testfolder, state, name, kind:"pre|post", data):
             
-    # debug(state['methoditem','variables', name, kind])
+    debug(state['methoditem'])
+    debug(state['methoditem','variables', name, kind])
     
     if not state['methoditem','variables', name, kind]:
         return 
@@ -142,7 +143,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
     debug(vardict)
-    testfolder.save_calculated_json(test=state.args.testconf, name='normalization', data=vardict)
+    testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
     return variables
     
@@ -359,8 +360,8 @@ def test_folder():
     # for name, testconf in sorted( testitems.items() )[:1]:
     # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
     # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
-        # if name not in ["dec20(gf10.8-llm)-wa-tr-l5-x2"]:
-            # continue
+        if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
+            continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
