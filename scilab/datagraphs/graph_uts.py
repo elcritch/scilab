@@ -52,6 +52,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     ax1.annotate(uts_label, xy=uts_peak, xytext=(+30, -20), 
                     bbox=dict(boxstyle="round", fc="0.9"),
                     textcoords='offset points', 
+                    fontsize=12,
                     arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"),
                     )
 
@@ -122,5 +123,5 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     #set_labels(ax1, xx=matdata.data.load, xp=matdata.data.stress, ax_dir='y', side='right',
     #            convertfunc=lambda x: x*details.measurements.area.value, position=('outward',0))
     
-    return DataTree(fig=fig, axes=axes, calcs=DataTree())
+    return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree())
 

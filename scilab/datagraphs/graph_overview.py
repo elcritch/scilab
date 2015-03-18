@@ -11,14 +11,21 @@ import numpy as np
 
 def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
-    data, info, indexes = matdata.data, matdata.columninfo, matdata.indexes
+    data, colinfo, indexes = matdata.data, matdata.columninfo, matdata.indexes
+    
+    getfield = lambda n: ( getattr(matdata.data, n), getattr(matdata.columninfo, n) )
     
     if zconfig['stage'] == "norm":
-        t, y, x = data.totalTime, data.stress, data.strain
-        info_t, info_x, info_y = info.totalTime, info.stress, info.strain
+        t,tl = getfield("totalTime")
+        x,xl = getfield("load")
+        y,yl = getfield("disp")
     else:
-        t, y, x = data.totalTime, data.load, data.disp
-        info_t, info_x, info_y = info.totalTime, info.disp, info.load
+        t,tl = getfield("totalTime")
+        x,xl = getfield("load")
+        y,yl = getfield("disp")
+    
+    limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
+    labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.units)
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=1, figsize=(14,6))
@@ -26,14 +33,13 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ax2 = ax1.twinx()
     
     ## First Plot ##
-    ax1_title = "Graph All: {} ({})".format(test.info.short, repr(zconfig))
-    ax1.plot(t, x, label=info_x.label)
-    ax1.set_xlabel(info_t.label)
-    ax1.set_ylabel(info_x.label)
-    ax2.set_ylabel(info_y.label)
+    ax1.plot(t, x, label=xl.label)
+    ax1.set_xlabel(labeler(tl))
+    ax1.set_ylabel(labeler(xl))
+    ax2.set_ylabel(labeler(yl))
     
     ax1.legend(loc=2, fontsize=10)
-    ax1.set_title(ax1_title)
+    fig.suptitle("Overview All: {} ({})".format(test.info.short, repr(zconfig)))
     
     for idx in indexes.step._fieldnames:
         sl = getattr(indexes.step, idx)
@@ -42,7 +48,7 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
         
     
     ## y2 Plot ##
-    ax2.plot(t, y, color='darkgrey', label=info_y.label)
+    ax2.plot(t, y, color='darkgrey', label=yl.label)
     ax2.legend(loc=1, fontsize=10)
     
     # set_secondary_label(ax1, xx=stress.strain, xp=data.displacement,

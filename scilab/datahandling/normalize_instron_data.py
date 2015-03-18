@@ -291,10 +291,6 @@ def run(filestructure, testfolder, args):
     # ==================
     # = Set Arguements =
     # ==================
-    args.forces = DataTree(raw=False, norm=False)
-    args.version = "0"
-    # args.excel = True
-    args.excel = False
     
     state = DataTree()
     state.args = args
@@ -327,7 +323,7 @@ def test_run():
     args = DataTree()
     run(testfolder, args)
     
-def test_folder():
+def test_folder(args):
     
     import scilab.expers.configuration as config
     import scilab.expers.mechanical.fatigue.uts as exper_uts
@@ -354,14 +350,10 @@ def test_folder():
     def HTML(arg):
         return arg.replace('\n','')
     
-    args = DataTree()
     
     for name, testconf in sorted( testitems.items() )[:]:
-    # for name, testconf in sorted( testitems.items() )[:1]:
-    # for name, testconf in sorted( testitems.items() )[:len(testitems)//2]:
-    # for name, testconf in sorted( testitems.items() )[len(testitems)//2-1:]:
-        if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
-            continue
+        # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
+            # continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
@@ -401,7 +393,14 @@ def main():
     
     # test_run()
     
-    test_folder()
+    args = DataTree()
+    args.forces = DataTree(raw=False, norm=False)
+    args.version = "0"
+    # args.excel = True
+    args.excel = False
+    
+    
+    test_folder(args)
     
 if __name__ == '__main__':
     main()

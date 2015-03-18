@@ -20,16 +20,18 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     if not (zconfig == DataTree(stage='norm', method='precond', item='tracking')):
         return DataTree()
     
+    labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.units)
+    
     sl = slice( *matdata.indexes.step.idx_2 )
 
     cycletime = data.elapsedCycles[sl]+data.cycleElapsedTime[sl]
-    cycletime_3final = cycletime.searchsorted([18,19,20])
     
     cycle_num = 20.0
     timerange_cycle = cycle_num+0.5*np.array([2/3, 3/3])
 
     sl_fit = slice(*cycletime.searchsorted( timerange_cycle ))
     sl_cycle = slice(*cycletime.searchsorted([cycle_num, cycle_num+1]))
+    sl_half = slice(*cycletime.searchsorted([cycle_num, cycle_num + 1.0/2.0 ]))
 
     fig, (ax1,ax2) = plt.subplots(ncols=1,nrows=2)
 
@@ -37,11 +39,19 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
         cycletime[sl_cycle], 
         data.stress [sl][sl_cycle],
         label=colinfo.stress.name)
+    
+    ax1.set_xlabel(labeler(colinfo.cycleElapsedTime))
+    ax1.set_ylabel(labeler(colinfo.stress))
 
     ax2.plot(
-        cycletime[sl_cycle], 
-        data.strain [sl][sl_cycle],
+        data.strain [sl][sl_half],
+        data.stress [sl][sl_half],
         label=colinfo.strain.name)
+
+    ax2.set_xlabel(labeler(colinfo.strain))
+    ax2.set_ylabel(labeler(colinfo.stress))
+
+    fig.subplots_adjust(hspace=0.5, )
 
     # Precond Fitting 
     modulus, fits = fit_modulus(time=cycletime, strain=data.strain[sl], stress=data.stress[sl], sl=sl_fit)
@@ -62,9 +72,15 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
                  xycoords="data",
                  textcoords='offset points',
                  horizontalalignment='right',
+                 fontsize=12,
+                    bbox=dict(boxstyle="round", fc="0.9"),
+                # arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"),
                 )
+    
 
-    fig.suptitle("(test=902-6LG-402 | stage=norm | item=tracking | method=precond | v0")
+    # fig.suptitle("(test=902-6LG-402 | stage=norm | item=tracking | method=precond | v0")
+    fig.suptitle("Precond: {} ({})".format(test.info.short, repr(zconfig))
+)
 
     ax1.legend()
     ax2.legend()
