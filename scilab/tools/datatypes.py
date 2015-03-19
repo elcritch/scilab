@@ -125,8 +125,8 @@ class DataTree(dict):
     def astuples(self):
         return flatten(self, astuple=True, sort=True)
 
-def mapd(d, valuef=(lambda v: v), keyf=(lambda k: k) ):
-    return DataTree({ keyf(k): valuef(v) for k,v in d.items() })
+def mapd(d, valuef=(lambda k, v: v), keyf=(lambda k,v: k) ):
+    return DataTree({ keyf(k,v): valuef(k,v) for k,v in d.items() })
 
 def mapl(*args, **kwargs):
     return list(map(*args, **kwargs))
