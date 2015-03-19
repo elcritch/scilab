@@ -7,8 +7,8 @@ import scipy.io as sio
 from pandas import ExcelWriter
 
 import matplotlib
-# matplotlib.use('Agg')
-matplotlib.use('Qt4Agg')
+matplotlib.use('Agg')
+# matplotlib.use('Qt4Agg')
 
 import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
@@ -71,6 +71,7 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
 # =================
 # = Graphs Import =
 # =================
+import scilab.datagraphs.graph_imagemeasurement as graph_imagemeasurement
 import scilab.datagraphs.graph_overview as graph_overview
 import scilab.datagraphs.graph_precond_fit as graph_precond_fit
 import scilab.datagraphs.graph_uts as graph_uts
@@ -89,6 +90,7 @@ def run_config(test, args, config, configfile):
     sns.set_style("ticks")
     sns.set_style("whitegrid")
     
+    handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
     handle_grapher(graph_uts, test, matdata, args, zconfig)
@@ -132,9 +134,9 @@ def test_folder():
 
     args = DataTree()
     
-    for name, test in sorted( testitems.items() )[:1]:
-        # if name not in ['dec09(gf10.1-llm)-wa-tr-l8-x1']:
-        #     continue
+    for name, test in sorted( testitems.items() )[:]:
+        # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
+            # continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))

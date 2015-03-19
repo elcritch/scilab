@@ -82,6 +82,11 @@ def process_test(testinfo, testfolder):
 
     front = first_only(testfolder.images.glob('D*.front.JPG'))
     side = first_only(testfolder.images.glob('D*.side.JPG'))
+    
+    globfail = list(testfolder.images.glob('D*.fail.JPG'))
+    if len(globfail) > 0:
+        get_cropped(globfail[0])
+        
 
     reducedimgs = DataTree(front=get_cropped(front), side=get_cropped(side))
 
