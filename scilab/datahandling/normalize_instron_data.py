@@ -178,10 +178,14 @@ def process(testfolder, data, processor, state):
             
             columnmapping = process_raw_columns(data, raw_config, state)
 
-            indexes = default_index + raw_config.get('_slicecolumns_', []) 
-            save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
+            indexes = default_index + raw_config.get('_slicecolumns_', [])
+            
+            if not state.args['onlyVars',]:
+                save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
+            else:
+                print("Skipping saving `raw` columns. Only updating variable json. ")
         else:
-            print("Skipping processing raw stage. Files exists: `{}`".format(output.raw.files.names))
+            print("Skipping processing `raw` stage. Files exists: `{}`".format(output.raw.files.names))
 
         # =====================
         # = Process Norm Data =
@@ -215,10 +219,13 @@ def process(testfolder, data, processor, state):
             data.norm = DataTree(**columnmapping_vars(columnmapping))
             process_variables(testfolder, state, normalized_config.name, "post", data)
             
-            save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
             
+            if not state.args['onlyVars',]:
+                save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
+            else:
+                print("Skipping saving `norm` columns. Only updating variable json. ")
         else:
-            print("Skipping processing norm stage. File exists: `{}`".format(output.norm.files.names))
+            print("Skipping processing `norm` stage. File exists: `{}`".format(output.norm.files.names))
             
             
             
@@ -408,7 +415,8 @@ def main():
     # test_run()
     
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
+    args.forceRuns = DataTree(raw=False, norm=True)
+    args.onlyVars = True
     args.version = "0"
     # args.excel = True
     args.excel = False
