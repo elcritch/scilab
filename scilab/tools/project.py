@@ -35,6 +35,9 @@ class ColumnInfo(namedtuple('_ColumnInfo', 'name label details units full idx'),
 class InstronColumnData(namedtuple('_InstronColumnData', 'array summary name label details units full idx'), NamedTuple):
     pass
 
+
+
+
 def todatatree(item,depth=0):
     """convert json to data tree ... """
     if isinstance(item, collections.Mapping):

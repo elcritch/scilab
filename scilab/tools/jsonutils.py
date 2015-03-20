@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, tempfile, shutil, logging, re
+import os, tempfile, shutil, logging, re, numbers
 
 import json as json
 
@@ -81,7 +81,19 @@ def Base64Decode(jsonDump):
     return arr
 
     
-def load_json_from(json_path, datatree=False, default=None):
+def valueHandler(k,v):
+    shape, shapeName, shapeFields = shapeof(v)
+
+    if shape == "mapping" and shapeName:
+        shapetuple = collections.namedtuple(shapeName, shapeFields)
+        return shapetuple(**v)
+    elif shape == "mapping":
+        return mapd(v, valuef=valueHandler)
+    else:
+        return v
+
+
+def load_json_from(json_path, datatree=False, default=None, valueHandler=valueHandler):
 
     json_path = Path(str(json_path))
     
@@ -95,9 +107,12 @@ def load_json_from(json_path, datatree=False, default=None):
                 return tree
 
             json_data = json.load(json_file, object_hook=as_datatree)
-            # else:
-            #     json_data = json.load(json_file)
 
+            # === Post Processing ===
+
+            if valueHandler:
+                json_data = mapd(json_data, valuef=valueHandler)
+            
             return json_data
 
     except Exception as err:

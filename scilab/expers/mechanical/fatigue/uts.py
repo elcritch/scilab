@@ -107,6 +107,7 @@ class FileStructure(DataTree):
         folder = DataTree()
         folder.project_dir = self.project
         folder.testfs = self
+        folder.main           = test_dir 
         folder.graphs         = test_dir / 'graphs'
         folder.json           = test_dir / 'json'
         folder.jsoncalc       = folder.json / 'calculated'

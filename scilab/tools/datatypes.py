@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
-import pprint, collections
+import pprint, collections, numbers
 
 try:
     from testingtools import Tests, test_in
@@ -15,7 +15,45 @@ class NamedTuple():
 
 
     
-    
+def hasshape(mapping, *args):
+    keys = set(mapping.keys())
+    shape = set(args)
+    return keys.union(shape) == shape # Is there a better way?
+
+def isshape(mapping, *args):
+    keys = set(mapping.keys())
+    return keys == set(args)
+
+Shapes = collections.OrderedDict(
+    valueIndex=["value","idx"],
+    valueUnitsStd=["value","units","stdev"],
+    valueUnits=["value","units"],
+    linearFit=["slope","intercept"],
+    )
+
+def shapeof(v):
+    if isinstance(v, collections.Mapping):
+        for shape, fields in Shapes.items():
+            if isshape(v, *fields):
+                return ("mapping", shape, fields, )
+        else:
+            return ("mapping", "", [])
+    elif isinstance(v, tuple) and hasattr(v, "_fields"):
+        for shape, fields in Shapes.items():
+            if isshape(v._asdict(), *fields):
+                return ("namedtuple", shape, fields, )
+        else:
+            return ("namedtuple", "", [])
+    elif isinstance(v, (list, tuple)):
+        return ("list", "items", [])
+    elif isinstance(v, (numbers.Number)):
+        return ("number", "int" if isinstance(v, (int,)) else "float", [])
+    elif isinstance(v, (str)):
+        return ("string", "value", [])
+    else:
+        return ("", "", [])
+        
+        
 # Helpers
 class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
@@ -137,7 +175,7 @@ def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort
     
     items = []
     
-    if tolist:   astuple = True
+    # if tolist:   astuple = True
     if astuple:  func = lambda p,ks: tuple(p)+(ks,)
     if not func: func = lambda p,ks: (p + sep + ks if p else ks)
         
