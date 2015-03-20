@@ -154,32 +154,48 @@ def process(testfolder, data, processor, state):
         default_index = [{"column":'step',"type":"int"},]
         save_config = DataTree(projdesc=json.dumps(state.projdesc))
         header=OrderedDict(method=state.methodname, item=state.methoditem.name)
+        missingFiles = lambda x: [ k for k,v in x.items() if not v.exists() ]
     
+        forceRuns = state.args.get('forceRuns',DataTree())
+        debug(forceRuns)
+        
+        # ====================
+        # = Process Raw Data =
+        # ====================
         print(mdHeader(3, "Raw Data"))
-        # ================================================
     
         output = DataTree()
         output['raw','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="raw", 
             version=state.args.version, header=header, matlab=True, excel=state.args.excel)
     
-        checkanyexists = lambda x: any(k for k,v in x.items() if not v.exists())
-        if 'raw' in state.args['forces',] or not checkanyexists(output.raw.files.names):
+        
+        print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
+                forceRuns['raw',], missingFiles(output.raw.files.names)))
+        
+        if forceRuns['raw',] or missingFiles(output.raw.files.names):
+            missingFiles(output.raw.files.names)
+            
             columnmapping = process_raw_columns(data, raw_config, state)
 
             indexes = default_index + raw_config.get('_slicecolumns_', []) 
             save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
         else:
-            print("Skipping processing raw stage. File exists: `{}`".format(rawoutfiles.names.matlab))
+            print("Skipping processing raw stage. Files exists: `{}`".format(output.raw.files.names))
 
+        # =====================
+        # = Process Norm Data =
+        # =====================
         print(mdHeader(3, "Normalize Data"))
-        # ================================================
 
         output['norm','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="norm", 
             version=state.args.version, header=header, matlab=True, excel=state.args.excel)
-
-        if 'norm' in state.args['forces',] or not checkanyexists(output.norm.files.names):
+        
+        print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
+                forceRuns['norm',], missingFiles(output.norm.files.names)))
+        
+        if forceRuns['norm',] or missingFiles(output.norm.files.names):
             
             normstate = state.set(processorname=normalized_config.name)
             
@@ -202,7 +218,7 @@ def process(testfolder, data, processor, state):
             save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
             
         else:
-            print("Skipping processing norm stage. File exists: `{}`".format(rawoutfiles.names.matlab))
+            print("Skipping processing norm stage. File exists: `{}`".format(output.norm.files.names))
             
             
             
@@ -356,11 +372,9 @@ def test_folder(args):
             # continue
         
         print("\n")
-        display(HTML("<h2>{} | {}</h2>".format(testconf.info.short, name)))
+        display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
         
         folder = fs.testfolder(testinfo=testconf.info)
-        
-        debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
         
         data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                     for k,v in flatten(folder).items() ]
@@ -394,7 +408,7 @@ def main():
     # test_run()
     
     args = DataTree()
-    args.forces = DataTree(raw=False, norm=False)
+    args.forceRuns = DataTree(raw=False, norm=False)
     args.version = "0"
     # args.excel = True
     args.excel = False

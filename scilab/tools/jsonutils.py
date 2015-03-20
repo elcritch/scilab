@@ -93,7 +93,7 @@ def valueHandler(k,v):
         return v
 
 
-def load_json_from(json_path, datatree=False, default=None, valueHandler=valueHandler):
+def load_json_from(json_path, datatree=False, default=None, valueHandler=None, defaultHandler=False):
 
     json_path = Path(str(json_path))
     
@@ -110,6 +110,9 @@ def load_json_from(json_path, datatree=False, default=None, valueHandler=valueHa
 
             # === Post Processing ===
 
+            if defaultHandler:
+                valueHandler = valueHandler 
+            
             if valueHandler:
                 json_data = mapd(json_data, valuef=valueHandler)
             
