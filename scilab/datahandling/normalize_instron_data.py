@@ -143,6 +143,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
     debug(vardict)
+    print(vardict)
     testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
     return variables
@@ -158,6 +159,8 @@ def process(testfolder, data, processor, state):
     
         forceRuns = state.args.get('forceRuns',DataTree())
         debug(forceRuns)
+        
+        testfolder.save_calculated_json(test=state.args.testconf, name="variables", data={}, overwrite=True)
         
         # ====================
         # = Process Raw Data =

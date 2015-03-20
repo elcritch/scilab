@@ -81,14 +81,14 @@ def Base64Decode(jsonDump):
     return arr
 
     
-def valueHandler(k,v):
+def DefaultValueHandler(k,v):
     shape, shapeName, shapeFields = shapeof(v)
 
     if shape == "mapping" and shapeName:
         shapetuple = collections.namedtuple(shapeName, shapeFields)
         return shapetuple(**v)
     elif shape == "mapping":
-        return mapd(v, valuef=valueHandler)
+        return mapd(v, valuef=DefaultValueHandler)
     else:
         return v
 
@@ -111,7 +111,7 @@ def load_json_from(json_path, datatree=False, default=None, valueHandler=None, d
             # === Post Processing ===
 
             if defaultHandler:
-                valueHandler = valueHandler 
+                valueHandler = DefaultValueHandler 
             
             if valueHandler:
                 json_data = mapd(json_data, valuef=valueHandler)
@@ -168,7 +168,7 @@ def dump_json(json_data):
     return json.dumps(json_data, indent=4, sort_keys=True, cls=CustomJsonEncoder)    
     
 @debugger
-def write_json_to(json_path, json_data, dbg=None, ):
+def write_json_to(json_path, json_data, dbg=None, **kwargs):
 
     json_path = Path(str(json_path))
 
@@ -201,7 +201,7 @@ def update_json(parentdir, update_data, json_url="data.json", **kwargs):
     return update_json_at(json_path, update_data, **kwargs)
 
 
-def update_json_at(update_path, update_data, dbg=None):
+def update_json_at(update_path, update_data, dbg=None, **kwargs):
     """ Simple update method. Needs to handle merging better.  """
 
     json_data = load_json_from(update_path)

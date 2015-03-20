@@ -20,5 +20,5 @@ $PD \
 
 echo "Generated html5... "
 
-wkhtmltopdf --print-media-type --page-size letter "${OUTPUT_NAME}.html" "${OUTPUT_NAME}.pdf"
+wkhtmltopdf --print-media-type --page-size letter --default-header "${OUTPUT_NAME}.html" "${OUTPUT_NAME}.pdf"
 

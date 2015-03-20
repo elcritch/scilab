@@ -73,7 +73,10 @@ class TestFileStructure(DataTree):
         print("Saving json file `{filename}` with fields: {fields}".format(
                 filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
         
-        return Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
+        if kwargs.get('overwrite', False) == True:
+            return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
+        else:
+            return Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
     
     def save_graph_raw(self, testinfo, version, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         

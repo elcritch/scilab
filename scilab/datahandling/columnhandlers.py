@@ -16,6 +16,12 @@ import scilab.tools.jsonutils as Json
 
 import numpy as np
 
+def asvalue(value, units, stdev=None):
+    if stdev:
+        return DataTree(value=value, units=units, stdev=stdev)
+    else:
+        return DataTree(value=value, units=units)
+
 
 @unwrap_array
 def getmax(array):

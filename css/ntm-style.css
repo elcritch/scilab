@@ -429,11 +429,17 @@ sub {
     }
 }
 
-
 @media print {
 	
+    p.breakhere {
+		page-break-before: always
+	}
+	
 	body {
-		background: #fff
+		background: #fff;
+		size:8.5in 11in; 
+	    margin-top: 1.5in;
+	    margin-bottom: 1.5in;
 	}
 	
 /*	http://css-tricks.com/almanac/properties/p/page-break/ */
@@ -445,8 +451,11 @@ sub {
 	#wrapper {
 		background: #fff;
 		border: 0;
-		padding: 4px;
-		margin: 5px;
+/*		padding: 10px;*/
+/*		margin: 10px;*/
+	    margin-top: 3in;
+	    margin-bottom: 1.5in;
+		
 		font-size: 8px;
 		line-height: 1.2
 	}
@@ -454,7 +463,7 @@ sub {
 	@page {
 	    counter-increment: page;
 	    counter-reset: page 1;
-	    @top-right {
+	    @bottom-right {
 	        content: "Page " counter(page) " of " counter(pages);
 	    }
 	}
@@ -467,11 +476,11 @@ sub {
 	}
 	
 	img {
-		max-width: 85%
+		max-width: 85%;
 	}
 	
 	table {
-		width: auto;
+/*		width: auto;*/
 /*		width: 70%;*/
 	    margin-left:2%;
 	    margin-right:2%;

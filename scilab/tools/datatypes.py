@@ -26,6 +26,7 @@ def isshape(mapping, *args):
 
 Shapes = collections.OrderedDict(
     valueIndex=["value","idx"],
+    valueIndexUnits=["value","idx", "units"],
     valueUnitsStd=["value","units","stdev"],
     valueUnits=["value","units"],
     linearFit=["slope","intercept"],
