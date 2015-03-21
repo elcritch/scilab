@@ -61,9 +61,98 @@ def shapeof(v):
         return ("", "", [])
         
         
+class OrderedUserDict:
+    def __init__(self, dict=None, **kwargs):
+        self.__dict__['__ordereddict__'] = collections.OrderedDict()
+        if dict is not None:
+            self.update(dict)
+        if len(kwargs):
+            self.update(kwargs)
+    def __repr__(self): return dict.__repr__(self.__ordereddict__)
+    def __cmp__(self, other):
+        if isinstance(other, OrderedUserDict):
+            print("cmp:", other)
+            return cmp(self.__ordereddict__, other.data)
+        else:
+            print("cmp:", other)
+            return cmp(self.__ordereddict__, other)
+    def __eq__(self, other):
+        if other is None:
+            pass
+        elif isinstance(other, OrderedUserDict):
+            print("eq:orderd:", other)
+            return self.__ordereddict__ == other.__ordereddict__
+        elif isinstance(other, type({})) or not hasattr(other, 'items'):
+            print("eq:dict:", other, )
+            return self.__ordereddict__ == other
+    def __len__(self): return len(self.__ordereddict__)
+    def __getitem__(self, key):
+        if key in self.__ordereddict__:
+            return self.__ordereddict__[key]
+        if hasattr(self.__class__, "__missing__"):
+            return self.__class__.__missing__(self, key)
+        raise KeyError(key)
+    def __setitem__(self, key, item): self.__ordereddict__[key] = item
+    def __delitem__(self, key): del self.__ordereddict__[key]
+    def clear(self): self.__ordereddict__.clear()
+    def copy(self):
+        if self.__class__ is OrderedUserDict:
+            return OrderedUserDict(self.__ordereddict__.copy())
+        import copy
+        data = self.__ordereddict__
+        try:
+            self.__ordereddict__ = {}
+            c = copy.copy(self)
+        finally:
+            self.__ordereddict__ = data
+        c.update(self)
+        return c
+    def keys(self): return self.__ordereddict__.keys()
+    def items(self): return self.__ordereddict__.items()
+    def iteritems(self): return self.__ordereddict__.iteritems()
+    def iterkeys(self): return self.__ordereddict__.iterkeys()
+    def itervalues(self): return self.__ordereddict__.itervalues()
+    def values(self): return self.__ordereddict__.values()
+    def has_key(self, key): return key in self.__ordereddict__
+    def update(self, d=None, **kwargs):
+        if d is None:
+            pass
+        elif isinstance(d, OrderedUserDict):
+            self.__ordereddict__.update(d.__ordereddict__)
+        elif isinstance(d, type({})) or not hasattr(d, 'items'):
+            self.__ordereddict__.update(d)
+        else:
+            for k, v in d.items():
+                self[k] = v
+        if len(kwargs):
+            self.__ordereddict__.update(kwargs)
+    def get(self, key, failobj=None):
+        if key not in self:
+            return failobj
+        return self[key]
+    def setdefault(self, key, failobj=None):
+        if key not in self:
+            self[key] = failobj
+        return self[key]
+    def pop(self, key, *args):
+        return self.__ordereddict__.pop(key, *args)
+    def popitem(self):
+        return self.__ordereddict__.popitem()
+    def __contains__(self, key):
+        return key in self.__ordereddict__
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        d = cls()
+        for key in iterable:
+            d[key] = value
+        return d
+
+class IterableOrderedUserDict(OrderedUserDict):
+    def __iter__(self):
+        return iter(self.__ordereddict__)
 
 # Helpers
-class DataTree(dict):
+class DataTree(OrderedUserDict, dict):
     """Default dictionary where keys can be accessed as attributes and
     new entries recursively default to be this class. This means the following
     code is valid:
@@ -74,21 +163,10 @@ class DataTree(dict):
     True
     """
     def __init__(self, *args, **kwdargs):
-        if 'defaults' in kwdargs:
-            defaults = kwdargs['defaults']
-            if not type(defaults) == list:
-                defaults = defaults.split() 
-            for arg in defaults:
-                kwdargs[arg] = None
-        if 'withProperties' in kwdargs:
-            defaults = kwdargs.pop('withProperties')
-            if not type(defaults) == list:
-                defaults = defaults.split() 
-            for arg in defaults: 
-                kwdargs[arg] = DataTree()
+        OrderedUserDict.__init__(self, *args, **kwdargs)
         
-        super().__init__(*args, **kwdargs)
-                
+        # self.__dict__['__ordereddict__'] = collections.OrderedDict(*args, **kwdargs)
+        
     def set(self,**kw):
         copy = DataTree(self)
         copy.update(**kw)
@@ -100,6 +178,7 @@ class DataTree(dict):
     def __sub__(self, other):
         return DataTree( (k,v) for k,v in self.items() if k not in other )
         
+
     def __getattr__(self, name):
         if name in self:
             return self.__getitem__(name)
@@ -109,10 +188,15 @@ class DataTree(dict):
     def _keyerror(self, name):
         avail_keys = set(str(s) for s in self.keys())
         return "Key `{}` not found in: {}".format(name,avail_keys)
+    
+    def has_key(self, key): 
+        return key in self.__ordereddict__
         
     def __setattr__(self, name, value):
-        self[name] = value
-                    
+        # self[name] = value
+        
+        self.__ordereddict__[name] = value
+            
         return value
     
     def __getitem__(self, name):
@@ -135,10 +219,10 @@ class DataTree(dict):
         if isinstance(name,tuple):
             try:
                 try:
-                    if name[0] in self:
+                    if name[0] in self.__ordereddict__:
                         super().__getitem__(name[0]).__setitem__(name[1:], value)
                     else:
-                        top = self
+                        top = self.__ordereddict__
                         for sub in name[:-1]:
                             subdict = DataTree()
                             top[sub] = subdict 
@@ -152,16 +236,14 @@ class DataTree(dict):
                 raise ValueError("unable to create subtree `{}` from: `{}`".format(name, err.args[-1]),err.args[-1])
         else:
             
-            super().__setitem__(name, value)
+            # Maintain Insert Order
+            self.__ordereddict__[name] = value
+            # self..__setitem__(name, value)
     
-    def __str__(self):
-        return pprint.pformat(self)
-
-    def __iter__(self):
-        return sorted(self._keys()).__iter__()
 
     def astuples(self):
         return flatten(self, astuple=True, sort=True)
+            
 
 def mapd(d, valuef=(lambda k, v: v), keyf=(lambda k,v: k) ):
     return DataTree({ keyf(k,v): valuef(k,v) for k,v in d.items() })
@@ -274,10 +356,12 @@ if __name__ == '__main__':
             d2.a = 3
     
             print("d1:",d1)
+            print("d1:",d1.__dict__)
             print("d2:",d2)
             # print("d2:",d2.zz)
 
-            assert d1 == {'a': {'aa': 'sublevel'}, 'b': {}, 'c': {'cc': 'sublevel'}} 
+            assert {'a': {'aa': 'sublevel'}, 'b': {}, 'c': {'cc': 'sublevel'}} == d1
+            assert d1 == {'a': {'aa': 'sublevel'}, 'b': {}, 'c': {'cc': 'sublevel'}}
             assert d2 == {'a': 3, 'b': {}, 'c': {'cc': 'sublevel'}} 
             
         @test_in(tests)
@@ -348,6 +432,7 @@ if __name__ == '__main__':
             print(d1)
             
             fd1 = flatten(d1,sep='_')
+            print("fd1",fd1)
             assert fd1 == {'a_b_bb':'foo', 'c_subc':True}
             
             fd2 = flatten(d1, astuple=True)
@@ -371,5 +456,5 @@ if __name__ == '__main__':
             print("d1:",d1)
             print("d1.keys",d1.keys())
             print("d1.items",d1.items())
-            # print("d1._keys",d1._keys)
+            print("d1.__ordereddict__",d1.__ordereddict__)
             
