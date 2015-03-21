@@ -26,7 +26,7 @@ def parse_fatigue_data_sheet_v1(ws):
     
     rng = rangerForRow(ws)
 
-    data = {}
+    data = DataTree()
     data['info'] = DataTree()
     data['info'].update( dictFrom(rng('A1:B1')) )
     
@@ -54,33 +54,33 @@ def parse_fatigue_data_sheet_v1(ws):
     debug(other)
     
     # gauge
-    data['gauge'] = gauge = DataTree()
-    gauge.units = 'mm' # default
+    gauge = DataTree()
+    units = 'mm' # default
     
     if 'gauge' in other:
-        gauge.value = other.pop('gauge')
+        gauge.length = valueUnits(other.pop('gauge', units), units)._asdict()
     
     if 'init_position' in other:
-        gauge.init_position = other.pop('init_position')
+        gauge.init_position = valueUnits(other.pop('init_position'), units)._asdict()
     elif 'gauge_init' in other:
-        gauge.init_position = other.pop('gauge_init')
+        gauge.init_position = valueUnits(other.pop('gauge_init'), units)._asdict()
     
     if 'gauge_base' in other:
-        gauge.base = other.pop('gauge_base')
+        gauge.base = valueUnits(other.pop('gauge_base'), units)._asdict()
     elif 'base_position' in other:
-        gauge.base = other.pop('base_position')
+        gauge.base = valueUnits(other.pop('base_position'), units)._asdict()
     else:
         logging.warn("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
-    
-    data['other'] = other
+    data['excel','other'] = other
+    data['measurements'] = DataTree(gauge=gauge)
     
     debug(data.keys())
     # data.measurements.area.value = other.pop('area')
     
     notes = {}
     process_definitions_column(ws, notes, 'A', end+1,end+5, stop_key=None, dbg=None)
-    data['notes'] = notes
+    data['excel','notes'] = notes
     
     return data
     
@@ -113,7 +113,7 @@ def process_image_measurements_v1(testconf, imgdata):
     measurements.width.value = imgdata.front.widths.average.mean
     
     if not 'side' in imgdata:
-        logging.warn("Could not find side measurement for: "+str(testconf.info))
+        logging.error("Could not find side measurement for: "+str(testconf.info))
         measurements.depth.value = 1.00
         measurements.depth.stdev = -1.0
     else:
@@ -236,9 +236,9 @@ def handler(testconf, excelfile, args):
     # print(mdBlock("<pre>\n"+json.dumps(data,indent=4)+"\n</pre>"))
     updateMetaData(data)
     
-    excel_data = DataTree(notes=data.pop("notes"), other=data.pop("other"))
-    json_data = collections.OrderedDict(excel=excel_data, **data)
-    testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=json_data)
+    # excel_data = DataTree(notes=data.pop("notes"), other=data.pop("other"))
+    json_data = collections.OrderedDict(sorted(data.items()))
+    testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=json_data, overwrite=True)
     
     ## Update with Image Measurements
     
@@ -248,7 +248,7 @@ def handler(testconf, excelfile, args):
     
     updateMetaData(data)
 
-    testconf.folder.save_calculated_json_raw(test=testconf, name='measurements',json_data=data)
+    testconf.folder.save_calculated_json_raw(test=testconf, name='measurements',json_data=data, overwrite=True)
     
     return
 

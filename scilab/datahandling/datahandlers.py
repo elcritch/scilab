@@ -32,7 +32,10 @@ def executeexpr(expr, **env):
     try:
         print("executeexpr::expr: `{}`".format(expr))
         
-        value = eval(expr, env)
+        helpers = DataTree( asval=columnhandlers.asvalue, getvar=columnhandlers.getvar )
+        
+        value = eval(expr, helpers+env)
+        
         # print("executeexpr::result:", value,'\n')
         return value
     except Exception as err:
@@ -58,10 +61,17 @@ def builtin_action_exec(values, **env):
     for name, item in vars(columnhandlers).items():
         calc[name] = item
     
+    
     # debug("builtin_action_exec",values)
     results = DataTree()
-    for varname, expr in values.items():
-        results[varname] = executeexpr(expr, calc=calc, **env)
+    
+    try:
+        flat_values = flatten(values, astuple=True, tolist=True)
+        for varname, expr in flat_values:
+            results[varname] = executeexpr(expr, calc=calc, **env)
+    except Exception as err:
+        debug(repr(flat_values))
+        raise err
         
     return results
 
@@ -79,16 +89,20 @@ def builtin_action_csv(filevalue, **env):
     return filestruct
     
 def handle_builtin_actions(prop, env):
-    key, value = getpropertypair(prop)
-    # debug(key, value,)
-    if key == '_lookup_':
-        return builtin_action_lookup(value, **env)
-    elif key == '_csv_':
-        return builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
-    elif key == '_exec_':
-        return builtin_action_exec(value, **env)
-    else:
-        raise KeyError("Unknown builtin: `{}`".format(key))
+    try:
+        key, value = getpropertypair(prop)
+        # debug(key, value,)
+        if key == '_lookup_':
+            return builtin_action_lookup(value, **env)
+        elif key == '_csv_':
+            return builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
+        elif key == '_exec_':
+            return builtin_action_exec(value, **env)
+        else:
+            raise KeyError("Unknown builtin: `{}`".format(key))
+    except Exception as err:
+        debughere()
+        raise err
 
 def getpropertypair(json_object):
     assert len(json_object) == 1

@@ -377,7 +377,7 @@ def test_folder(args):
         return arg.replace('\n','')
     
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:1]:
         # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
             # continue
         
@@ -418,7 +418,7 @@ def main():
     # test_run()
     
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.onlyVars = True
     args.version = "0"
     # args.excel = True

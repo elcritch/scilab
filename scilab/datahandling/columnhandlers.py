@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib, re, collections
+import os, sys, pathlib, re, collections, numbers
 import pandas as pd
 import numpy as np
 import scipy.io as sio
@@ -15,6 +15,16 @@ from scilab.tools.instroncsv import *
 import scilab.tools.jsonutils as Json
 
 import numpy as np
+
+def getvar(base, name, default):
+    assert isinstance(base, DataTree)
+    varpath = tuple(name.split('.'))
+    debug(varpath, base)
+    val = base[varpath]
+    if val != None and isinstance(val, numbers.Number):
+        return val
+    
+    return val if val else default
 
 def asvalue(value, units, stdev=None):
     if stdev:

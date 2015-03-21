@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
-import pprint, collections, numbers
+import pprint, collections, numbers, itertools
 
 try:
     from testingtools import Tests, test_in
@@ -23,6 +23,12 @@ def hasshape(mapping, *args):
 def isshape(mapping, *args):
     keys = set(mapping.keys())
     return keys == set(args)
+
+valueIndex=namedtuple("valueIndex", ["value","idx"])
+valueIndexUnits=namedtuple("valueIndexUnits", ["value","idx", "units"])
+valueUnitsStd=namedtuple("valueUnitsStd", ["value","units","stdev"])
+valueUnits=namedtuple("valueUnits", ["value","units"])
+linearFit=namedtuple("linearFit", ["slope","intercept"])
 
 Shapes = collections.OrderedDict(
     valueIndex=["value","idx"],
@@ -55,6 +61,7 @@ def shapeof(v):
         return ("", "", [])
         
         
+
 # Helpers
 class DataTree(dict):
     """Default dictionary where keys can be accessed as attributes and
@@ -81,27 +88,17 @@ class DataTree(dict):
                 kwdargs[arg] = DataTree()
         
         super().__init__(*args, **kwdargs)
-        
+                
     def set(self,**kw):
         copy = DataTree(self)
         copy.update(**kw)
         return copy
         
-    # def merge(self, other):
-    #     def mergerer(d, ):
-    #         if isinstance(v, collections.MutableMapping):
-    #             for k, v in d.items():
-    #                 mergerer(v)
-    #     def mergerer(d, parent_key='', sep='_'):
-    #         items = []
-    #         for k, v in d.items():
-    #             new_key = parent_key + sep + str(k) if parent_key else str(k)
-    #             if isinstance(v, collections.MutableMapping):
-    #                 items.extend(flatten(v, new_key, sep=sep).items())
-    #             else:
-    #                 items.append((new_key, v))
-    #         return collections.OrderedDict(items)
-    #     self.update(updated)
+    def __add__(self, other):
+        return self.set(**other)
+        
+    def __sub__(self, other):
+        return DataTree( (k,v) for k,v in self.items() if k not in other )
         
     def __getattr__(self, name):
         if name in self:
@@ -115,6 +112,7 @@ class DataTree(dict):
         
     def __setattr__(self, name, value):
         self[name] = value
+                    
         return value
     
     def __getitem__(self, name):
@@ -153,13 +151,14 @@ class DataTree(dict):
             except ValueError as err:
                 raise ValueError("unable to create subtree `{}` from: `{}`".format(name, err.args[-1]),err.args[-1])
         else:
+            
             super().__setitem__(name, value)
     
     def __str__(self):
         return pprint.pformat(self)
 
     def __iter__(self):
-        return sorted(super().__iter__()).__iter__()
+        return sorted(self._keys()).__iter__()
 
     def astuples(self):
         return flatten(self, astuple=True, sort=True)
@@ -169,6 +168,21 @@ def mapd(d, valuef=(lambda k, v: v), keyf=(lambda k,v: k) ):
 
 def mapl(*args, **kwargs):
     return list(map(*args, **kwargs))
+
+def consd(*dicts):
+    return DataTree( itertools.chain.from_iterable(d.iteritems() for d in args) )
+
+def flatd(d):
+    return list( (k,v) for k,v in d.items())
+
+def pruned(d, *args):
+    dn = d.copy()
+    for a in args:
+        dn.pop()
+    return dn
+
+def unpack(d, *args):
+    return tuple( d[i] for i in args)
 
 def flatten(d, parent_key='', sep='.', func=None, ignore=[], astuple=False, sort=True, tolist=False, dolist=False):
     if not isinstance(d, collections.MutableMapping):
@@ -341,4 +355,21 @@ if __name__ == '__main__':
             print(fd2)
             assert fd2 == { ('a','b','bb'): 'foo', ('c','subc'):True }
             
+        @test_in(tests)
+        def test_iters():
+            
+            d1 = DataTree()
+            print()
+
+            d1.a = 'alpha'
+            d1.z = 'zeta'
+            d1['c','ca'] = 'foo1'
+            d1['c','cc'] = 'foo2'
+            d1['b','ac'] = 'bar2'
+            d1['b','ab'] = 'bar3'
+            
+            print("d1:",d1)
+            print("d1.keys",d1.keys())
+            print("d1.items",d1.items())
+            # print("d1._keys",d1._keys)
             
