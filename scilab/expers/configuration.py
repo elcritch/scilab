@@ -105,7 +105,7 @@ class TestFileStructure(DataTree):
         
 class FileStructure(DataTree):
 
-    def __init__(self, projdescpath, testinfo, verify=True):
+    def __init__(self, projdescpath, testinfo, verify=True, project=None):
         projdescpath = Path(str(projdescpath)).resolve()
         
         if not projdescpath.exists():
@@ -119,7 +119,7 @@ class FileStructure(DataTree):
         self.experiment_name = names[0]
         self.test_name = names[1:]
 
-        self.project = projdescpath.parent
+        self.project = projdescpath.parent if not project else project
 
         if not (self.project / '.git').is_dir():
             logging.warn("No git folder present for project: {}".format(self.project))

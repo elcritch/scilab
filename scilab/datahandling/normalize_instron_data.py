@@ -354,13 +354,14 @@ def test_folder(args):
     import scilab.expers.configuration as config
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
-    parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
+    # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
+    parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
-    print(pdp.resolve())
+    # print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True, project=parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
