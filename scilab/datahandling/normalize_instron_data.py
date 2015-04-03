@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib, re
+import os, sys, pathlib, re, logging
 import pandas as pd
 import numpy as np
 import scipy.io as sio
@@ -381,12 +381,14 @@ def test_folder(args):
     def display(*args, **kwargs):
         print(*args, **kwargs)
     
-    def HTML(arg):
-        return arg.replace('\n','')
+    def HTML(arg, whitespace=None):
+        if whitespace:
+            return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
+        else:
+            ret = arg.replace('\n','\r')
+            return ret
     
-    for name, testconf in sorted( testitems.items() )[:1]:
-        # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
-            # continue
+    def execute(name, testconf):
         
         print("\n")
         display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
@@ -398,7 +400,7 @@ def test_folder(args):
         data = sorted(data)
     
         print()
-        display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
+        print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
         debug(folder.data.relative_to(parentdir))
         
         args.testname = name
@@ -419,13 +421,29 @@ def test_folder(args):
         print(mdHeader(2, "Merging JSON Data"))
         merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
         
+    summaries = OrderedDict()
+    
+    for name, testconf in sorted( testitems.items() )[:]:
+        # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
+            # continue
+        
+        try:
+            execute(name, testconf)
+            summaries[name] = "Success"
+        except Exception as err:
+            logging.error(err)
+            summaries[name] = "Failed"
+        
+    print("Summaries:\n\n")
+    print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    print()
 
 def main():
     
     # test_run()
     
     args = DataTree()
-    args.forceRuns = DataTree(raw=True, norm=True)
+    args.forceRuns = DataTree(raw=False, norm=False)
     # args.onlyVars = True
     args.onlyVars = False
     args.version = "0"

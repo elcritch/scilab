@@ -75,8 +75,8 @@ def handler(testconf, excelfile, args):
     rows = [ (k,v) for k,v in flatten(data).items() ]
     rows = sorted(rows)
 
-    print()
-    print(HTML(tabulate.tabulate( rows, [ "Key", "Value", ], tablefmt ='html' )))
+    # print()
+    # print(HTML(tabulate.tabulate( rows, [ "Key", "Value", ], tablefmt ='html' )))
     
     # print(mdBlock("<pre>\n"+json.dumps(data,indent=4)+"\n</pre>"))
     updateMetaData(data)

@@ -28,7 +28,6 @@ def tupleFrom(ws, base, n=2):
     colNext = col[:-1] + chr(ord(col[-1])+(n-1))
     cells = next(ws[col+row:colNext+row])
     ret = tuple( c.value for c in cells )
-    print("tupleDownFrom:",ret)
     return ret
     
 def tupleDownFrom(ws, base):
