@@ -79,7 +79,7 @@ def parser_data_sheet_excel(ws):
     other = DataTree()
     
     ## continue reading the column down 
-    end = process_definitions_column(ws, other, 'A',10,22, stop_key='UTS Stress', dbg=False, has_units=False)
+    end = process_definitions_column(ws, other, 'A',9,22, stop_key='UTS Stress', dbg=False, has_units=False)
     end = process_definitions_column(ws, other, 'A', 23, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
     
     other.pop('area')
@@ -96,12 +96,12 @@ def parser_data_sheet_excel(ws):
     if 'gauge_init' in other:
         gauge.init_position = valueUnits(other.pop('gauge_init'), units)._asdict()
     else:
-        raise ValueException("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
+        raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
     if 'gauge_base' in other:
         gauge.base = valueUnits(other.pop('gauge_base'), units)._asdict()
     else:
-        raise ValueException("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
+        raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
     data['excel','other'] = other
     data['measurements','datasheet'] = measurements
