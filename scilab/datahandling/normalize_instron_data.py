@@ -362,7 +362,8 @@ def test_folder(args):
     args.parser_image_measurements = exper.parser_image_measurements
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
-    parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
+    # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
@@ -424,8 +425,8 @@ def test_folder(args):
     summaries = OrderedDict()
     
     for name, testconf in sorted( testitems.items() )[:]:
-        # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
-            # continue
+        if name != "jan13(gf10.2-rlm)-wa-tr-l8-x1":
+            continue
         
         try:
             execute(name, testconf)
@@ -433,6 +434,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
+            raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))

@@ -81,8 +81,10 @@ def parser_data_sheet_excel(ws):
     ## continue reading the column down 
     end = process_definitions_column(ws, other, 'A',9,22, stop_key='UTS Stress', dbg=False, has_units=False)
     end = process_definitions_column(ws, other, 'A', 23, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
+
+    if 'area' in other:
+        other.pop('area')
     
-    other.pop('area')
     debug(other)
     
     # gauge
