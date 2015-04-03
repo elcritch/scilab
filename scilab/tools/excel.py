@@ -1,6 +1,7 @@
 ## Utils 
 import shutil, re, sys, os, itertools, argparse, json, types
 import openpyxl
+from scilab.tools.project import *
 
 
 def wsRange(ws, rng):
@@ -21,11 +22,14 @@ def rangerFor(ws):
 def rangerForRow(ws):
     return lambda r: wsRange(ws, r)[0]
     
-def tupleFrom(ws, base):
+def tupleFrom(ws, base, n=2):
     col, row = re.match('([A-Za-z]+)(\d+)', base).groups()
-    colNext = col[:-1] + chr(ord(col[-1])+1)
+    
+    colNext = col[:-1] + chr(ord(col[-1])+(n-1))
     cells = next(ws[col+row:colNext+row])
-    return (cells[0].value, cells[1].value )
+    ret = tuple( c.value for c in cells )
+    print("tupleDownFrom:",ret)
+    return ret
     
 def tupleDownFrom(ws, base):
     col, row = re.match('([A-Za-z]+)(\d+)', base).groups()
@@ -58,11 +62,17 @@ def dictFrom(values):
     
     return data
 
-def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None):
+def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None, has_units=False):
     for i in range(i,j):
         # debug(col, i,)
         
-        k, v = tupleFrom(ws, '%s%d'%(col,i))
+        if not has_units:
+            k, v = tupleFrom(ws, '%s%d'%(col,i),n=2)
+        elif has_units:
+            ret = tupleFrom(ws, '%s%d'%(col,i),n=3)
+            k = ret[0]
+            v = valueUnits(*ret[1:])._asdict()
+            
         if not k:
             continue
         elif type(k) in  [float, int]:
@@ -77,7 +87,7 @@ def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None):
         #         from Project import debug
         #     debug(k, v, '\n')
         
-        data.update( dictFrom((k,v)) )    
+        data.update( dictFrom((k,v)) )
     
     return i
     

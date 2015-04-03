@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import codecs, encodings, pprint
+import codecs, encodings, pprint, gzip
 import numpy as np
 
 import collections, itertools, logging
@@ -180,8 +180,12 @@ import time
 
 def csvread(fileName):
     
+    fileName = str(fileName)
     
-    with open(str(fileName), 'rb') as fileObject:
+    if fileName.endswith('.gz'):
+        open = gzip.open
+    
+    with open(fileName, 'rb') as fileObject:
         t0 = time.time()
         # this must be done to properly read the instron generated csv file which is iso-8859-1 encoded
         # it appears to be a numpy bug in np.genfromtxt that doesn't allow/follow different codecs

@@ -84,8 +84,13 @@ def builtin_action_csv(filevalue, **env):
     # filetype, filevalue = getpropertypair(prop)
     
     # filepath = userstrtopath(filevalue, env)
-    data = csvread(filevalue)
-    filestruct = DataTree(path=filevalue, data=data)
+    try:
+        data = csvread(filevalue)
+        filestruct = DataTree(path=filevalue, data=data)
+    except Exception as err:
+        logging.error(err)
+        raise Exception("Error reading csv file", filevalue, )
+        
     return filestruct
     
 def handle_builtin_actions(prop, env):
@@ -101,7 +106,7 @@ def handle_builtin_actions(prop, env):
         else:
             raise KeyError("Unknown builtin: `{}`".format(key))
     except Exception as err:
-        debughere()
+        # debughere()
         raise err
 
 def getpropertypair(json_object):
@@ -251,6 +256,12 @@ def save_columns(columnmapping, filenames, configuration, indexes=[{'column':'st
     indexes = getindexes(indexes, orderedmapping)
     # debug(indexes)
     
+    for filetype, filepath in filenames.names.items():
+        parent = Path(str(filepath)).parent 
+        if not parent.exists():
+            print("Info:: Making parent directory: {parent}")
+            os.makedirs(str(parent))
+    
     try:
         if 'matlab' in filenames.names:
             save_columns_matlab(columnmapping, orderedmapping, configuration, indexes, filenames.names.matlab)
@@ -373,7 +384,7 @@ def save_columns_excel(columnmapping, orderedmapping, configuration, indexes, fi
         # [ENH: Better handling of MultiIndex with Excel](https://github.com/pydata/pandas/issues/5254)
         # [Support for Reading Excel Files with Hierarchical Columns Names](https://github.com/pydata/pandas/issues/4468)
         print("Creating excel file...")
-        df1.to_excel(writer,'Data')
+        df1.to_excel(writer,'Data', float_format="%12.4f")
         df2.to_excel(writer,'ColumnInfo')
         df3.to_excel(writer,'Indexes')
         df4.to_excel(writer,'Configuration')

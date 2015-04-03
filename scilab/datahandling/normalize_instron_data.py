@@ -13,7 +13,7 @@ from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
-import scilab.utilities.make_data_json as make_data_json
+import scilab.datahandling.datasheetparser as datasheetparser
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
@@ -155,7 +155,10 @@ def process(testfolder, data, processor, state):
         default_index = [{"column":'step',"type":"int"},]
         save_config = DataTree(projdesc=json.dumps(state.projdesc))
         header=OrderedDict(method=state.methodname, item=state.methoditem.name)
-        missingFiles = lambda x: [ k for k,v in x.items() if not v.exists() ]
+        def missingFiles(x): 
+            missing = [ k for k,v in x.items() if not v.exists() ]
+            debug(missing)
+            return missing
     
         forceRuns = state.args.get('forceRuns',DataTree())
         debug(forceRuns)
@@ -246,7 +249,7 @@ def handle_files(data, methoditem, state, testfolder):
         # try:
         filetype, filevalue = getpropertypair(methoditem.files)
         debug(filevalue)
-        filename = safefmt(filevalue,**env)
+        filename = safefmt(getproperty(filevalue, action=True, errorcheck=False, env=env),**env)
         debug(filename)
         filepath = matchfilename(filename, strictmatch=False)
         debug(filepath)
@@ -352,7 +355,11 @@ def test_run():
 def test_folder(args):
     
     import scilab.expers.configuration as config
-    import scilab.expers.mechanical.fatigue.uts as exper_uts
+    # import scilab.expers.mechanical.fatigue.uts as exper
+    import scilab.expers.mechanical.fatigue.cycles as exper
+    
+    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
+    args.parser_image_measurements = exper.parser_image_measurements
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
@@ -361,7 +368,7 @@ def test_folder(args):
     print(pdp)
     # print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True, project=parentdir)
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
@@ -377,7 +384,6 @@ def test_folder(args):
     def HTML(arg):
         return arg.replace('\n','')
     
-    
     for name, testconf in sorted( testitems.items() )[:1]:
         # if name != "nov24(gf9.2-lmm)-wf-lg-l4-x2":
             # continue
@@ -388,7 +394,7 @@ def test_folder(args):
         folder = fs.testfolder(testinfo=testconf.info)
         
         data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
-                    for k,v in flatten(folder).items() ]
+                    for k,v in flatten(folder).items() if v ]
         data = sorted(data)
     
         print()
@@ -404,7 +410,7 @@ def test_folder(args):
         # update json details
         
         print(mdHeader(2, "Make JSON Data"))
-        make_data_json.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+        datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
         merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
         
         print(mdHeader(2, "Run"))
@@ -420,10 +426,11 @@ def main():
     
     args = DataTree()
     args.forceRuns = DataTree(raw=True, norm=True)
-    args.onlyVars = True
+    # args.onlyVars = True
+    args.onlyVars = False
     args.version = "0"
-    # args.excel = True
-    args.excel = False
+    args.excel = True
+    # args.excel = False
     
     
     test_folder(args)

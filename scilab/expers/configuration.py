@@ -150,7 +150,7 @@ class FileStructure(DataTree):
         
     def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, verify=False):
         
-        tf = DataTree(self.projdesc.experiment_config.testfolder)
+        tf = DataTree(self.projdesc["experiment_config"]["testfolder"])
         
         testdir = Path(tf['folder'].format(testinfo=testinfo, **self._files))
         testenv = DataTree(folder=testdir,testinfo=testinfo)
@@ -166,8 +166,9 @@ class FileStructure(DataTree):
             rawdir = Path(test)
             
             if not rawdir.exists():
-                debughere("Missing raw file: {}: {} raw: {}".format(name, test, rawdir))
-                
+                logging.debug("Missing raw file: {}: {} raw: {}".format(name, test, rawdir))
+                continue
+            
             sources = map(Path, glob.glob(str( rawdir / test)))
             sources = sorted( [ t for t in sources if t.is_dir() ], key=lambda x: x.stem, reverse=True)
             source = next(sources.__iter__(), None)
