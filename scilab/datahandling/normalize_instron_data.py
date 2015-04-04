@@ -425,8 +425,8 @@ def test_folder(args):
     summaries = OrderedDict()
     
     for name, testconf in sorted( testitems.items() )[:]:
-        if name != "jan13(gf10.2-rlm)-wa-tr-l8-x1":
-            continue
+        # if name != "jan13(gf10.2-rlm)-wa-tr-l8-x1":
+            # continue
         
         try:
             execute(name, testconf)
@@ -434,7 +434,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -445,12 +445,12 @@ def main():
     # test_run()
     
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
+    args.forceRuns = DataTree(raw=True, norm=True)
     # args.onlyVars = True
     args.onlyVars = False
     args.version = "0"
+    # args.excel = True
     args.excel = True
-    # args.excel = False
     
     
     test_folder(args)
