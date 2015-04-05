@@ -7,11 +7,7 @@ import json as json
 import jsonmerge
 from pathlib import Path
 
-if __name__ != '__main__':
-    from scilab.tools.project import *
-else:
-    from project import *
-
+from scilab.tools.project import *
 
 def stems(file):
     return file.name.rstrip(''.join(file.suffixes))

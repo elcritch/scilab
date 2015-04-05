@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import argparse, re, os, glob, sys, collections, inspect
+import argparse, re, os, glob, sys, collections, inspect, json
 import itertools, inspect, logging, pathlib 
 
 Path = pathlib.Path
@@ -35,6 +35,22 @@ class ColumnInfo(namedtuple('_ColumnInfo', 'name label details units full idx'),
 class InstronColumnData(namedtuple('_InstronColumnData', 'array summary name label details units full idx'), NamedTuple):
     pass
 
+class CustomDebugJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            if isinstance(obj, Path):
+                return str(obj)
+            elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+                return vars(obj)
+            elif isinstance(obj, slice):
+                return (obj.start, obj.step, obj.stop)
+            else:
+                # return super().default(obj)
+                return json.JSONEncoder.default(self, obj)
+                
+        except TypeError as err:
+            # print("Json TypeError:"+str(type(obj))+" obj: "+str(obj))
+            return { '_type_': str(type(obj)), '_value_': repr(obj) }
 
 def todatatree(item,depth=0):
     """convert json to data tree ... """
@@ -68,15 +84,56 @@ def debughere(msg=None, ignores=[]):
 
     if msg:
         raise Exception(msg)
+
+def debugconsole(err):
+    st = inspect.stack()    
+
+    def formatstack(currst):
+        return ""
+    
+    print("<em>Script: Debug Console</em>")
+    print("""__CONSOLE__::
+    <script type="text/javascript">
+    
+        console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
+        
+    </script>
+    """.format(name="traceback", json=json.dumps(tb_dict,cls=CustomDebugJsonEncoder)).replace("\n",""))
+
+from tblib import Traceback
     
 def safefmt(strval, *args, **kwargs):
-    retval, reterr = catcher( lambda: strval.format(*args, **kwargs))
+    retval, reterr = catcher( lambda: strval.format(*args, **kwargs) )
     
     if reterr:
         funcs = '.'.join( f[3] for f in reversed(inspect.stack()) )
         args_d = { i:a for i,a in enumerate(args) }
-        args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
-        kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
+        # args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
+        # kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
+        kwargs_json = json.dumps(kwargs, cls=CustomDebugJsonEncoder)
+        
+        tb = Traceback(reterr.__traceback__)
+        tb_dict = tb.to_dict()
+        print(" <em>Script:</em> ")
+        print("""__CONSOLE__::
+        <script type="text/javascript">
+        
+            console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
+            
+        </script>
+        """.format(name="traceback", json=json.dumps(tb_dict,cls=CustomDebugJsonEncoder)).replace("\n",""))
+        
+        
+        
+        print(" <em>Script:</em> ")
+        print("""__CONSOLE__::
+        <script type="text/javascript">
+        
+            console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
+            
+        </script>
+        """.format(name="kwargs", json=kwargs_json).replace("\n",""))
+        
         raise Exception("Error formatting string: {}".format(strval), reterr)
     
     return retval

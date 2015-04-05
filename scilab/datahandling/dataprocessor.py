@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib, re
+import os, sys, pathlib, re, logging
 import pandas as pd
 import numpy as np
 import scipy.io as sio
@@ -12,335 +12,347 @@ from scilab.expers.configuration import *
 from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
+import scilab.datahandling.columnhandlers as columnhandlers  
+import scilab.datahandling.datasheetparser as datasheetparser
+import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 
-# import pdb
-
-def executeexpr(key, expr, env):
-    
-    try:
-        # change 'data.a.b.c' accesses into getitem style data['a']['b']...
-        # expr = re_attribs('data',expr) 
-        print("Evaluating key: `{}` with code: `{}`".format(key,expr))
-        
-        value = eval(expr, env)
-        print("Evaluated:", value,'\n')
-        return value        
-    except Exception as err:
-        print("executeexpr:env::",env.keys())
-        # print("executeexpr:env::",env['data'].keys())
-        raise err
-
-def process_metadata(testconfig, projdesc):
-    pass
-
 # @debugger
-def action_lookup(value:dict, action, state, testconfig):
-    lookupexpr, lookupoptions = getpropertypair(value)
+def resolve(url):
+    return Path(url).resolve()
+
+
+def process_raw_columns(data, raw_config, state):
+
+    rawdata = data.file.data
+    # debug(rawdata)
     
-    lookupvalue = executeexpr(action, lookupexpr, state.env)
-    debug(lookupvalue)
-    lookupname = lookupoptions.get(lookupvalue, None)
-    if lookupvalue in lookupoptions.keys():
-        return action_field(lookupname, action, state, testconfig)
-    elif "_default_" in options:
-        print(mdBlock("Warning: Could not find: `{}`, choosing default. ", lookupvalue))
-        return action_field("_default_", action, state, testconfig)
-    else:
-        debug(lookupexpr, lookupoptions)
-        debug({ k:'' for k in flatten(state.env, sep=".").keys() })
-        msg = mdBlock("Error: Could not find: `{}`", lookupvalue)
-        raise ProcessorException(msg.strip())
-
-# @debugger
-def action_field(value:str, action, state, testconfig):
+    csv_cols_index_full = { v.full.strip(): v for v in data.file.data.values() 
+                                    if isinstance(v, InstronColumnData) }
     
-    result = executeexpr(action, value, state.env)
-    return result
-
-# @debugger
-def action_csv(value, action, state, testconfig):
-    filepath = userstrtopath(value, testconfig)
-    debug(filepath)
-    data = csvread(filepath)
-    return data
-
-def handle_source_action(name, methoditem_action, testmethod, state, testconfig):
-    action, action_value = getpropertypair(methoditem_action)
-    print(mdBlock("**Action**: {} -> {} -> {}".format(name, action, action_value)))
-
-    # debug(action_value)
-    
-    try:
-        action_handler = {
-            "_csv_":    action_csv,
-            "_field_":  action_field,
-            "_lookup_": action_lookup,
-        }[action]
-        action_handler.__name__ = action
-        sourceret = action_handler(action_value, action, state, testconfig)
-        debug(action_handler)
-        # debug(sourceret)
-        
-        return sourceret
-    except ProcessorException as err:
-        msg = "__Problem executing source action__: {} -> {} :: {}".format(name, action, err)
-        print(mdBlock(msg))
-        raise ProcessorException(msg)
-
-def handle_computation_columns(columninfo, columndata, state, testconfig):
-    
-    # data = DataTree(data)
-    # shortdetails = DataTree(testdetails)
-    # testdetails.__dict__['_ignore'] = ['summaries']
-    # debug(type(data))
-    # debug(data.keys())
-    # print('\n')
+    debug(list(csv_cols_index_full.keys()))
     
     output = []
     
-    # @debugger
-    def normalize_column(item, source):
-        debug(item)
+    for rawcol in raw_config.columns:
+        print("<i>Raw Column:<i> {}".format(repr(rawcol.info)))        
         
-        column = item.column
-        
-        key, sourceval = getpropertypair(source)
-        
-        if key == '_stage_':
-            # key, sourceval = '_field_',
-            debug(key, sourceval, columndata)
-            colstr = sourceval.format(**flatten(item,sep='_'))
-            normeddata = columndata[colstr]
-            
-            raise Exception(key, sourceval, columndata)
-            
-            # normeddata = action_fieldon_lookup(source, key, state, testconfig)
-            # normeddata = executeexpr(key, sourceval, state.env.set(data=columndata))
-        elif key == '_lookup_':
-            key, sourceval = getpropertypair(source)
-            normeddata = action_field(source, key, state, testconfig)
-            
-        elif key == '_field_':
-            key, sourceval = getpropertypair(source)
-            debug(key, sourceval)
-            normeddata = executeexpr(key, sourceval, state.env)
-            # raise Exception(normeddata)
-            
+        # ============================================================
+        # = Handle Raw Columns with multiple possible row conditions =
+        # ============================================================
+        if rawcol.get('source', None):
+            env = DataTree(details=state.details, **data)
+            sourcecol = getproperty(rawcol.source, action=True, env=env)
+            # fullsourcename = next([ o.full for o in output if o.name == sourcecol])
+            # fulls.append(fullsourcename)
+            if sourcecol[0].isspace():
+                raise ValueError("Column Names cannot include spaces!", sourcecol, rawcol)
+            debug(sourcecol, [ (rc.name, oc.name,rc.name==sourcecol, sourcecol) for rc,oc in output ])
+            origcol = [ oc for rc,oc in output if rc.name == sourcecol ][0]
+            output.append((rawcol.info, origcol))
         else:
-            raise Exception("Unimplemented normalization source mode: "+str(source))
+            # otherwise process "full" name(s)
+            fulls = rawcol.get('fulls',[])
             
-        if '_constant_' in item.get('conversion',{}):
-            key, constantexpr = getpropertypair(item.conversion)
-            constant_factor = executeexpr(key, constantexpr, details=testdetails)
-            normeddata = normeddata * constant_factor             
-        elif len(item.get('conversion',{})) >= 1:
-            raise Exception("Unimplemented normalization conversion mode: "+str(item.conversion))
+            # first add any single names
+            if rawcol.info.get('full', None):
+                fulls.append(rawcol.info.full)
+        
+            # next check for 
+            for full in fulls:
+                rawcol.info.full = full
+                if full in csv_cols_index_full:
+                    break
+        
+            if full not in csv_cols_index_full:
+                debughere()
+                cols = ''.join(map("<li>{}</li>".format, csv_cols_index_full.keys()))
+                msg = "Column Missing from Data: column: `{}` data file columns: \n<ul>{}</ul>".format(
+                    repr(rawcol.info.full), cols)
+                print(msg)
+                raise KeyError(msg)        
+        
+            output.append((rawcol.info, csv_cols_index_full[full]))
+    
+    return output 
+
+def normalize_columns(data, norm_config, filenames, state):    
+    output = []
+    
+    get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
+    re_attribs = lambda k, s: re.sub(r"(%s)((?:\.\w+)+)"%k, lambda m: print(m.groups()) or m.groups()[0]+get_attr_to_item(m.groups()[1][1:]), s)
+            
+    # @debugger
+    def _normalize(col):
+
+        env = DataTree(details=state.details, **data)
+        sourcecol = getproperty(col.source, action=True, env=env)
+
+        print(mdHeader(4, "Column: {}", sourcecol))
+        
+        normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)
+        normedinfo = executeexpr("raw.columninfo.{col}".format(col=sourcecol), **env)
+        normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )
+                
+        col.info = normedinfo.set(**col.get('info',{}))
+        if col['conversion','constant']:
+            key, constantexpr = getpropertypair(col.conversion)
+            constant_factor = executeexpr(constantexpr, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            debug(constant_factor)
+            normeddata = normeddata * constant_factor
+        if col['conversion','func']:
+            key, constantexpr = getpropertypair(col.conversion)
+            normeddata = executeexpr(constantexpr, x=normeddata, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            
         
         return normeddata
-        
-    # debug(columninfo, state.testsourcemethoditem)
-    cols = tuple(columninfo.split('.'))
-    # debug(cols)
-    colconfs = state.env['_shared_'][cols]
-    # debug(colconfs)
-    columnconfigs = colconfs[state.testsourcemethoditem]
-    stagesource = colconfs.get('_source_',DataTree())
-    # debug(columnconfigs)
     
-    for item in columnconfigs:
-        source = item.get('_source_',stagesource)
-                    
-        print(mdHeader(4, "Column name: `{}` from source: `{}`",item.column.name, source))
-        normedcoldata = normalize_column(item, source)
-        # debug(normedcoldata)
-        print("Normed data name:{} shape:{}".format(item.column.label, normedcoldata.shape))
+    # ====================================================
+    # = Process Normalized Columns (one column per item) =
+    # ====================================================
+    for col in norm_config.columns:
+        normedcoldata = _normalize(col)
+        debug(normedcoldata)
+        print("Normed data name:{} shape:{}".format(col.info.label, normedcoldata.shape))
         print()
         
-        output.append( [ item, DataTree(array=normedcoldata) ])
+        normcol = DataTree(array=normedcoldata, summary=summaryvalues(normedcoldata, np.s_[0:-1]))
+        output.append( [ col.info, normcol ] )
     
-    # debug(output)
-    return DataTree(output) 
+    return output 
 
-
-def handle_method_computations(source_data, computations, methoditem_val, state, testconfig):
-    
-    # debug(list(source_data.keys()))
-    
-    data = source_data
-    
-    for compname, compvalue in computations.items():
-        print(mdHeader(4, "Computation: {}", compname))
-        
-        compfunc = {
-            '_columns_': handle_computation_columns,
-        }[compname]
-        
-        data = compfunc(compvalue, data, state.set(computations=computations, testsourcemethoditem=methoditem_val), testconfig)
-        # debug(data)
-        
-    # raise Exception(data)
-    return data
-    
-    
-def handle_inputs(testmethod, methoditems, state, testconfig):
-    print(mdHeader(3, "Source: {}.{}".format(state.stage._name_, testmethod)))
-
-    ## Check for previous stages (?)
-    stage_inputs = [ k for k,v in state.stage._inputs_.items() if v == "_stage_" ]
-    debug(stage_inputs)
-    
-    if not all([ si in state.env.keys() for si in stage_inputs ]):
-        print(mdBlock("Required input stages not loaded into the environment: env: {} input stages: {}", env.keys(), stage_inputs))
-        return DataTree()
-    
-    ## Configure inputs
-    source_inputs = DataTree()    
-    for methoditem_val, methoditem_action in sorted(methoditems.items()):
-        try:
-            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
-            ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
-            debug(methoditem_val)
-            source_inputs[methoditem_val] = ret
+def process_variables(testfolder, state, name, kind:"pre|post", data):
             
-        except ProcessorException as err:
-            print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
-            raise err
+    debug(state['methoditem'])
+    debug(state['methoditem','variables', name, kind])
     
-    # debug(source_inputs)
+    if not state['methoditem','variables', name, kind]:
+        return 
     
-    return source_inputs
+    debug(state.methoditem.variables[name][kind])
     
+    variables_input = state.methoditem.variables[name][kind]
+    
+    
+    env = DataTree(details=state.details, **data)
+    variables = getproperty(variables_input, action=True, env=env)
 
-def handle_sources(testmethod, methoditems, state, testconfig):
+    state.variables = variables
 
-    ## Configure sources
-    source_outputs = DataTree()    
-    for methoditem_val, methoditem_action in sorted(methoditems.items()):
-        try:
-            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
-            ret = handle_source_action(methoditem_val, methoditem_action, testmethod, itemstate, testconfig)
-            debug(list(ret.keys()))
-            source_outputs[methoditem_val] = ret
-            
-        except ProcessorException as err:
-            print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
-            raise err
+    vardict = DataTree()
+    vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
+    debug(vardict)
+    print(vardict)
+    testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
-    # debug(source_inputs)
+    return variables
     
-    return source_outputs
     
-def handle_computations(testmethod, methoditems, state, testconfig):
-    
-    ## Handle Computations
-    computation_outputs = DataTree()    
-    for methoditem_val, methoditem_action in sorted(methoditems.items()):
-        try:
-            debug(computation_outputs, methoditem_val, methoditem_action)
-            computations = DataTree()
-            computations.update(state.stage.get("_computations_", {}))
-            computations.update(methoditem_action.get("_computations_", {}))
-            
-            debug(flatten_type(state))
-            
-            source_input = state[state.stage._name_, 'sources', testmethod, methoditem_val]
-            itemstate = state.set(testmethod=testmethod, methoditem=methoditem_val)
-            ret = handle_method_computations(source_input, computations, methoditem_val, itemstate, testconfig)
-            
-            source_outputs[methoditem_val] = ret
-            
-        except ProcessorException as err:
-            print(mdBlock("Problem processing source: {}, for stage: {}, err: {}".format(testmethod, state.stage._name_, err)))
-            raise err
-    
-    # debug(computation_outputs)
-    
-    return computation_outputs
-    
-
-def load_testdetails(env, testconfig):
-    # update and merge json file
-    # <TODO>
-    
-    # read json file
-    testconfig.details = Json.load_json_from(testconfig.folder.details)
-    env.details = testconfig.details
-    
-
-def process_stage(stage, env, testconfig, projdesc):
-    # debug(stage)
-    
-    print(mdHeader(2, "Processing Stage: "+stage._name_))
-    load_testdetails(env, testconfig)
-    
-    # Setup Stage Environment
-    
+def process(testfolder, data, processor, state):    
     try:
-        state = DataTree()
-        state.stage = stage
-        state.env = env
+        raw_config, normalized_config = processor
+        default_index = [{"column":'step',"type":"int"},]
+        save_config = DataTree(projdesc=json.dumps(state.projdesc))
+        header=OrderedDict(method=state.methodname, item=state.methoditem.name)
+        def missingFiles(x): 
+            missing = [ k for k,v in x.items() if not v.exists() ]
+            debug(missing)
+            return missing
+    
+        forceRuns = state.args.get('forceRuns',DataTree())
+        debug(forceRuns)
+        
+        testfolder.save_calculated_json(test=state.args.testconf, name="variables", data={}, overwrite=True)
+        
+        # ====================
+        # = Process Raw Data =
+        # ====================
+        print(mdHeader(3, "Raw Data"))
+    
+        output = DataTree()
+        output['raw','files'] = getfilenames(
+            test=state.args.testconf, testfolder=testfolder, stage="raw", 
+            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
+    
+        
+        print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
+                forceRuns['raw',], missingFiles(output.raw.files.names)))
+        
+        if forceRuns['raw',] or missingFiles(output.raw.files.names):
+            missingFiles(output.raw.files.names)
+            
+            columnmapping = process_raw_columns(data, raw_config, state)
 
-        ## process inputs
-        inputs = { testmethod: handle_inputs(testmethod, item, state, testconfig) 
-                                    for testmethod, item in stage._inputs_.items() }
+            indexes = default_index + raw_config.get('_slicecolumns_', [])
+            
+            if not state.args['onlyVars',]:
+                save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
+            else:
+                print("Skipping saving `raw` columns. Only updating variable json. ")
+        else:
+            print("Skipping processing `raw` stage. Files exists: `{}`".format(output.raw.files.names))
+
+        # =====================
+        # = Process Norm Data =
+        # =====================
+        print(mdHeader(3, "Normalize Data"))
+
+        output['norm','files'] = getfilenames(
+            test=state.args.testconf, testfolder=testfolder, stage="norm", 
+            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
         
-        env[stage._name_, 'inputs'] = DataTree(inputs)
+        print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
+                forceRuns['norm',], missingFiles(output.norm.files.names)))
         
-        ## process sources
-        sources = { testmethod: handle_sources(testmethod, item, state, testconfig) 
-                                    for testmethod, item in stage._sources_.items() }
-        state.sources = sources
-        
-        debug(sources.keys())
-        env[stage._name_, 'sources'] = DataTree(sources)
-        
-        ## process computations
-        outputs = { testmethod: handle_computations(testmethod, item, state, testconfig) 
-                                    for testmethod, item in stage._sources_.items() }
-        
-        state.outputs = outputs
-        env[stage._name_, 'outputs'] = DataTree(outputs)
-                                    
-        if stage._name_ == 'pre':
-            raise Exception("done")
-        
+        if forceRuns['norm',] or missingFiles(output.norm.files.names):
+            
+            normstate = state.set(processorname=normalized_config.name)
+            
+            rawdata = load_columns(output.raw.files.names, "matlab")
+            
+            data = DataTree(raw=rawdata)
+            
+            # ======   Save Pre Variables  ====== #
+            process_variables(testfolder, normstate, normalized_config.name, "pre", data)
+
+            # ====== Normalize Columns ====== #
+            columnmapping = normalize_columns(data, normalized_config, output.norm.files, normstate)
+            indexes = [{"column":'step',"type":"int"}] + normalized_config.get('_slicecolumns_', [])
+            
+            # ======   Save Post Variables  ====== #
+            normdata = columnmapping_vars(columnmapping)
+            data.norm = DataTree(**columnmapping_vars(columnmapping))
+            process_variables(testfolder, state, normalized_config.name, "post", data)
+            
+            
+            if not state.args['onlyVars',]:
+                save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
+            else:
+                print("Skipping saving `norm` columns. Only updating variable json. ")
+        else:
+            print("Skipping processing `norm` stage. File exists: `{}`".format(output.norm.files.names))
+            
+            
+            
     except Exception as err:
-        print(mdHeader(3, "Error Processing Stage: {}", stage._name_))
-        debug(stage)
-        print()
-        # kenv = sorted((k,str(type(v)).replace('<','')) for k,v in flatten(env,sep='.',ignore=['__builtins__', 'summaries']).items() if not 'summaries' in k)
-        debug(flatten_type(env))
-        
+        # debughere()
         raise err
-                            
-    print(mdHeader(3, "Finished processing Stage: {}", stage._name_))
-    # debug(sources)
-    
-    
 
-def process_project_test(testconfig):
-    
-    projdesc = load_project_description(testconfig.folder)
-    for key in list(flatten(projdesc,sep='.').keys()):
-        debug(key)
-    print()
-    
-    env = DataTree()
-    metadata = process_metadata(testconfig, projdesc)
-    
-    env['_metadata_'] = metadata
-    # env['_projdesc_'] = projdesc
-    env['_shared_'] = projdesc.get('_shared_', DataTree())
-    
-    stages = [ (stage._name_, process_stage(stage, env, testconfig, projdesc)) 
-                for stage in projdesc._stages_ ]
 
-    # debug(stages)
 
+def handle_files(data, methoditem, state, testfolder):
     
-def main():
+    if 'files' in methoditem:
+        
+        print("\nHandle")
+        env = DataTree(details=state.details, testfolder=testfolder, projectfolder=state.filestructure)
+        # import json
+        # print(json.dumps(env, cls=CustomDebugJsonEncoder))
+
+        try:
+            filetype, filevalue = getpropertypair(methoditem.files)
+            debug(filevalue)
+            
+            filename = safefmt(getproperty(filevalue, action=True, errorcheck=False, env=env),**env)
+            debug(filename)
+            filepath = matchfilename(filename, strictmatch=False)
+            debug(filepath)
+        except Exception as err:
+            logging.error("Error looking up file: ", err)
+            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
+            # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err)
+        
+        if filepath and filepath.exists():
+            data.file = getproperty(DataTree(_csv_=filepath), action=True, env=env)
+        else:
+            # print(debugger_summary("handle_files", state, ignores=['filestructure.projdesc','args', 'details']))
+            # print(debugger_summary("handle_files:locals", locals(), ignores=['builtins', 'state', 'data', 'methoditem'] ))
+            # if filenameerr:
+            #     raise Exception("format exception:",filevalue, filenameerr)
+            
+            # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err )
+            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
+
+
+def push(state, key, value):
+    state['position'] = state.position + [ (key, value) ]
+
+def process_method(methodname, method, testfolder, projdesc, state):
+        
+    files = DataTree()
+    
+    for methoditem in method:
+        
+        print(mdHeader(3, "Method Item: {} ".format(methoditem.name)))
+        # ================================================
+        debug(methoditem)
+        
+        
+        testdetails = Json.load_json_from(testfolder.details)        
+        state.details = testdetails
+        state.methoditem = methoditem
+        # = Files =
+        data = DataTree()        
+        handle_files(data, methoditem, state, testfolder)
+            
+        # ====================
+        # = Handle Processor =
+        # ====================
+        processorname = methoditem.processor['$ref'].lstrip('#/processors/')
+        print(mdHeader(4, "Processor: {}".format(processorname)))
+        processor = projdesc.processors[processorname]
+
+        itemstate = state.set(methoditem=methoditem, methodname=methodname)
+        push(itemstate, 'methoditem',methoditem.name)        
+        debug(itemstate.position)
+        
+        process(testfolder=testfolder, data=data, processor=processor, state=itemstate)
+
+
+def process_methods(testfolder, state, args):
+
+    # debug(state.filestructure.projdesc)
+    
+    projdesc = state.filestructure.projdesc
+    state.projdesc = projdesc
+    
+    for methodprop in projdesc.methods:
+        try:
+            methodname, method = getpropertypair(methodprop)
+        
+            print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
+            substate = state.set(methodname=methodname, method=method)
+            push(substate, 'methodname',methodname)
+            process_method(methodname, method, testfolder, projdesc, state=substate)
+        except ProcessorException as err:
+            print("type:",str(type(err.args[-1])).replace('<','≤'))
+            if isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
+                continue
+            else:
+                raise err
+        
+def run(filestructure, testfolder, args):
+    
+    # ==================
+    # = Set Arguements =
+    # ==================
+    
+    state = DataTree()
+    state.args = args
+    state.filestructure = filestructure
+    state.position = []
+    
+    # push(state, 'testinfo', args.testconf.info.short)
+    # push(state,  'testfolder', testfolder)
+    
+    process_methods(testfolder, state, args)
+
+
+print("Run normalize_instron_data")
+
+
+def test_run():
     
     samplefiles = Path(__file__).parent.resolve()/'..'/'..'/'test/instron-test-files'
     samplefiles = samplefiles.resolve()
@@ -348,18 +360,117 @@ def main():
     
     ## create fake folder structure 
     testfolder = DataTree()
-    testfolder['projectdescription'] = Path(__file__).parent / "project_description.json" 
     testfolder['data'] = samplefiles / 'data' 
-    testfolder['details'] = samplefiles / 'data' / 'instron-test.details.json'
+    testfolder['details'] = samplefiles / 'data' / 'instron-testconf.details.json'
     testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
     testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
     testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
-
-    testconfig = DataTree()
-    testconfig['info','name'] = "feb07(gf10.4-llm)-wa-tr-l8-x1"
-    testconfig['folder'] = testfolder
     
-    process_project_test(testconfig)
+    args = DataTree()
+    run(testfolder, args)
+    
+def test_folder(args):
+    
+    import scilab.expers.configuration as config
+    # import scilab.expers.mechanical.fatigue.uts as exper
+    import scilab.expers.mechanical.fatigue.cycles as exper
+    
+    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
+    args.parser_image_measurements = exper.parser_image_measurements
+    
+    # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
+    # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    
+    pdp = parentdir / 'projdesc.json' 
+    print(pdp)
+    # print(pdp.resolve())
+    
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=parentdir)
+    # Test test images for now
+    test_dir = fs.tests.resolve()
+    testitemsd = fs.testitemsd()
+    
+    import shutil
+    from tabulate import tabulate
+
+    testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
+
+    def display(*args, **kwargs):
+        print(*args, **kwargs)
+    
+    def HTML(arg, whitespace=None):
+        if whitespace:
+            return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
+        else:
+            ret = arg.replace('\n','\r')
+            return ret
+    
+    def execute(name, testconf):
+        
+        print("\n")
+        display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
+        
+        folder = fs.testfolder(testinfo=testconf.info)
+        
+        data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
+                    for k,v in flatten(folder).items() if v ]
+        data = sorted(data)
+    
+        print()
+        print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+        debug(folder.data.relative_to(parentdir))
+        
+        args.testname = name
+        args.testconf = testconf
+        args.report = sys.stdout
+        
+        testconf.folder = folder
+        
+        # update json details
+        
+        print(mdHeader(2, "Make JSON Data"))
+        datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+        
+        print(mdHeader(2, "Run"))
+        run(fs, folder, args)
+    
+        print(mdHeader(2, "Merging JSON Data"))
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+        
+    summaries = OrderedDict()
+    
+    for name, testconf in sorted( testitems.items() )[:]:
+        if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
+            continue
+        
+        try:
+            execute(name, testconf)
+            summaries[name] = "Success"
+        except Exception as err:
+            logging.error(err)
+            summaries[name] = "Failed"
+            raise err
+        
+    print("Summaries:\n\n")
+    print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    print()
+
+def main():
+    
+    # test_run()
+    
+    args = DataTree()
+    args.forceRuns = DataTree(raw=True, norm=True)
+    # args.onlyVars = True
+    args.onlyVars = False
+    args.version = "0"
+    # args.excel = True
+    args.excel = True
+    
+    
+    test_folder(args)
     
 if __name__ == '__main__':
     main()
