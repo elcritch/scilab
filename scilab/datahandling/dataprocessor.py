@@ -18,6 +18,9 @@ import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 
+import shutil
+from tabulate import tabulate
+
 # @debugger
 def resolve(url):
     return Path(url).resolve()
@@ -368,7 +371,55 @@ def test_run():
     
     args = DataTree()
     run(testfolder, args)
+
+# ====================
+# = Script Execution =
+# ====================
+
+def display(*args, **kwargs):
+    print(*args, **kwargs)
+
+def HTML(arg, whitespace=None):
+    if whitespace:
+        return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
+    else:
+        ret = arg.replace('\n','\r')
+        return ret
+
+def execute(fs, name, testconf, args):
     
+    print("\n")
+    display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
+    
+    folder = fs.testfolder(testinfo=testconf.info)
+    
+    data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
+                for k,v in flatten(folder).items() if v ]
+    data = sorted(data)
+
+    print()
+    print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    debug(folder.data.relative_to(args.parentdir))
+    
+    args.testname = name
+    args.testconf = testconf
+    args.report = sys.stdout
+    
+    testconf.folder = folder
+    
+    # update json details
+    
+    print(mdHeader(2, "Make JSON Data"))
+    datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+    
+    print(mdHeader(2, "Run"))
+    run(fs, folder, args)
+
+    print(mdHeader(2, "Merging JSON Data"))
+    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+
+
 def test_folder(args):
     
     import scilab.expers.configuration as config
@@ -380,64 +431,19 @@ def test_folder(args):
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     
-    pdp = parentdir / 'projdesc.json' 
+    pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
     # print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=parentdir)
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
     
-    import shutil
-    from tabulate import tabulate
 
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
-
-    def display(*args, **kwargs):
-        print(*args, **kwargs)
-    
-    def HTML(arg, whitespace=None):
-        if whitespace:
-            return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
-        else:
-            ret = arg.replace('\n','\r')
-            return ret
-    
-    def execute(name, testconf):
-        
-        print("\n")
-        display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
-        
-        folder = fs.testfolder(testinfo=testconf.info)
-        
-        data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
-                    for k,v in flatten(folder).items() if v ]
-        data = sorted(data)
-    
-        print()
-        print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
-        debug(folder.data.relative_to(parentdir))
-        
-        args.testname = name
-        args.testconf = testconf
-        args.report = sys.stdout
-        
-        testconf.folder = folder
-        
-        # update json details
-        
-        print(mdHeader(2, "Make JSON Data"))
-        datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
-        
-        print(mdHeader(2, "Run"))
-        run(fs, folder, args)
-    
-        print(mdHeader(2, "Merging JSON Data"))
-        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
         
     summaries = OrderedDict()
     
@@ -446,7 +452,7 @@ def test_folder(args):
             continue
         
         try:
-            execute(name, testconf)
+            execute(fs, name, testconf, args, )
             summaries[name] = "Success"
         except Exception as err:
             logging.error(err)
