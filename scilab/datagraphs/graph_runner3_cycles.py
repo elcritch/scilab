@@ -35,7 +35,7 @@ def tag(*args, env={}, **kwargs):
     return "<{name}>{fmt}</{name}>".format(name=pair[0],fmt=pair[1].format(*args, **env))
 
 gconfigs = DataTree()
-gconfigs['norm', 'precond', 'tracking', 'graph_precond_fit', 'step_idx'] = 'idx_1'
+gconfigs['norm', 'm2_precond', 'tracking', 'graph_precond_fit', 'step_idx'] = 'idx_1'
 
 
 def handle_grapher(graphmod, test, matdata, args, zconfig):
@@ -50,8 +50,6 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     graphdata = graphmod.graph(test=test, matdata=matdata, args=args, 
                 step_idx=gconfigs[tuple(zconfig.values())+(graphname, 'step_idx',)],
                 zconfig=zconfig)
-    
-    
     
     if not graphdata:
         return
@@ -74,7 +72,7 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
 import scilab.datagraphs.graph_imagemeasurement as graph_imagemeasurement
 import scilab.datagraphs.graph_overview as graph_overview
 import scilab.datagraphs.graph_precond_fit as graph_precond_fit
-import scilab.datagraphs.graph_uts as graph_uts
+import scilab.datagraphs.graph_cycles_peaks as graph_cycles_peaks
 
 def run_config(test, args, config, configfile):
     
@@ -93,7 +91,8 @@ def run_config(test, args, config, configfile):
     handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
-    handle_grapher(graph_uts, test, matdata, args, zconfig)
+    handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
+    # handle_grapher(graph_cycles, test, matdata, args, zconfig)
 
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
@@ -102,27 +101,37 @@ def run_config(test, args, config, configfile):
 def run(test, args):
     # debug(test, args)
     # print(debugger_summary("run", locals()))
-    datafiles = datacombinations(test, args, items=["tracking"], )
+    datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
+    datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
     
     config = ("raw", "uts", "tracking")
     
     for config, configfile in flatten(datafiles,astuple=True).items():
-        print("Config:",config)
-        run_config(test, args, config, configfile)
+        try:
+            print("Config:",config)
+            run_config(test, args, config, configfile)
+        except Exception as err:
+            print("<em> Error Running config! </em>")
+            logging.exception(err)
+            raise err
+            # continue
 
 
 def test_folder():
     
     import scilab.expers.configuration as config
-    import scilab.expers.mechanical.fatigue.uts as exper_uts
+    import scilab.expers.mechanical.fatigue.cycles as exper
     
-    parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
+    args = DataTree()
     
-    pdp = parentdir / 'projdesc.json' 
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    
+    pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
     print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
@@ -132,9 +141,7 @@ def test_folder():
 
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
 
-    args = DataTree()
-    
-    for name, test in sorted( testitems.items() )[:]:
+    for name, test in sorted( testitems.items() )[:1]:
         # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
             # continue
         
@@ -145,12 +152,12 @@ def test_folder():
     
     #     debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
         
-        data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
+        data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                     for k,v in flatten(folder).items() ]
         data = sorted(data)
     
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
-        debug(folder.data.relative_to(parentdir))
+        debug(folder.data.relative_to(args.parentdir))
         
         args.version = "0"
         args.testname = name

@@ -125,7 +125,7 @@ def normalize_columns(data, norm_config, filenames, state):
     
     return output 
 
-def process_variables(testfolder, state, name, kind:"pre|post", data):
+def process_variables(testfolder, state, name, varfilename, kind:"pre|post", data):
             
     debug(state['methoditem'])
     debug(state['methoditem','variables', name, kind])
@@ -137,7 +137,6 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     
     variables_input = state.methoditem.variables[name][kind]
     
-    
     env = DataTree(details=state.details, **data)
     variables = getproperty(variables_input, action=True, env=env)
 
@@ -146,7 +145,6 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
     debug(vardict)
-    print(vardict)
     testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
     return variables
@@ -166,7 +164,8 @@ def process(testfolder, data, processor, state):
         forceRuns = state.args.get('forceRuns',DataTree())
         debug(forceRuns)
         
-        testfolder.save_calculated_json(test=state.args.testconf, name="variables", data={}, overwrite=True)
+        varfilename = "variables.{methodname}.{methoditem.name}".format(**state)
+        testfolder.save_calculated_json(test=state.args.testconf, name=varfilename, data={}, overwrite=True)
         
         # ====================
         # = Process Raw Data =
@@ -217,7 +216,7 @@ def process(testfolder, data, processor, state):
             data = DataTree(raw=rawdata)
             
             # ======   Save Pre Variables  ====== #
-            process_variables(testfolder, normstate, normalized_config.name, "pre", data)
+            process_variables(testfolder, normstate, normalized_config.name, varfilename, "pre", data)
 
             # ====== Normalize Columns ====== #
             columnmapping = normalize_columns(data, normalized_config, output.norm.files, normstate)
@@ -226,9 +225,8 @@ def process(testfolder, data, processor, state):
             # ======   Save Post Variables  ====== #
             normdata = columnmapping_vars(columnmapping)
             data.norm = DataTree(**columnmapping_vars(columnmapping))
-            process_variables(testfolder, state, normalized_config.name, "post", data)
-            
-            
+            process_variables(testfolder, state, normalized_config.name, varfilename, "post", data)
+                        
             if not state.args['onlyVars',]:
                 save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
             else:
@@ -292,11 +290,11 @@ def process_method(methodname, method, testfolder, projdesc, state):
         debug(methoditem)
         
         
-        testdetails = Json.load_json_from(testfolder.details)        
+        testdetails = Json.load_json_from(testfolder.details)
         state.details = testdetails
         state.methoditem = methoditem
         # = Files =
-        data = DataTree()        
+        data = DataTree()
         handle_files(data, methoditem, state, testfolder)
             
         # ====================
@@ -447,9 +445,9 @@ def test_folder(args):
         
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
-        if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
-            continue
+    for name, testconf in sorted( testitems.items() )[:1]:
+        # if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
+            # continue
         
         try:
             execute(fs, name, testconf, args, )
@@ -472,8 +470,8 @@ def main():
     # args.onlyVars = True
     args.onlyVars = False
     args.version = "0"
+    args.excel = False
     # args.excel = True
-    args.excel = True
     
     
     test_folder(args)

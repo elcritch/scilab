@@ -11,18 +11,23 @@ import numpy as np
 
 def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
+    # if zconfig['item'] != "tracking":
+    #     return DataTree()
+
     data, colinfo, indexes = matdata.data, matdata.columninfo, matdata.indexes
     
     getfield = lambda n: ( getattr(matdata.data, n), getattr(matdata.columninfo, n) )
     
-    if zconfig['stage'] == "norm":
-        t,tl = getfield("totalTime")
-        x,xl = getfield("load")
-        y,yl = getfield("disp")
-    else:
-        t,tl = getfield("totalTime")
-        x,xl = getfield("load")
-        y,yl = getfield("disp")
+    if zconfig['item'] == "tracking":    
+        if zconfig['stage'] == "norm":
+            t,tl = getfield("totalTime"); x,xl = getfield("stress"); y,yl = getfield("strain")
+        else:
+            t,tl = getfield("totalTime"); x,xl = getfield("load"); y,yl = getfield("disp")
+    elif zconfig['item'] == "trends":
+        if zconfig['stage'] == "norm":
+            t,tl = getfield("cycleStartTime"); x,xl = getfield("stress_max"); y,yl = getfield("strain_max")
+        else:
+            t,tl = getfield("cycleStartTime"); x,xl = getfield("load_max"); y,yl = getfield("disp_max")
     
     limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
     labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.units)
