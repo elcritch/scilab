@@ -18,9 +18,6 @@ import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 
-import shutil
-from tabulate import tabulate
-
 # @debugger
 def resolve(url):
     return Path(url).resolve()
@@ -125,20 +122,21 @@ def normalize_columns(data, norm_config, filenames, state):
     
     return output 
 
-    
 def process_variables(testfolder, state, name, kind:"pre|post", data):
             
     debug(state['methoditem'])
     debug(state['methoditem','variables', name, kind])
-        
-    variables_input = state['methoditem','variables', name, kind]
     
-    if not variables_input: 
-        variables = DataTree()
-    else:
-        env = DataTree(details=state.details, **data)
-        debug("variables",env)
-        variables = getproperty(variables_input, action=True, env=env)
+    if not state['methoditem','variables', name, kind]:
+        return 
+    
+    debug(state.methoditem.variables[name][kind])
+    
+    variables_input = state.methoditem.variables[name][kind]
+    
+    
+    env = DataTree(details=state.details, **data)
+    variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
 
@@ -146,13 +144,9 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
     debug(vardict)
     print(vardict)
+    testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
-    jsonpath, allvariables = testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
-    
-    state.variables.update( allvariables["variables"] )
-    debug(allvariables, state.variables)
-    
-    return 
+    return variables
     
     
 def process(testfolder, data, processor, state):    
@@ -169,8 +163,7 @@ def process(testfolder, data, processor, state):
         forceRuns = state.args.get('forceRuns',DataTree())
         debug(forceRuns)
         
-        # varfilename = "{methodname}.{methoditem.name}.calculated".format(**state)
-        # testfolder.save_calculated_json(test=state.args.testconf, name="variables", data={}, overwrite=True)
+        testfolder.save_calculated_json(test=state.args.testconf, name="variables", data={}, overwrite=True)
         
         # ====================
         # = Process Raw Data =
@@ -231,7 +224,8 @@ def process(testfolder, data, processor, state):
             normdata = columnmapping_vars(columnmapping)
             data.norm = DataTree(**columnmapping_vars(columnmapping))
             process_variables(testfolder, state, normalized_config.name, "post", data)
-                        
+            
+            
             if not state.args['onlyVars',]:
                 save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.norm.files)
             else:
@@ -245,29 +239,20 @@ def process(testfolder, data, processor, state):
         # debughere()
         raise err
 
-
-
 def handle_files(data, methoditem, state, testfolder):
     
     if 'files' in methoditem:
         
         print("\nHandle")
         env = DataTree(details=state.details, testfolder=testfolder, projectfolder=state.filestructure)
-        # import json
-        # print(json.dumps(env, cls=CustomDebugJsonEncoder))
 
-        try:
-            filetype, filevalue = getpropertypair(methoditem.files)
-            debug(filevalue)
-            
-            filename = safefmt(getproperty(filevalue, action=True, errorcheck=False, env=env),**env)
-            debug(filename)
-            filepath = matchfilename(filename, strictmatch=False)
-            debug(filepath)
-        except Exception as err:
-            logging.error("Error looking up file: ", err)
-            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
-            # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err)
+        # try:
+        filetype, filevalue = getpropertypair(methoditem.files)
+        debug(filevalue)
+        filename = safefmt(getproperty(filevalue, action=True, errorcheck=False, env=env),**env)
+        debug(filename)
+        filepath = matchfilename(filename, strictmatch=False)
+        debug(filepath)
         
         if filepath and filepath.exists():
             data.file = getproperty(DataTree(_csv_=filepath), action=True, env=env)
@@ -277,8 +262,7 @@ def handle_files(data, methoditem, state, testfolder):
             # if filenameerr:
             #     raise Exception("format exception:",filevalue, filenameerr)
             
-            # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err )
-            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
+            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name))
 
 
 def push(state, key, value):
@@ -295,11 +279,11 @@ def process_method(methodname, method, testfolder, projdesc, state):
         debug(methoditem)
         
         
-        testdetails = Json.load_json_from(testfolder.details)
+        testdetails = Json.load_json_from(testfolder.details)        
         state.details = testdetails
         state.methoditem = methoditem
         # = Files =
-        data = DataTree()
+        data = DataTree()        
         handle_files(data, methoditem, state, testfolder)
             
         # ====================
@@ -324,19 +308,12 @@ def process_methods(testfolder, state, args):
     state.projdesc = projdesc
     
     for methodprop in projdesc.methods:
-        try:
-            methodname, method = getpropertypair(methodprop)
+        methodname, method = getpropertypair(methodprop)
         
-            print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
-            substate = state.set(methodname=methodname, method=method)
-            push(substate, 'methodname',methodname)
-            process_method(methodname, method, testfolder, projdesc, state=substate)
-        except ProcessorException as err:
-            print("type:",str(type(err.args[-1])).replace('<','≤'))
-            if isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
-                continue
-            else:
-                raise err
+        print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
+        substate = state.set(methodname=methodname, method=method)
+        push(substate, 'methodname',methodname)
+        process_method(methodname, method, testfolder, projdesc, state=substate)
         
 def run(filestructure, testfolder, args):
     
@@ -374,55 +351,7 @@ def test_run():
     
     args = DataTree()
     run(testfolder, args)
-
-# ====================
-# = Script Execution =
-# ====================
-
-def display(*args, **kwargs):
-    print(*args, **kwargs)
-
-def HTML(arg, whitespace=None):
-    if whitespace:
-        return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
-    else:
-        ret = arg.replace('\n','\r')
-        return ret
-
-def execute(fs, name, testconf, args):
     
-    print("\n")
-    display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
-    
-    folder = fs.testfolder(testinfo=testconf.info)
-    
-    data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
-                for k,v in flatten(folder).items() if v ]
-    data = sorted(data)
-
-    print()
-    print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
-    debug(folder.data.relative_to(args.parentdir))
-    
-    args.testname = name
-    args.testconf = testconf
-    args.report = sys.stdout
-    
-    testconf.folder = folder
-    
-    # update json details
-    
-    print(mdHeader(2, "Make JSON Data"))
-    datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
-    
-    print(mdHeader(2, "Run"))
-    run(fs, folder, args)
-
-    print(mdHeader(2, "Merging JSON Data"))
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
-
-
 def test_folder(args):
     
     import scilab.expers.configuration as config
@@ -434,47 +363,95 @@ def test_folder(args):
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     
-    pdp = args.parentdir / 'projdesc.json' 
+    pdp = parentdir / 'projdesc.json' 
     print(pdp)
     # print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
+    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
     
+    import shutil
+    from tabulate import tabulate
 
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
+
+    def display(*args, **kwargs):
+        print(*args, **kwargs)
+    
+    def HTML(arg, whitespace=None):
+        if whitespace:
+            return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
+        else:
+            ret = arg.replace('\n','\r')
+            return ret
+    
+    def execute(name, testconf):
+        
+        print("\n")
+        display(HTML("<h2>Processing Test: {} | {}</h2>".format(testconf.info.short, name)))
+        
+        folder = fs.testfolder(testinfo=testconf.info)
+        
+        data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
+                    for k,v in flatten(folder).items() if v ]
+        data = sorted(data)
+    
+        print()
+        print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+        debug(folder.data.relative_to(parentdir))
+        
+        args.testname = name
+        args.testconf = testconf
+        args.report = sys.stdout
+        
+        testconf.folder = folder
+        
+        # update json details
+        
+        print(mdHeader(2, "Make JSON Data"))
+        datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+        
+        print(mdHeader(2, "Run"))
+        run(fs, folder, args)
+    
+        print(mdHeader(2, "Merging JSON Data"))
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
         
     summaries = OrderedDict()
     
     for name, testconf in sorted( testitems.items() )[:]:
-        # if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
+        # if name != "jan13(gf10.2-rlm)-wa-tr-l8-x1":
             # continue
         
         try:
-            execute(fs, name, testconf, args, )
+            execute(name, testconf)
             summaries[name] = "Success"
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
     print()
 
 def main():
+    
     # test_run()
+    
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
+    args.forceRuns = DataTree(raw=True, norm=True)
     # args.onlyVars = True
     args.onlyVars = False
     args.version = "0"
-    # args.excel = False
+    # args.excel = True
     args.excel = True
+    
     
     test_folder(args)
     

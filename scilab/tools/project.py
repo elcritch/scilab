@@ -100,8 +100,6 @@ def debugconsole(err):
     </script>
     """.format(name="traceback", json=json.dumps(tb_dict,cls=CustomDebugJsonEncoder)).replace("\n",""))
 
-from tblib import Traceback
-    
 def safefmt(strval, *args, **kwargs):
     retval, reterr = catcher( lambda: strval.format(*args, **kwargs) )
     
@@ -112,27 +110,25 @@ def safefmt(strval, *args, **kwargs):
         # kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
         kwargs_json = json.dumps(kwargs, cls=CustomDebugJsonEncoder)
         
-        tb = Traceback(reterr.__traceback__)
-        tb_dict = tb.to_dict()
-        print(" <em>Script:</em> ")
-        print("""__CONSOLE__::
-        <script type="text/javascript">
-        
-            console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
-            
-        </script>
-        """.format(name="traceback", json=json.dumps(tb_dict,cls=CustomDebugJsonEncoder)).replace("\n",""))
-        
-        
-        
-        print(" <em>Script:</em> ")
-        print("""__CONSOLE__::
-        <script type="text/javascript">
-        
-            console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
-            
-        </script>
-        """.format(name="kwargs", json=kwargs_json).replace("\n",""))
+        # print(" <em>Script:</em> ")
+        # print("""__CONSOLE__::
+        # <script type="text/javascript">
+        #
+        #     console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
+        #
+        # </script>
+        # """.format(name="traceback", json=json.dumps(tb_dict,cls=CustomDebugJsonEncoder)).replace("\n",""))
+        #
+        #
+        #
+        # print(" <em>Script:</em> ")
+        # print("""__CONSOLE__::
+        # <script type="text/javascript">
+        #
+        #     console.log('debug python: %s as json: \n%O', "{name}", {{"pyobject": {json} }});
+        #
+        # </script>
+        # """.format(name="kwargs", json=kwargs_json).replace("\n",""))
         
         raise Exception("Error formatting string: {}".format(strval), reterr)
     

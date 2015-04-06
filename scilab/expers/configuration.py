@@ -57,15 +57,18 @@ class TestFileStructure(DataTree):
         
         return data
 
-    def save_calculated_json(self, test, name, data, **kwargs):
-        return self.save_calculated_json_raw(test, name, {name:data}, **kwargs)
-        
-    def save_calculated_json_raw(self, test, name, json_data, suffix="calculated", field="{name}", **kwargs):
-        filename = "{short}.{name}.{suffix}json".format(
+    def get_calculated_json_name(self, test, name, suffix="calculated", field="{name}", **kwargs):
+        return "{short}.{name}.{suffix}json".format(
                     short=test.info.short,
                     name=name,
                     suffix = suffix+"." if suffix else "",
                     )
+    
+    def save_calculated_json(self, test, name, data, **kwargs):
+        return self.save_calculated_json_raw(test, name, {name:data}, **kwargs)
+        
+    def save_calculated_json_raw(self, test, name, json_data, field="{name}", **kwargs):
+        filename = self.get_calculated_json_name(test, name, field="{name}", **kwargs)
         
         json_path = self.jsoncalc / filename
         
@@ -74,9 +77,11 @@ class TestFileStructure(DataTree):
                 filename=filename, fields=', '.join( flatten(json_data,sep='.').keys() ) ))
         
         if kwargs.get('overwrite', False) == True:
-            return Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
+            ret = Json.write_json_to(json_path=json_path, json_data=json_data, **kwargs)
         else:
-            return Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
+            ret = Json.update_json_at(update_path=json_path, update_data=json_data, **kwargs)
+        
+        return (json_path, ret)
     
     def save_graph_raw(self, testinfo, version, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         
@@ -94,7 +99,7 @@ class TestFileStructure(DataTree):
         imgpath = self.graphs / filename
         print("Saving json file `filename` into the test's TestFileStructure".format(filename=filename))
         
-        return fig.savefig(str(imgpath), **savefig_kws)
+        return (imgpath, fig.savefig(str(imgpath), **savefig_kws))
         
     def save_graph(self, filename, fig, savefig_kws=DataTree(bbox_inches='tight')):
                 
@@ -131,13 +136,17 @@ class FileStructure(DataTree):
         for name, file in self._files.items():
             self[name] = file
     
-    def parsefolders(self, files, verify, parent, env=DataTree()):
+    def parsefolders(self, files, verify, parent, env=DataTree(), makedirs=False):
         
         _files = DataTree()
         env.update(files)
         
         for foldername, folderitem in flatten(files, sort=True, tolist=True):
             folder = parent / folderitem.format(**env).strip()
+            
+            if makedirs and not folder.exists():
+                os.makedirs( folder.as_posix() )
+                
             if verify:
                 try:
                     folder = folder.resolve()
@@ -156,7 +165,7 @@ class FileStructure(DataTree):
         testenv = DataTree(folder=testdir,testinfo=testinfo)
 
         folder = TestFileStructure()
-        folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv) )
+        folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv, makedirs=True) )
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
         
         # Handle Raw Data #

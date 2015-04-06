@@ -73,6 +73,7 @@ import scilab.datagraphs.graph_imagemeasurement as graph_imagemeasurement
 import scilab.datagraphs.graph_overview as graph_overview
 import scilab.datagraphs.graph_precond_fit as graph_precond_fit
 import scilab.datagraphs.graph_cycles_peaks as graph_cycles_peaks
+import scilab.datagraphs.graph_cycles_n_to_strain as graph_cycles_n_to_strain
 
 def run_config(test, args, config, configfile):
     
@@ -92,7 +93,7 @@ def run_config(test, args, config, configfile):
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
     handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
-    # handle_grapher(graph_cycles, test, matdata, args, zconfig)
+    handle_grapher(graph_cycles_n_to_strain, test, matdata, args, zconfig)
 
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
@@ -101,6 +102,7 @@ def run_config(test, args, config, configfile):
 def run(test, args):
     # debug(test, args)
     # print(debugger_summary("run", locals()))
+    # datafiles = DataTree()
     datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
     datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
     
@@ -139,7 +141,7 @@ def test_folder():
     import shutil
     from tabulate import tabulate
 
-    testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
+    testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items() }
 
     for name, test in sorted( testitems.items() )[:1]:
         # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:

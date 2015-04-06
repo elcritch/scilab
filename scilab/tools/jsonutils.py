@@ -188,9 +188,8 @@ def write_json_to(json_path, json_data, dbg=None, **kwargs):
         json_path.unlink()
 
     os.rename(tempFile.name, str(json_path))
-
-    return
-
+    
+    return 
 
 def update_json(parentdir, update_data, json_url="data.json", **kwargs):
     json_path = Path(str(parentdir)) / json_url
@@ -205,7 +204,7 @@ def update_json_at(update_path, update_data, dbg=None, **kwargs):
 
     write_json_to(update_path, json_to_write, dbg=dbg)
 
-    return
+    return json_to_write
 
 def main():
     
