@@ -31,18 +31,13 @@ def graph(info, folder, details, data, headers, args):
     stepslice = testdata.steps['step_5']
     sliced = lambda xs: xs.set(array=xs[stepslice])
     # debug(stepslice)
-    
     # debug(list(testdata))
-    
     other = testdetails.other
-    
     xname, yname = 'stress_max', 'strain_max'
-    # t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.disp_max), sliced(testdata.load_max)
     t, y, x = sliced(testdata.elapsedCycles), sliced(testdata.strain_max), sliced(testdata.stress_max)
-
+    
     calc = DataTree()
     calc[xname] = DataTree()
-    
     calc[xname].target = other.test_max_force / testdetails.measurements.area.value
     calc[xname].stress_level = int(100*other.stress_level)
     calc[xname].pred_max = other.uts_stress # *testdetails.measurements.area.value

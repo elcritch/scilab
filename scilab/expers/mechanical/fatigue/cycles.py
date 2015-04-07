@@ -79,9 +79,18 @@ def parser_data_sheet_excel(ws):
     other = DataTree()
     
     ## continue reading the column down 
-    end = process_definitions_column(ws, other, 'A',9,22, stop_key='UTS Stress', dbg=False, has_units=False)
-    end = process_definitions_column(ws, other, 'A', 23, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
+    end = process_definitions_column(ws, other, 'A',9,24, stop_key='UTS Stress', dbg=False, has_units=False)    
+    # debug(end, other.keys())
+    
+    # startUnitValues = [ i for i in ( 20, 21, 22, 23 ) if 'uts stress' in ws["A"+str(i)].tolower() ][0]
+    end = process_definitions_column(ws, other, 'A', end, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
 
+    # debug(end, other.keys())
+    assert "uts_stress" in other.keys()
+    assert "est_stress_(tr)" in other.keys()
+    assert "gauge_base" in other.keys()
+    assert "estimated_amp" in other.keys()
+    
     if 'area' in other:
         other.pop('area')
     

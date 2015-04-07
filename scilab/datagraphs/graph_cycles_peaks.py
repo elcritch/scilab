@@ -34,7 +34,6 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ymax,ymaxl = getfield("strain_max")
     xmin,xminl = getfield("stress_min")
     ymin,yminl = getfield("strain_min")
-    
     debug(xmax, ymax)
     
     # xmax = DataTree(value=test.details.variables.uts.tracking.norm.post.strain_max_value)
@@ -43,17 +42,16 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     # Define Helpers
     limiter = lambda v, d, oa=0.0,ob=0.0: ( (1.0-d)*(min(v)+oa),(1.0+d)*(max(v)+ob) )
     labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.units)
-
     
     other = test.details.excel.other
     calcs = DataTree()
     
     calcs.target_stress = valueUnits(other.test_max_force.value / test.details.measurements.datasheet.area.value, 'MPa')
     calcs.stress_level = int(100*other.stress_level.value)
-    calcs.pred_max = other.uts_stress # *test.details.measurements.area.value
-    calcs.actual = valueUnits(xmax.mean(), units=xmaxl.units)
-    calcs.actual_perc = valueUnits(calcs.actual.value/(calcs.pred_max.value) * 100.0, '%')
-    calcs.load_balance = 0.0
+    calcs.pred_max_stress = other.uts_stress # *test.details.measurements.area.value
+    calcs.actual_stress = valueUnitsStd(xmax.mean(), stdev=xmax.std(), units=xmaxl.units)
+    calcs.actual_perc = valueUnits(calcs.actual_stress.value/(calcs.pred_max_stress.value) * 100.0, '%')
+    calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.datasheet.area.value
     calcs.precond_disp = other.precond_disp
     
     target_disp_level = calcs.precond_disp
@@ -63,6 +61,8 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     (ax1,ax2) = axes
     
     ## First Plot ##
+    ax1.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+    
     ax1_title = "%s vs %s"%(xmaxl.label, tl.label)
     ax1.plot(t, xmax)
     ax2.set_xlabel(labeler(tl))
@@ -71,24 +71,18 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     # stress_max = .stress_max.mean
     ax1.hlines(-calcs.load_balance, *ax1.get_xbound(), linestyles='dashed', label='Offset', color='lightgrey')
     
-    avg_label='Avg. {:3.1f} ({:.0f}%)'.format(calcs.actual.value, calcs.actual_perc.value)    
+    avg_label='Avg. {:3.1f}±{:.2f} {} ({:.0f}%)'.format(calcs.actual_stress.value, calcs.actual_stress.stdev, calcs.actual_stress.units, calcs.actual_perc.value)
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.target_stress.value, calcs.stress_level)
-    pred_label='PredMax. {:3.1f} (SL{})'.format(calcs.pred_max.value, calcs.stress_level)
+    pred_label='PredMax. {:3.1f} (SL{})'.format(calcs.pred_max_stress.value, calcs.stress_level)
     
-    ax1.hlines(calcs.actual.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
+    ax1.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
     ax1.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
-    ax1.hlines(calcs.pred_max.value, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
+    ax1.hlines(calcs.pred_max_stress.value, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
     
-    # label_stress_max = "Stress Peak Avg: {:.2f} [{}]".format(x[y.summary.maxs.idx], x.units, )
-    # debug(label_stress_max)
-    # graph_annotation_data(ax1, label_stress_max, xy=uts_peak,)
-    
-    # ax1.set(xlim=limiter(t, 0.08), ylim=limiter(x, 0.8))
     ax1.legend(loc=3, fancybox=True, framealpha=0.0, )
     ax1.set_title(ax1_title)
     
-    ## Second Plot ##
-    
+    # === Second Plot ===
     ax2_title = "%s vs %s"%(ymaxl.label, tl.label, )
     
     ax2.plot(t, ymax)
@@ -97,12 +91,9 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     
     ax2.hlines(target_disp_level, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+ymaxl.label)
     
-    # ax2.set(xlim=limiter(t, 0.08), ylim=limiter(y, 0.08))
     ax2.legend(loc='best', fontsize=10,fancybox=True, framealpha=0.5)
     ax2.set_title(ax2_title)
-
-    fig.subplots_adjust(hspace=1.4, )
-    
+    fig.subplots_adjust(hspace=1.4, )    
     # Make some room at the bottom 
     fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
             

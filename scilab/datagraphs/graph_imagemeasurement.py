@@ -14,7 +14,7 @@ import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
 def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
 
-    if not (zconfig == DataTree(stage='norm', method='precond', item='tracking')):
+    if not (zconfig['stage']=='norm' and 'precond' in zconfig['method'] and zconfig['item']=='tracking'):
         logging.warning("Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     
@@ -25,6 +25,8 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
     
     try:
         measurements = run_image_measure.process_test(testinfo, testfolder)
+        debug(measurements)
+        
     except Exception as err:
         logging.error(err)
         return DataTree()

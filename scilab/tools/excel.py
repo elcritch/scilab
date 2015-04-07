@@ -76,7 +76,7 @@ def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None, has_u
             continue
         elif type(k) in  [float, int]:
             continue
-        elif k == stop_key:
+        elif stop_key in k or stop_key in k.lower():
             break
         
         # if dbg:

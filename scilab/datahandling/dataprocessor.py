@@ -28,8 +28,9 @@ def resolve(url):
 
 def process_raw_columns(data, raw_config, state):
 
+    # === Handle Raw Files === 
+    handle_files(data, state.methoditem, state, state.testfolder)
     rawdata = data.file.data
-    # debug(rawdata)
     
     csv_cols_index_full = { v.full.strip(): v for v in data.file.data.values() 
                                     if isinstance(v, InstronColumnData) }
@@ -116,7 +117,7 @@ def normalize_columns(data, norm_config, filenames, state):
     # ====================================================
     for col in norm_config.columns:
         normedcoldata = _normalize(col)
-        debug(normedcoldata)
+        # debug(normedcoldata)
         print("Normed data name:{} shape:{}".format(col.info.label, normedcoldata.shape))
         print()
         
@@ -127,30 +128,27 @@ def normalize_columns(data, norm_config, filenames, state):
 
     
 def process_variables(testfolder, state, name, kind:"pre|post", data):
-            
-    debug(state['methoditem'])
-    debug(state['methoditem','variables', name, kind])
-        
+    print("### Processing Variables ")
+    
     variables_input = state['methoditem','variables', name, kind]
     
     if not variables_input: 
         variables = DataTree()
     else:
         env = DataTree(details=state.details, **data)
-        debug("variables",env)
         variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
 
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
-    debug(vardict)
-    print(vardict)
+    # debug(vardict)
+    # print(vardict)
     
     jsonpath, allvariables = testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
     
     state.variables.update( allvariables["variables"] )
-    debug(allvariables, state.variables)
+    # debug(allvariables, state.variables)
     
     return 
     
@@ -187,13 +185,10 @@ def process(testfolder, data, processor, state):
                 forceRuns['raw',], missingFiles(output.raw.files.names)))
         
         if forceRuns['raw',] or missingFiles(output.raw.files.names):
-            missingFiles(output.raw.files.names)
-            
-            columnmapping = process_raw_columns(data, raw_config, state)
-
-            indexes = default_index + raw_config.get('_slicecolumns_', [])
-            
             if not state.args['onlyVars',]:
+                missingFiles(output.raw.files.names)
+                columnmapping = process_raw_columns(data, raw_config, state)
+                indexes = default_index + raw_config.get('_slicecolumns_', [])
                 save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
             else:
                 print("Skipping saving `raw` columns. Only updating variable json. ")
@@ -251,7 +246,7 @@ def handle_files(data, methoditem, state, testfolder):
     
     if 'files' in methoditem:
         
-        print("\nHandle")
+        print("### Handle Raw Files")
         env = DataTree(details=state.details, testfolder=testfolder, projectfolder=state.filestructure)
         # import json
         # print(json.dumps(env, cls=CustomDebugJsonEncoder))
@@ -265,8 +260,8 @@ def handle_files(data, methoditem, state, testfolder):
             filepath = matchfilename(filename, strictmatch=False)
             debug(filepath)
         except Exception as err:
-            logging.error("Error looking up file: ", err)
-            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
+            # logging.error("Error looking up file: ", err)
+            raise Exception("Cannot find file for ", err, ['optional'])
             # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err)
         
         if filepath and filepath.exists():
@@ -300,7 +295,6 @@ def process_method(methodname, method, testfolder, projdesc, state):
         state.methoditem = methoditem
         # = Files =
         data = DataTree()
-        handle_files(data, methoditem, state, testfolder)
             
         # ====================
         # = Handle Processor =
@@ -312,7 +306,7 @@ def process_method(methodname, method, testfolder, projdesc, state):
         itemstate = state.set(methoditem=methoditem, methodname=methodname)
         push(itemstate, 'methoditem',methoditem.name)        
         debug(itemstate.position)
-        
+        itemstate.testfolder = testfolder
         process(testfolder=testfolder, data=data, processor=processor, state=itemstate)
 
 
@@ -331,7 +325,7 @@ def process_methods(testfolder, state, args):
             substate = state.set(methodname=methodname, method=method)
             push(substate, 'methodname',methodname)
             process_method(methodname, method, testfolder, projdesc, state=substate)
-        except ProcessorException as err:
+        except Exception as err:
             print("type:",str(type(err.args[-1])).replace('<','≤'))
             if isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
                 continue
@@ -453,14 +447,14 @@ def test_folder(args):
     for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
             # continue
-        
+            
         try:
             execute(fs, name, testconf, args, )
             summaries[name] = "Success"
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -469,12 +463,15 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
-    # args.onlyVars = True
-    args.onlyVars = False
+    args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
-    # args.excel = False
-    args.excel = True
+    
+    # === Excel === 
+    args.excel = False
+    # args.excel = True
+    # === Only Update Variables === 
+    # args.onlyVars = False
+    args.onlyVars = True
     
     test_folder(args)
     

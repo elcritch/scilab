@@ -74,6 +74,7 @@ import scilab.datagraphs.graph_overview as graph_overview
 import scilab.datagraphs.graph_precond_fit as graph_precond_fit
 import scilab.datagraphs.graph_cycles_peaks as graph_cycles_peaks
 import scilab.datagraphs.graph_cycles_n_to_strain as graph_cycles_n_to_strain
+import scilab.datagraphs.graph_cycles_stop as graph_cycles_stop
 
 def run_config(test, args, config, configfile):
     
@@ -84,20 +85,19 @@ def run_config(test, args, config, configfile):
     
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
-    
-    # sns.set_style("whitegrid")
     sns.set_style("ticks")
     sns.set_style("whitegrid")
     
+    # === Graphs ===
+    handle_grapher(graph_cycles_n_to_strain, test, matdata, args, zconfig)
+    handle_grapher(graph_cycles_stop, test, matdata, args, zconfig)
+    handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
     handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
-    handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
-    handle_grapher(graph_cycles_n_to_strain, test, matdata, args, zconfig)
-
+    
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
-
 
 def run(test, args):
     # debug(test, args)
@@ -143,9 +143,11 @@ def test_folder():
 
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items() }
 
-    for name, test in sorted( testitems.items() )[:1]:
-        # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
-            # continue
+    summaries = OrderedDict()
+
+    for name, test in sorted( testitems.items() )[:]:
+        if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x1"]:
+            continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
@@ -169,7 +171,15 @@ def test_folder():
         test.folder = folder
         test.details = Json.load_json_from(folder.details)
         
-        run(test, args)
+        try:
+            run(test, args)
+            summaries[name] = "Success"
+        except Exception as err:
+            summaries[name] = "Failed"
+            logging.exception(err)
+            # raise err
+            
+            
     
 def main():
     
