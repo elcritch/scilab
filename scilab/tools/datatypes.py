@@ -166,6 +166,10 @@ class DataTree(dict):
 def mapd(d, valuef=(lambda k, v: v), keyf=(lambda k,v: k) ):
     return DataTree({ keyf(k,v): valuef(k,v) for k,v in d.items() })
 
+def remap(d, valuef=(lambda k, v: v), keyf=(lambda k,v: k) ):
+    keyer = lambda k,v: remap(v, valuef=valuef, keyf=keyf) if isinstance(v, dict) else valuef(k,v)
+    return DataTree({ keyf(k,v): keyer(k,v) for k,v in d.items() })
+
 def mapl(*args, **kwargs):
     return list(map(*args, **kwargs))
 

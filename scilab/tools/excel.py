@@ -70,7 +70,10 @@ def process_definitions_column(ws, data, col, i,j,stop_key=None, dbg=None, has_u
         elif has_units:
             ret = tupleFrom(ws, '%s%d'%(col,i),n=3)
             k = ret[0]
-            v = valueUnits(*ret[1:])._asdict()
+            if ret[2] == None:
+                v = ret[1]
+            else:
+                v = valueUnits(*ret[1:])._asdict()
             
         if not k:
             continue

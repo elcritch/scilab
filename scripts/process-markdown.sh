@@ -3,7 +3,7 @@
 PD=${SCHOLDOC:-$2}
 
 FILE="$1"
-OUTPUT_DIR=$(basename "$FILE")
+OUTPUT_FILE=$(basename "$FILE")
 OUTPUT_NAME="${FILE:r}"
 
 dt=$(date)
@@ -20,5 +20,8 @@ $PD \
 
 echo "Generated html5... "
 
-wkhtmltopdf --print-media-type --page-size letter --default-header "${OUTPUT_NAME}.html" "${OUTPUT_NAME}.pdf"
+wkhtmltopdf --print-media-type --page-size letter \
+			--header-left "${OUTPUT_FILE}" --header-right '[page]/[toPage]' \
+			--margin-top 2cm --header-spacing 2 --header-line \
+			"${OUTPUT_NAME}.html" "${OUTPUT_NAME}.pdf"
 

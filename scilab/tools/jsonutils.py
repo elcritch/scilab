@@ -88,31 +88,41 @@ def DefaultValueHandler(k,v):
     else:
         return v
 
+def _load_json_process(json_file=None, json_str=None, valueHandler=None, defaultHandler=False):
+    
+    dt = DataTree()
+    def as_datatree(dct):
+        tree = DataTree()
+        tree.update(dct)
+        return tree
+
+    if json_file:
+        json_data = json.load(json_file, object_hook=as_datatree)
+    elif json_str:
+        json_data = json.loads(json_str, object_hook=as_datatree)
+    else:
+        raise Exception("Could not load json!")
+
+    # === Post Processing ===
+
+    if defaultHandler:
+        valueHandler = DefaultValueHandler 
+    
+    if valueHandler:
+        json_data = mapd(json_data, valuef=valueHandler)
+    
+    return json_data
+
+def load_json_from_str(json_str, datatree=False, default=None, valueHandler=None, defaultHandler=False):
+    return _load_json_process(json_str=json_str, valueHandler=valueHandler, defaultHandler=defaultHandler)
 
 def load_json_from(json_path, datatree=False, default=None, valueHandler=None, defaultHandler=False):
-
+    
     json_path = Path(str(json_path))
     
     try:
         with json_path.open() as json_file:
-
-            dt = DataTree()
-            def as_datatree(dct):
-                tree = DataTree()
-                tree.update(dct)
-                return tree
-
-            json_data = json.load(json_file, object_hook=as_datatree)
-
-            # === Post Processing ===
-
-            if defaultHandler:
-                valueHandler = DefaultValueHandler 
-            
-            if valueHandler:
-                json_data = mapd(json_data, valuef=valueHandler)
-            
-            return json_data
+            return _load_json_process(json_file=json_file, valueHandler=valueHandler, defaultHandler=defaultHandler)
 
     except Exception as err:
 
@@ -142,6 +152,8 @@ class CustomJsonEncoder(json.JSONEncoder):
             if isinstance(obj, numpy.ndarray):
                     # return DataTree(type=str(obj.dtype), shape=obj.shape, base64=base64.b64encode(obj))
                 return obj.tolist()
+            elif hasattr(obj, '_asdict'):
+                return obj._asdict()
             elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
                 return vars(obj)
             elif isinstance(obj, slice):
@@ -200,7 +212,8 @@ def update_json_at(update_path, update_data, dbg=None, **kwargs):
     """ Simple update method. Needs to handle merging better.  """
 
     json_data = load_json_from(update_path)
-    json_to_write = jsonmerge.merge(json_data, update_data)
+    update_json_data = load_json_from_str(dump_json(update_data))
+    json_to_write = jsonmerge.merge(json_data, update_json_data)
 
     write_json_to(update_path, json_to_write, dbg=dbg)
 

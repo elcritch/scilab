@@ -56,7 +56,11 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     
     # plt.show(block=True)
     
-    test.folder.save_calculated_json(test=test, name='graphs', data=graphdata.calcs)
+    if 'cycles' in graphdata.calcs:
+        print(dir(graphdata['calcs']['cycles']['actual_perc']))
+    jsondata = remap(graphdata.calcs, valuef=lambda k,v: v._asdict() if hasattr(v,'_asdict') else v)
+    debug(jsondata)
+    test.folder.save_calculated_json(test=test, name='graphs', data=jsondata)
     
     figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], version=args.version)
     print(tag(b="Figure: "+figname))
@@ -145,9 +149,9 @@ def test_folder():
 
     summaries = OrderedDict()
 
-    for name, test in sorted( testitems.items() )[:]:
-        if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x1"]:
-            continue
+    for name, test in sorted( testitems.items() )[:1]:
+        # if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x1"]:
+            # continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
@@ -177,7 +181,7 @@ def test_folder():
         except Exception as err:
             summaries[name] = "Failed"
             logging.exception(err)
-            # raise err
+            raise err
             
             
     

@@ -24,6 +24,8 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
     testfolder = test.folder
     
     try:
+        if (test.folder.jsoncalcs/"{}.measurements.calculated.json".format(test.info.short)).exists():
+                return DataTree()
         measurements = run_image_measure.process_test(testinfo, testfolder)
         debug(measurements)
         

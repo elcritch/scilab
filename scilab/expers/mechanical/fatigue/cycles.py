@@ -91,6 +91,10 @@ def parser_data_sheet_excel(ws):
     assert "gauge_base" in other.keys()
     assert "estimated_amp" in other.keys()
     
+    valueUnitsOverride = [ ('cycles', 'Nº Cycles'), ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
+    for key, units in valueUnitsOverride:
+        other[key] = valueUnits(value=other[key], units=units)._asdict()
+    
     if 'area' in other:
         other.pop('area')
     
