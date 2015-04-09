@@ -27,20 +27,23 @@ def isproperty(obj, key=None):
     return isinstance(obj, collections.Mapping) and (len(obj) == 1) and ((key in obj) if key else True)
     
     
-def executeexpr(expr, **env):
+def executeexpr(expr, **kwargs):
     
     try:
         print("executeexpr::expr: `{}`".format(expr))
         
         helpers = DataTree( asval=columnhandlers.asvalue, getvar=columnhandlers.getvar )
         
-        value = eval(expr, helpers+env)
+        env = helpers+kwargs
+        value = eval(expr, env)
         
         # print("executeexpr::result:", value,'\n')
         return value
+    except NameError as err:
+        raise NameError(err, "Variables available: {}".format(list(env.keys())), expr)
     except Exception as err:
         # debughere()
-        raise err
+        raise Exception(err, "Expression: {}".format(expr))
 
 def builtin_action_lookup(prop, **env):
     # debug(prop)
@@ -52,25 +55,35 @@ def builtin_action_lookup(prop, **env):
     else:
         raise KeyError("_look_ failed: `{}` -> `{}` in {}".format(keyexpr, keyvalue, repr(list(values.keys()))))
 
-def builtin_action_exec(values, **env):
-
+def calcenv():
     calc = DataTree()
     for name, item in vars(np).items():
         calc[name] = item
     
     for name, item in vars(columnhandlers).items():
-        calc[name] = item
+        calc[name] = item    
     
+    return calc
+
+def builtin_action_exec(values, **env):
+
+    calc = calcenv()
     
     # debug("builtin_action_exec",values)
     results = DataTree()
+    env["vars"] = results
     
     try:
-        flat_values = flatten(values, astuple=True, tolist=True)
+        flat_values = sorted(flatten(values, astuple=True, tolist=True), key=lambda x: x[0] )
+            
         for varname, expr in flat_values:
+            if varname in results:
+                raise NameError("Variable name already exists, cannot overwrite: `{varname}`".format(varname=varname))
+            
             results[varname] = executeexpr(expr, calc=calc, **env)
+            
     except Exception as err:
-        debug(repr(flat_values))
+        debug(repr(locals().get('flat_values',values)))
         raise err
         
     return results

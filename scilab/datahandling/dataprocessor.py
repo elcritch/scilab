@@ -474,8 +474,8 @@ def main():
     args.excel = False
     # args.excel = True
     # === Only Update Variables === 
-    args.onlyVars = False
-    # args.onlyVars = True
+    # args.onlyVars = False
+    args.onlyVars = True
     
     test_folder(args)
     

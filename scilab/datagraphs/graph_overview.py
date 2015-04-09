@@ -44,7 +44,7 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ax2.set_ylabel(labeler(yl))
     
     ax1.legend(loc=2, fontsize=10)
-    fig.suptitle("Overview All: {} ({})".format(test.info.short, repr(zconfig)))
+    fig.suptitle("Test Sample: {}".format(test.info.short))
     
     for idx in indexes.step._fieldnames:
         sl = getattr(indexes.step, idx)

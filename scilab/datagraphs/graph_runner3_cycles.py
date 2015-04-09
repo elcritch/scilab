@@ -93,9 +93,9 @@ def run_config(test, args, config, configfile):
     sns.set_style("whitegrid")
     
     # === Graphs ===
+    handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
     handle_grapher(graph_cycles_n_to_strain, test, matdata, args, zconfig)
     handle_grapher(graph_cycles_stop, test, matdata, args, zconfig)
-    handle_grapher(graph_cycles_peaks, test, matdata, args, zconfig)
     handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)

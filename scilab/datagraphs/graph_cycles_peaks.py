@@ -35,6 +35,7 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     xamp,xampl = getfield("stress_amp")
     ymax,ymaxl = getfield("strain_max")
     ymin,yminl = getfield("strain_min")
+    yamp,yampl = getfield("strain_amp")
     debug(xmax, ymax)
     
     # xmax = DataTree(value=test.details.variables.uts.tracking.norm.post.strain_max_value)
@@ -47,16 +48,13 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     other = test.details.excel.other
     calcs = DataTree()
     
-    calcs.target_stress = valueUnits(other.test_max_force.value / test.details.measurements.datasheet.area.value, 'MPa')
-    calcs.stress_level = valueUnits( int(100*other.stress_level.value), units="%")
-    calcs.pred_max_stress = other.uts_stress # *test.details.measurements.area.value
-    calcs.actual_stress = valueUnitsStd(xmax.mean(), stdev=xmax.std(), units=xmaxl.units)
-    calcs.actual_perc = valueUnits(calcs.actual_stress.value/(calcs.pred_max_stress.value) * 100.0, '%')
+    calcs.target_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_peak_target
+    calcs.stress_level = test.details.variables.m3_cycles.trends.norm.post.calcs01.stress_level_target
+    calcs.pred_max_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.max_stress_predicted
+    calcs.actual_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_peak_actual
+    calcs.actual_perc = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_level_actual
+    calcs.stress_amp_target = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_target
     calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.datasheet.area.value
-    calcs.load_balance = valueUnits(calcs.load_balance, units="N")
-    calcs.precond_disp = other.precond_disp
-    
-    target_disp_level = calcs.precond_disp
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))
@@ -68,39 +66,56 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax1_title = "%s vs %s"%(xmaxl.label, tl.label)
     ax1.plot(t, xmax, label=labeler(xmaxl))
     ax1.plot(t, xmin, label=labeler(xminl))
-    ax2.set_xlabel(labeler(tl))
-    ax2.set_ylabel(labeler(xmaxl))
+    
+    ax1.set_xlabel(labeler(tl))
+    ax1.set_ylabel(labeler(xmaxl))
+    
+    ax12 = ax1.twinx()
+    ax12.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+    
     
     # stress_max = .stress_max.mean
-    ax1.hlines(-calcs.load_balance.value, *ax1.get_xbound(), linestyles='dashed', label='Offset', color='lightgrey')
     
     avg_label='Avg. {:3.1f}±{:.2f} {} ({:.0f}%)'.format(calcs.actual_stress.value, calcs.actual_stress.stdev, calcs.actual_stress.units, calcs.actual_perc.value)
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.target_stress.value, calcs.stress_level.value)
     pred_label='PredMax. {:3.1f} (SL{})'.format(calcs.pred_max_stress.value, calcs.stress_level.value)
     
-    ax1.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
-    ax1.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
-    ax1.hlines(calcs.pred_max_stress.value, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
+    ax12.hlines(calcs.load_balance, *ax1.get_xbound(), linestyles='dotted', label='Offset', color='black')
+    ax12.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
+    ax12.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
+    ax12.hlines(calcs.pred_max_stress.value, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
     
-    ax1.legend(loc=3, fancybox=True, framealpha=0.0, )
+    ax1.legend(loc=0, fancybox=True, framealpha=0.0, )
+    ax12.legend(loc=3, fancybox=True, framealpha=0.0, )
     ax1.set_title(ax1_title)
     
     # === Second Plot ===
     ax2_title = "%s vs %s"%(xampl.label, tl.label)
     
-    ax2.plot(t, xamp)
+    ax2.plot(t, xamp, label=labeler(xampl), color=next(ax1._get_lines.color_cycle))
+    
     ax2.set_xlabel(labeler(tl))
     ax2.set_ylabel(labeler(xampl))
+
+    ax2.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+
+    ax2.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', color='black')
+    ax2.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', color='orange')
+
+    ax3 = ax2.twinx()
+    ax3.plot(t, yamp, label=labeler(xampl), color=next(ax1._get_lines.color_cycle), ls='-') 
+    ax3.set_ylabel(labeler(yampl))
     
-    ax2.hlines(target_disp_level.value, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+ymaxl.label)
+    # ax2.hlines(target_disp_level.value, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+ymaxl.label)
     
-    ax2.legend(loc='best', fontsize=10,fancybox=True, framealpha=0.5)
+    ax2.legend(loc=0, fontsize=10,fancybox=True, framealpha=0.5)
+    ax3.legend(loc=1, fontsize=10,fancybox=True, framealpha=0.5)
     ax2.set_title(ax2_title)
     fig.subplots_adjust(hspace=1.4, )    
     # Make some room at the bottom 
     fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
     
-    return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree(cycles=calcs))
+    return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree())
 
     
 
