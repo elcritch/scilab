@@ -93,13 +93,16 @@ def normalize_columns(data, norm_config, filenames, state):
         env = DataTree(details=state.details, **data)
         sourcecol = getproperty(col.source, action=True, env=env)
 
-        print(mdHeader(4, "Column: {}", sourcecol))
+        if sourcecol:
+            print(mdHeader(4, "Column: {}", sourcecol))
         
-        normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)
-        normedinfo = executeexpr("raw.columninfo.{col}".format(col=sourcecol), **env)
-        normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )
-                
-        col.info = normedinfo.set(**col.get('info',{}))
+            normeddata = executeexpr("raw.data.{col}".format(col=sourcecol), **env)
+            normedinfo = executeexpr("raw.columninfo.{col}".format(col=sourcecol), **env)
+            normedinfo = DataTree( ((f,getattr(normedinfo,f)) for f in normedinfo._fieldnames) )    
+            col.info = normedinfo.set(**col.get('info',{}))
+        else:
+            normeddata = None
+        
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
             constant_factor = executeexpr(constantexpr, details=state.details, data=data, variables=state.get('variables',DataTree()))
@@ -123,6 +126,7 @@ def normalize_columns(data, norm_config, filenames, state):
         
         normcol = DataTree(array=normedcoldata, summary=summaryvalues(normedcoldata, np.s_[0:-1]))
         output.append( [ col.info, normcol ] )
+        data['norm',col.info.name] = normcol.array
     
     return output 
 
@@ -470,8 +474,8 @@ def main():
     args.excel = False
     # args.excel = True
     # === Only Update Variables === 
-    # args.onlyVars = False
-    args.onlyVars = True
+    args.onlyVars = False
+    # args.onlyVars = True
     
     test_folder(args)
     

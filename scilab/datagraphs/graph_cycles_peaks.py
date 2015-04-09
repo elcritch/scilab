@@ -31,8 +31,9 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     getfield = lambda n: ( getattr(matdata.data, n)[stepslice], getattr(matdata.columninfo, n) )
     t,tl = getfield("cycleStartTime")
     xmax,xmaxl = getfield("stress_max")
-    ymax,ymaxl = getfield("strain_max")
     xmin,xminl = getfield("stress_min")
+    xamp,xampl = getfield("stress_amp")
+    ymax,ymaxl = getfield("strain_max")
     ymin,yminl = getfield("strain_min")
     debug(xmax, ymax)
     
@@ -65,7 +66,8 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax1.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
     
     ax1_title = "%s vs %s"%(xmaxl.label, tl.label)
-    ax1.plot(t, xmax)
+    ax1.plot(t, xmax, label=labeler(xmaxl))
+    ax1.plot(t, xmin, label=labeler(xminl))
     ax2.set_xlabel(labeler(tl))
     ax2.set_ylabel(labeler(xmaxl))
     
@@ -84,11 +86,11 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax1.set_title(ax1_title)
     
     # === Second Plot ===
-    ax2_title = "%s vs %s"%(ymaxl.label, tl.label, )
+    ax2_title = "%s vs %s"%(xampl.label, tl.label)
     
-    ax2.plot(t, ymax)
+    ax2.plot(t, xamp)
     ax2.set_xlabel(labeler(tl))
-    ax2.set_ylabel(labeler(ymaxl))
+    ax2.set_ylabel(labeler(xampl))
     
     ax2.hlines(target_disp_level.value, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+ymaxl.label)
     

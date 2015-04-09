@@ -50,9 +50,11 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ax1.set_ylabel(labeler(ymaxl))
     ax1.set_xscale('log')
     # ax2.set_ylabel(labeler(ymaxl))
+    # ax1.set_ylim((-0.10*other.uts_stress.value, 1.2*other.uts_stress.value))
     
     ax1.legend(loc=2, fontsize=10)
     fig.suptitle("Overview All: {} ({})".format(test.info.short, repr(zconfig)))
+    
     
     # for idx in indexes.step._fieldnames:
     #     sl = getattr(indexes.step, idx)

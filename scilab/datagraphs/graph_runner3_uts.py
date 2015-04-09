@@ -51,8 +51,6 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
                 step_idx=gconfigs[tuple(zconfig.values())+(graphname, 'step_idx',)],
                 zconfig=zconfig)
     
-    
-    
     if not graphdata:
         return
     

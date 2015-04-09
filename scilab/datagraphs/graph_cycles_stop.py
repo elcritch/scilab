@@ -32,9 +32,9 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     labeler = lambda x: "{label} [{units}]".format(label=x.label, units=x.units)
     
     # === Setup plot ===
-    fig, axes = plt.subplots(ncols=2, figsize=(14,6))
-    ax1 = axes[0]
-    ax2 = axes[1]
+    # fig, axes = plt.subplots(ncols=2, figsize=(14,6))
+    # ax1 = axes[0]
+    # ax2 = axes[1]
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=1, figsize=(14,6))
