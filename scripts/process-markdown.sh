@@ -15,7 +15,7 @@ echo "OUTPUT: $OUTPUT"                      >> "$LOG"
 
 $PD \
 	-r markdown+yaml_metadata_block+mmd_title_block+definition_lists+footnotes+table_captions+grid_tables+simple_tables \
-	--css="$HOME/proj/code/scilab/css/ntm-style.css" \
+	--css="$HOME/proj/code/scilab/scripts/css/ntm-style.css" \
 	--section-divs --mathjax -w html5 -s -S "${FILE}" > "${OUTPUT_NAME}.html"
 
 echo "Generated html5... "

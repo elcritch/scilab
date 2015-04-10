@@ -14,7 +14,12 @@ echo "SCILAB: '$SCILAB'"                      >> /tmp/run_scholdoc.log
 echo "SCILAB: <base href='file://${TM_FILEPATH// /%20}'>" >> /tmp/run_scholdoc.log 
 
 # cat /tmp/run_scholdoc.log | perl -pe 's/\n/<br>\n/'
-CSS="$SCILAB/css/scholmd-heuristically-latest.min.css"
+USERCSS=`perl -ne 'print "$1" if /^css-theme:\s*(.+\.css)\s*$/' < ${FILE}`
+
+echo "USERCSS: '$USERCSS'" >> /tmp/run_scholdoc.log 
+
+CSSTHEME=${USERCSS:-scholmd-heuristically-latest.min.css}
+CSS="$SCILAB/scripts/css/${CSSTHEME}"
 # CSS="$SCILAB/css/scholdoc-style.css"
 CSS_REF="file://${CSS// /%20}"
 
