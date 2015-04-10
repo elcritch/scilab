@@ -13,6 +13,7 @@ from scilab.tools.project import *
 from scilab.expers.configuration import *
 from scilab.tools.instroncsv import *
 import scilab.tools.jsonutils as Json
+import scilab.tools.datacleanup as datacleanup 
 import scilab.datahandling.columnhandlers as columnhandlers  
 
 import numpy as np
@@ -62,7 +63,8 @@ def calcenv():
     
     for name, item in vars(columnhandlers).items():
         calc[name] = item    
-    
+
+    calc["findendpoint"] = datacleanup.calculate_data_endpoint2
     return calc
 
 def builtin_action_exec(values, **env):

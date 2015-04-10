@@ -66,7 +66,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
             )
 
     textpoint = (timerange_cycle[1] - timerange_cycle[0])/2+ timerange_cycle[0]
-    ax1.annotate('Tangent Modulus: {:.2f}'.format(modulus.data.linear_modulus, ),
+    ax1.annotate('Tangent Modulus: {:.2f}'.format(modulus.data.tangent_modulus.value, ),
                  xy=(textpoint,fits.stress_linear(textpoint)),
                  xytext=(-10, 10),
                  va='top',
@@ -111,17 +111,10 @@ def fit_modulus(time, strain, stress, sl):
     modulus.sl = sl.start, sl.stop, sl.step
     
     ## Expr Fits
-    
-    modulus['data','linear_modulus'] = linear_modulus
-    modulus['data','strain_linear'] = strain_linear.data._asdict()
-    modulus['data','stress_linear'] = stress_linear.data._asdict()
-    
-    modulus.data_json = {
-            'value':linear_modulus,
-            'slope_stress':stress_linear.data.slope,
-            'slope_strain':strain_linear.data.slope,
-            }
-    
+    modulus['data','tangent_modulus'] = DataTree(value=linear_modulus, units="MPa/∆")
+    modulus['data','strain_linear_slope'] = DataTree(units="∆",**strain_linear.data._asdict())
+    modulus['data','stress_linear_slope'] = DataTree(units="MPa",**stress_linear.data._asdict())
+        
     fits = DataTree()
     fits.strain_linear = strain_linear
     fits.stress_linear = stress_linear

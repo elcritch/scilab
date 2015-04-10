@@ -93,7 +93,7 @@ def parser_data_sheet_excel(ws):
     
     valueUnitsOverride = [ ('cycles', 'Nº Cycles'), ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
     for key, units in valueUnitsOverride:
-        other[key] = valueUnits(value=other[key], units=units)._asdict()
+        other[key] = valueUnits(value=other[key] if key in other else float('nan'), units=units)._asdict()
     
     if 'area' in other:
         other.pop('area')

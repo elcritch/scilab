@@ -48,9 +48,9 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     other = test.details.excel.other
     calcs = DataTree()
     
-    calcs.target_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_peak_target
+    calcs.target_stress = test.details.variables.m3_cycles.trends.norm.post.calcs01.stress_peak_target
     calcs.stress_level = test.details.variables.m3_cycles.trends.norm.post.calcs01.stress_level_target
-    calcs.pred_max_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.max_stress_predicted
+    calcs.pred_max_stress = test.details.variables.m3_cycles.trends.norm.post.calcs01.max_stress_predicted
     calcs.actual_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_peak_actual
     calcs.actual_perc = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_level_actual
     calcs.stress_amp_target = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_target

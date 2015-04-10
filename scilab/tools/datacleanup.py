@@ -34,6 +34,7 @@ def data_find_max(value, data):
 
 def calculate_data_endpoint2(
         x, y, 
+        start_x   = None,
         delta     = 5.0, # 5.0,
         max_slope = None, # 0.01, 
         max_value = None, # 0.0, 
@@ -41,13 +42,17 @@ def calculate_data_endpoint2(
         max_std   = None, # 0.1,
         start_at_end = True,
         custom = lambda fit: False,
-        polyfit   = np.polyfit):
+        polyfit   = np.polyfit,
+        deg = 1):
     """ Find last point where data does not change. 
     The end point of the data is calculated by breaking the data into
     sections and fitting straight lines to each section. The sections
     are traversed in reverse until the first section with a 
     slope, averaged fit value, or std. dev. that exceed the max values is found. 
     """
+    if start_x:
+        xidx = find_index(start_x, x)
+    
     delta_x = len(x)/(find_index(x[0]+delta, x)-find_index(x[0]+0.0, x))
     
     sections_i = np.array_split(list(range(0,len(x)-1)), delta_x)
@@ -62,7 +67,11 @@ def calculate_data_endpoint2(
         sections = reversed(sections)
         
     for i, sx, sy in sections:
-        fit = polyfit(sx, sy)
+        if start_x and not sx[0] >= start_x:
+            continue
+        
+        # print(deg)
+        fit = polyfit(sx, sy, deg)
         # debug(fit)
         slope, intercept = fit[-2:]
         

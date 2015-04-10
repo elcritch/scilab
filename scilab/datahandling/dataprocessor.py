@@ -448,9 +448,9 @@ def test_folder(args):
         
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:1]:
-        # if name != "jan11(gf11.5-llm)-wa-lg-l6-x1":
-            # continue
+    for name, testconf in sorted( testitems.items() )[:]:
+        if name != "jan10(gf10.9-llm)-wa-lg-l10-x2":
+            continue
             
         try:
             execute(fs, name, testconf, args, )
@@ -467,15 +467,15 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "0"
     
     # === Excel === 
     args.excel = False
     # args.excel = True
     # === Only Update Variables === 
-    # args.onlyVars = False
-    args.onlyVars = True
+    args.onlyVars = False
+    # args.onlyVars = True
     
     test_folder(args)
     
