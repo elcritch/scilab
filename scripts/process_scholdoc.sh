@@ -11,11 +11,12 @@ PDF="${STEM}.pdf"
 ./run_scholdoc.sh "$1" "$2"
 
 wkhtmltopdf --print-media-type \
-			--page-size letter \
-			--header-right '[page]/[toPage]' \
-			--margin-top 2cm \
-			--header-spacing 2 \
-			"${HTML}" "${PDF}"
+				--page-size letter \
+				--header-right '[page]/[toPage]' \
+				--margin-top 2cm \
+				-L 0mm -R 0mm \
+				--header-spacing 2 \
+				"${HTML}" "${PDF}"
 
 			# --header-left "${BASE}" \
 			# --header-line \
