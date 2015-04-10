@@ -27,8 +27,12 @@ import seaborn as sns
 def display(*args, **kwargs):
     print(*args, **kwargs)
 
-def HTML(arg):
-    return arg
+def HTML(arg, whitespace=None):
+    if whitespace:
+        return "<div style='white-space: {whitespace};'>\n{ret}\n</div>\n".format(whitespace=whitespace, ret=arg)
+    else:
+        ret = arg.replace('\n','\r')
+        return ret
     
 def tag(*args, env={}, **kwargs):
     pair = getpropertypair(kwargs)
@@ -119,8 +123,8 @@ def run(test, args):
         except Exception as err:
             print("<em> Error Running config! </em>")
             logging.exception(err)
-            raise err
-            # continue
+            # raise err
+            continue
 
 
 def test_folder():
@@ -150,8 +154,8 @@ def test_folder():
     summaries = OrderedDict()
 
     for name, test in sorted( testitems.items() )[:]:
-        # if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x1"]:
-            # continue
+        if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
+            continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
@@ -181,7 +185,7 @@ def test_folder():
         except Exception as err:
             summaries[name] = "Failed"
             logging.exception(err)
-            # raise err
+            raise err
     
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
