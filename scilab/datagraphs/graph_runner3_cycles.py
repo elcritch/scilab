@@ -149,7 +149,7 @@ def test_folder():
 
     summaries = OrderedDict()
 
-    for name, test in sorted( testitems.items() )[:1]:
+    for name, test in sorted( testitems.items() )[:]:
         # if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x1"]:
             # continue
         
@@ -181,7 +181,11 @@ def test_folder():
         except Exception as err:
             summaries[name] = "Failed"
             logging.exception(err)
-            raise err
+            # raise err
+    
+    print("Summaries:\n\n")
+    print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    print()
             
             
     
