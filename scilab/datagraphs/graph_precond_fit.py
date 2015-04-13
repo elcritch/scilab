@@ -47,7 +47,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     ax2.plot(
         data.strain [sl][sl_half],
         data.stress [sl][sl_half],
-        label=colinfo.strain.name)
+        label="Stress/Strain")
 
     ax2.set_xlabel(labeler(colinfo.strain))
     ax2.set_ylabel(labeler(colinfo.stress))

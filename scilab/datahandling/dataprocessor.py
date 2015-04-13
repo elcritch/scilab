@@ -146,13 +146,18 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
 
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
-    # debug(vardict)
-    # print(vardict)
+    debug(vardict)
+    print(vardict)
     
-    jsonpath, allvariables = testfolder.save_calculated_json(test=state.args.testconf, name="variables", data=vardict)
+    jsonpath, allvariables = testfolder.save_calculated_json(
+        test=state.args.testconf, 
+        name="variables", 
+        data=vardict,
+        # mergeschema={"properties": {'m3_cycles': {'tracking': {'norm': {'post': {"mergeStrategy": "overwrite"} }}}, 'tracking': {"mergeStrategy": "overwrite"} } },
+        )
     
     state.variables.update( allvariables["variables"] )
-    # debug(allvariables, state.variables)
+    debug(allvariables, state.variables)
     
     return 
     
@@ -448,9 +453,9 @@ def test_folder(args):
         
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
-        if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
-            continue
+    for name, testconf in sorted( testitems.items() )[:1]:
+        # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
+            # continue
             
         try:
             execute(fs, name, testconf, args, )

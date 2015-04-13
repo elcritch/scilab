@@ -9,6 +9,11 @@ import matplotlib.pyplot as plt
 from scilab.tools.project import *
 import numpy as np
 
+def find_index(t, times):
+    for i, tau in enumerate(times):
+        if t < tau:
+            return i
+
 def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
     # if zconfig['item'] != "tracking":
@@ -31,6 +36,9 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ymin,yminl = getfield("strain_min")
     
     # debug(xmax, ymax)
+    calcs = DataTree()
+    calcs.cycle_failure = test.details.variables.m3_cycles.trends.norm.post.calcs03.cycle_failure
+    calcs.cf_idx = find_index(calcs.cycle_failure.value, t)
     
     # xmax = DataTree(value=test.details.variables.uts.tracking.norm.post.strain_max_value)
     target_stress_level = test.details['excel']['other']['stress_level']
@@ -52,8 +60,11 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     # ax2.set_ylabel(labeler(ymaxl))
     # ax1.set_ylim((-0.10*other.uts_stress.value, 1.2*other.uts_stress.value))
     
+    ax1.scatter(t[calcs.cf_idx], ymax[calcs.cf_idx], 
+        label="Failure Cycles (%d %s)"%(int(calcs.cycle_failure.value),calcs.cycle_failure.units))
+    
     ax1.legend(loc=2, fontsize=10)
-    fig.suptitle("Overview All: {} ({})".format(test.info.short, repr(zconfig)))
+    fig.suptitle("Strain vs Log Cycles")
     
     
     # for idx in indexes.step._fieldnames:

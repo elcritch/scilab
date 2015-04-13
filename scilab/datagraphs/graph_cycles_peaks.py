@@ -54,6 +54,8 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     calcs.actual_stress = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_peak_actual
     calcs.actual_perc = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_level_actual
     calcs.stress_amp_target = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_target
+    calcs.stress_amp_actual = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_actual
+    calcs.stress_amp_percent = test.details.variables.m3_cycles.trends.norm.post.calcs03.stress_amp_percent
     calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.datasheet.area.value
     
     ## Setup plot
@@ -99,8 +101,11 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
 
     ax2.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
 
-    ax2.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', color='black')
-    ax2.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', color='orange')
+    avg_label='Avg. {:3.1f}±{:.2f} {} ({:.0f}%)'.format(calcs.stress_amp_actual.value, calcs.stress_amp_actual.stdev, calcs.stress_amp_actual.units, calcs.stress_amp_percent.value)
+    tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.stress_amp_target.value, calcs.stress_level.value)
+
+    ax2.hlines(calcs.stress_amp_actual.value, *ax1.get_xbound(), linestyles='dashed', color='black', label=avg_label)
+    ax2.hlines(calcs.stress_amp_target.value, *ax1.get_xbound(), linestyles='dashed', color='orange', label=tgt_label)
 
     ax3 = ax2.twinx()
     ax3.plot(t, yamp, label=labeler(xampl), color=next(ax1._get_lines.color_cycle), ls='-') 

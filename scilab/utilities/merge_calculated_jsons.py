@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-import shutil, re, sys, os, itertools, argparse, json, collections
+import shutil, re, sys, os, itertools, argparse, json, collections, yaml
 from pathlib import Path
 import jsonmerge
 
@@ -72,6 +72,12 @@ def handler(testinfo, testfolder, args, savePrevious=True):
     Json.write_json(testcalc.parent.as_posix(), json_updated, 
             json_url=testcalc.name, dbg=False)
     
+    
+    # Save a copy as yaml
+    j1 = remap(json_updated, valuef=lambda k,v: v, dictclass=dict)
+
+    with (testcalc.parent/testcalc.name).with_suffix(".yaml").open('w') as yfile:
+        yaml.dump(j1, yfile)
     
     return json_updated
 

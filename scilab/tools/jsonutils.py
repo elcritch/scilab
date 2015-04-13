@@ -5,6 +5,8 @@ import os, tempfile, shutil, logging, re, numbers
 import json as json
 
 import jsonmerge
+from jsonmerge import Merger
+
 from pathlib import Path
 
 from scilab.tools.project import *
@@ -208,12 +210,15 @@ def update_json(parentdir, update_data, json_url="data.json", **kwargs):
     return update_json_at(json_path, update_data, **kwargs)
 
 
-def update_json_at(update_path, update_data, dbg=None, **kwargs):
+def update_json_at(update_path, update_data, dbg=None, mergeschema=None, **kwargs):
     """ Simple update method. Needs to handle merging better.  """
 
     json_data = load_json_from(update_path)
     update_json_data = load_json_from_str(dump_json(update_data))
-    json_to_write = jsonmerge.merge(json_data, update_json_data)
+    
+    merger = Merger(mergeschema) if mergeschema else jsonmerge
+    
+    json_to_write = merger.merge(json_data, update_json_data)
 
     write_json_to(update_path, json_to_write, dbg=dbg)
 
