@@ -43,15 +43,9 @@ class TestPanelLayout(QFrame):
 
         buttonLayout = QHBoxLayout()
         okButton = QPushButton("Run Image Dims")
-        dataButton = QPushButton("Enter Data")
-        cancelButton = QPushButton("Run Preconditions Fit")
         okButton.clicked.connect(self.testHandler.run_image_dims)
-        cancelButton.clicked.connect(self.testHandler.run_preconditions)
-        dataButton.clicked.connect(self.testHandler.run_enterdata)
 
-        buttonLayout.addWidget(dataButton)
         buttonLayout.addWidget(okButton)
-        buttonLayout.addWidget(cancelButton)
 
         layout.addWidget(testInfoPane)
         layout.addLayout(buttonLayout)

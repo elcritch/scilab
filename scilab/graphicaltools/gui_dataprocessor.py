@@ -61,7 +61,7 @@ class ExperTestList(QListWidget):
 
 import importlib
 
-class DataProcessorGuiMain(QWidget):
+class DataProcessorGuiMain(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -92,10 +92,10 @@ class DataProcessorGuiMain(QWidget):
 
         return leftLayout
 
-        
 
     def initUI(self):
 
+        # self.projectPanel = self.projectPanel()
         self.testInfoPanel = self.infoTestInfoPanel()
         self.testPanel = TestPanelLayout(parent=self)
         
@@ -113,13 +113,62 @@ class DataProcessorGuiMain(QWidget):
         self.testList.currentItemChanged.connect(self.testPanel.actionUpdateDetailPanel)
 
         mainLayout = QVBoxLayout()
-        mainLayout.addWidget(mainPanel)
-        self.setLayout(mainLayout)
+        
+        self.setCentralWidget(mainPanel)
+        
+        
+        self.statusBar()
 
-        self.setGeometry(300, 300, 800, 640)
+        openFile = QAction(QIcon.fromTheme('open.png'), 'Open', self)
+        openFile.setShortcut('Ctrl+O')
+        openFile.setStatusTip('Open Project')
+        openFile.triggered.connect(self.showFileDialog)
+
+        # menubar = self.menuBar()
+        # fileMenu = menubar.addMenu('&File')
+        # fileMenu.addAction(openFile)
+                
+        mainToolbar = self.addToolBar("Main")
+        mainToolbar.addAction(openFile)
+        mainToolbar.addSeparator()
+        mainToolbar.addWidget(self.dropdownfilebox())
+        
+        # layout.addWidget(self.button)
+        
+        
+        # mainLayout.addWidget(mainPanel)
+        # self.setLayout(mainLayout)
+
+        # self.setGeometry(300, 300, 800, 640)
         self.setWindowTitle('Project Test DataProcessor')
+        
         self.show()
+    
+    def dropdownfilebox(self):
+        
+        layout = QHBoxLayout(self)
+        button = QToolButton(self)
+        button.setPopupMode(QToolButton.MenuButtonPopup)
+        button.setMenu(QMenu(button))
+        button.setText("File...")
+        textBox = QTextBrowser(self)
+        action = QWidgetAction(button)
+        action.setDefaultWidget(textBox)
+        button.menu().addAction(action)
+        
+        return button
+        
 
+    def showFileDialog(self):
+
+        fname, _ = QFileDialog.getOpenFileName(self, 'Open file', '~/')
+        
+        # f = open(fname, 'r')
+
+        debug(fname)
+        # with f:
+            # data = f.read()
+            # self.textEdit.setText(data)
 
 def main():
 
