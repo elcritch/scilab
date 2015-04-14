@@ -146,8 +146,8 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
 
     vardict = DataTree()
     vardict[ tuple( i[1] for i in state.position )+(name, kind, ) ] = variables
-    debug(vardict)
-    print(vardict)
+    # debug(vardict)
+    # print(vardict)
     
     jsonpath, allvariables = testfolder.save_calculated_json(
         test=state.args.testconf, 
@@ -157,7 +157,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
         )
     
     state.variables.update( allvariables["variables"] )
-    debug(allvariables, state.variables)
+    # debug(allvariables, state.variables)
     
     return 
     
@@ -453,7 +453,7 @@ def test_folder(args):
         
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:1]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             
@@ -463,7 +463,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -472,7 +472,7 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=True, norm=True)
+    args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
     
     # === Excel === 
