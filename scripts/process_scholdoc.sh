@@ -22,3 +22,4 @@ wkhtmltopdf --print-media-type \
 			# --header-line \
 
 open "$PDF"
+

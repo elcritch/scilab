@@ -55,6 +55,6 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ax2.legend(loc=1, fontsize=10)
     
     # === Titles === 
-    fig.suptitle("Fatigue Cycle Stop: {} ({})".format(test.info.short, repr(zconfig)))
+    fig.suptitle("Fatigue Cycle -- Final Cycles".format(test.info.short, repr(zconfig)))
     
     return DataTree(fig=fig, axes=axes, calcs=DataTree())

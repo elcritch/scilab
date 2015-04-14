@@ -80,7 +80,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     
 
     # fig.suptitle("(test=902-6LG-402 | stage=norm | item=tracking | method=precond | v0")
-    fig.suptitle("Precond: {} ({})".format(test.info.short, repr(zconfig))
+    fig.suptitle("Tangent Modulus Fitting".format(test.info.short, repr(zconfig))
 )
 
     ax1.legend()
