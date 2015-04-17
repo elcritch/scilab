@@ -5,6 +5,7 @@ PD=${SCHOLDOC:-$2}
 
 OUTPUT="${FILE:r}.html" 
 OUTPUT_DOC="${FILE:r}.docx" 
+FILEDIR="$(dirname ${FILE})" 
 
 echo "" > /tmp/run_scholdoc.log 
 echo "PD: '$PD'"                              >> /tmp/run_scholdoc.log 
@@ -15,6 +16,7 @@ echo "SCILAB: <base href='file://${TM_FILEPATH// /%20}'>" >> /tmp/run_scholdoc.l
 
 # cat /tmp/run_scholdoc.log | perl -pe 's/\n/<br>\n/'
 USERCSS=`perl -ne 'print "$1" if /^css-theme:\s*(.+\.css)\s*$/' < ${FILE}`
+BIB=`perl -ne 'print "$1" if /^bibliography:\s*(.+?)\s*$/' < ${FILE}`
 
 echo "USERCSS: '$USERCSS'" >> /tmp/run_scholdoc.log 
 
@@ -29,10 +31,7 @@ echo "CSS_REF: $CSS_REF" >> /tmp/run_scholdoc.log
 $PD \
 	--css="$CSS_REF" \
 	-w docx -o "$OUTPUT_DOC" \
-	< "$1"
-
-cat - | $PD \
-	--css="$CSS_REF" \
-	-w html5 -s -S > $OUTPUT
+	--citeproc --bibliography="${FILEDIR}/${BIB}" \
+	-w html5 -s -S -o $OUTPUT < "$FILE"
 
 cat $OUTPUT

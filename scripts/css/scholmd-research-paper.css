@@ -15,10 +15,10 @@ html {
 	-ms-text-size-adjust: 100%
 }
 
-body {
+/*body {
     margin: 25mm 25mm 25mm 25mm;
 }
-
+*/
 body {
 	font-family: Heuristica,"Times New Roman",Times,serif;
 	font-size: 12px;
@@ -41,9 +41,6 @@ h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
 	color: inherit;
 }
 
-.scholmd-abstract {
-	
-}
 
 p { margin: 0 0 12px; }
 
@@ -192,6 +189,27 @@ td,th {
 		background: transparent!important;
 		box-shadow: none!important
 	}
+	
+	
+	html, body, div.scholmd-container, div.scholmd-main, div.scholmd-content {
+		float: none !important
+	}
+	
+/*	body {*/
+	div.scholmd-container {
+/*	    margin: 25mm 25mm 25mm 25mm !important;*/
+		size:8.5in 11in; 
+		margin:1.0in 1.0in 1.0in 1.0in; 
+		mso-header-margin:1.0in; 
+		mso-footer-margin:1.0in; 
+		mso-paper-source:0
+	}
+	
+	div.scholmd-abstract, div.references {
+		page-break-after: always;
+		page-break-inside: avoid
+	}
+	
 	a,a:visited {
 		text-decoration: underline
 	}
@@ -2128,6 +2146,7 @@ li>p {
 	.references a,.pull-right a,.references a:visited,.pull-right a:visited {
 		text-decoration: none
 	}
+	
 	.references a:after,.pull-right a:after {
 		content: ""
 	}

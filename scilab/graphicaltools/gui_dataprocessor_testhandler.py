@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections
+import sys, collections, logging
 from PySide.QtCore import *
 from PySide.QtGui import *
 
@@ -21,10 +21,73 @@ import numpy as np
 import scilab.expers.configuration as config
 from scilab.expers.mechanical.fatigue.cycles import TestInfo
 
-class TestPanelLayout(QFrame):
+
+
+class ProjectContainer():
+    
+    projectdirchanged = Signal(str)
+    projectrefresh = Signal()
+    
+    def __init__(self):
+        self.fs         = None
+        self.test_dir   = None
+        self.testitemsd = None
+        self.args       = None
+        
+        
+        # self.projectdirchanged.connect(self.setprojdir)
+
+    @Slot(str)
+    def setprojdir(self, testdir):
+
+        def showErrorMessage(errmsg, dir):
+            errorfmt = "Invalid project:<br>Dir `{1}`<br>Error `{0}`"
+            QMessageBox.warning(self, "Project Directory", errorfmt.format(errmsg, dir), QMessageBox.Ok)
+        
+        projectdir = Path(str(testdir))
+        
+        if not projectdir.exists():
+            showErrorMessage("Project folder does not exist.", testdir)
+            return
+        
+        projdescpath = projectdir / "projdesc.json"
+        
+        if not projdescpath.exists():
+            showErrorMessage(" Missing projectdesc file.", str(projectdir))
+            return
+        else:
+            try:
+                projdescpath.resolve()
+                json.loads(str(projdescpath))
+            except Exception as err:
+                showErrorMessage("Error loading project description: "+str(err), testdir)
+                return
+        
+        try:
+            self.fs = config.FileStructure(
+                        projdescpath=projdescpath,
+                        testinfo=exper.TestInfo, 
+                        verify=True, 
+                        project=projectdir)
+        
+            self.test_dir = fs.tests.resolve()
+            self.testitemsd = fs.testitemsd()
+            self.args = DataTree()
+
+            # = Emit projectdirchanged =
+            print("Setting test directory:", test_dir)
+            self.projectdirchanged.emit(str())
+            
+        except Exception as err:
+            logging.exception(err)
+            showErrorMessage("Error setting project: "+str(err), testdir)
+            return
+
+class TestPanelLayout(QFrame, ProjectContainer):
     
     def __init__(self, parent):
         super(TestPanelLayout, self).__init__(parent=parent)
+        super(ProjectContainer, self).__init__()
         
         self.testHandler = TestHandler()
         
@@ -75,26 +138,6 @@ class TestHandler(object):
         # self.projectdir = file_dir
         self.current_item = None
         self.current_testinfo = None
-        
-    def setupTestDir(self):
-        
-    
-        fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
-        # Test test images for now
-        test_dir = fs.tests.resolve()
-        testitemsd = fs.testitemsd()
-
-        debug(test_dir)
-    
-        args = DataTree()
-    
-        # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-        # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
-    
-        # pdp = args.parentdir / 'projdesc.json' 
-        # print(pdp)
-        # print(pdp.resolve())
-        
         
 
     def get_testitem_info(self, item, testinfo):

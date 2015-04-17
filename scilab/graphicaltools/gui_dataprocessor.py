@@ -68,6 +68,8 @@ class DataProcessorGuiMain(QMainWindow):
 
         # self.testDetails = TestHandler()
         self.initUI()
+        
+        self.settings = QSettings("Scilab", "Dataprocessor Gui")
 
 
     def infoTestInfoPanel(self):
@@ -97,7 +99,7 @@ class DataProcessorGuiMain(QMainWindow):
 
         # self.projectPanel = self.projectPanel()
         self.testInfoPanel = self.infoTestInfoPanel()
-        self.testPanel = TestPanelLayout(parent=self)
+        self.testpanel = TestPanelLayout(parent=self)
         
         lFrame = QFrame(self)
         lFrame.setLayout(self.testInfoPanel)
@@ -108,77 +110,63 @@ class DataProcessorGuiMain(QMainWindow):
         # == Main Panel Init ==
         mainPanel =  QSplitter(self)
         mainPanel.addWidget(lFrame)
-        mainPanel.addWidget(self.testPanel)
+        mainPanel.addWidget(self.testpanel)
 
-        self.testList.currentItemChanged.connect(self.testPanel.actionUpdateDetailPanel)
+        self.testList.currentItemChanged.connect(self.testpanel.actionUpdateDetailPanel)
 
         mainLayout = QVBoxLayout()
         
         self.setCentralWidget(mainPanel)
         
-        
         self.statusBar()
 
-        openFile = QAction(QIcon.fromTheme('open.png'), 'Open', self)
-        openFile.setShortcut('Ctrl+O')
-        openFile.setStatusTip('Open Project')
-        openFile.triggered.connect(self.showFileDialog)
-
-        # menubar = self.menuBar()
-        # fileMenu = menubar.addMenu('&File')
-        # fileMenu.addAction(openFile)
+        openFile = QAction(QIcon.fromTheme('refresh.png'), 'Refresh', self)
+        openFile.setShortcut('Ctrl+R')
+        openFile.triggered.connect(self.testpanel.projectrefresh)
                 
         mainToolbar = self.addToolBar("Main")
         mainToolbar.addAction(openFile)
         mainToolbar.addSeparator()
-        mainToolbar.addWidget(self.dropdownfilebox())
-        
-        # layout.addWidget(self.button)
-        
-        
-        # mainLayout.addWidget(mainPanel)
-        # self.setLayout(mainLayout)
+        mainToolbar.addWidget(self.dropdownfilebox(self.testpanel))
 
-        # self.setGeometry(300, 300, 800, 640)
         self.setWindowTitle('Project Test DataProcessor')
         
         self.show()
     
-    def dropdownfilebox(self):
+    def dropdownfilebox(self, testpanel):
         
         layout = QHBoxLayout(self)
         button = QToolButton(self)
         button.setPopupMode(QToolButton.MenuButtonPopup)
         button.setMenu(QMenu(button))
-        button.setText("File...")
         textBox = QTextBrowser(self)
         action = QWidgetAction(button)
         action.setDefaultWidget(textBox)
         button.menu().addAction(action)
         
-        return button
+        @Slot(str)
+        def dropdownfilebox_update(projdir):
+            ''' Give evidence that a bag was punched. '''
+            print("Dropdown project dir update:", projdir)
+            button.setText("{:<80s}".format(Path(str(projdir)).name))
         
+        dropdownfilebox_update("Project Directory ... ")
+        testpanel.projectdirchanged.connect(dropdownfilebox_update)
+        button.clicked.connect(self.showFileDialog)
+        return button
 
     def showFileDialog(self):
-
-        fname, _ = QFileDialog.getOpenFileName(self, 'Open file', '~/')
-        
-        # f = open(fname, 'r')
-
+        fname = QFileDialog.getExistingDirectory(self, 'Choose Project Directory', '~/')
         debug(fname)
-        # with f:
-            # data = f.read()
-            # self.textEdit.setText(data)
+        # self.testpanel.projectdirchanged.emit(str(fname)+os.path.sep)
+        self.testpanel.setprojdir(fname)
 
 def main():
 
     app = QApplication(sys.argv)
     ex = DataProcessorGuiMain()
     ex.show()
-
     sys.exit(app.exec_())
-
-
 
 if __name__ == '__main__':
 
