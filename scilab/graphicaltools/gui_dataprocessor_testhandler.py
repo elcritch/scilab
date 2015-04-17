@@ -32,10 +32,7 @@ class ProjectContainer():
         self.fs         = None
         self.test_dir   = None
         self.testitemsd = None
-        self.args       = None
-        
-        
-        # self.projectdirchanged.connect(self.setprojdir)
+        self.args       = None        
 
     @Slot(str)
     def setprojdir(self, testdir):
@@ -46,7 +43,6 @@ class ProjectContainer():
                 errorfmt += "<br>Exception:<br><pre><code>{ex}</code></pre>"
             errorMessageDialog = QErrorMessage(self)
             errorMessageDialog.showMessage(errorfmt.format(errmsg, dir, ex=ex))
-            # QMessageBox.warning(self, "Project Directory", errorfmt.format(errmsg, dir), QMessageBox.Ok)
         
         projectdir = Path(str(testdir))
         
@@ -65,12 +61,11 @@ class ProjectContainer():
                 Json.load_json_from(str(projdescpath))
             except Exception as err:
                 logging.exception(err)
-                # ei = boltons.tbutils.ExceptionInfo.from_current()
-                # debug(ei)
                 showErrorMessage("Error loading project description: ", testdir, ex=traceback.format_exc())
                 return
         
         try:
+            self.projectdir = projectdir
             self.fs = config.FileStructure(
                         projdescpath=projdescpath,
                         testinfo=TestInfo, 
@@ -84,6 +79,7 @@ class ProjectContainer():
             # = Emit projectdirchanged =
             print("Setting test directory:", self.test_dir)
             self.projectdirchanged.emit(str(projectdir))
+            self.projectrefresh.emit()
             
         except Exception as err:
             logging.exception(err)
@@ -97,19 +93,21 @@ class TestPanelLayout(QFrame, ProjectContainer):
         super(TestPanelLayout, self).__init__(parent=parent)
         super(ProjectContainer, self).__init__()
         
-        self.testHandler = TestHandler()
+        self.testHandler = TestHandler(self)
         
         layout = QVBoxLayout()
                 
         self.initUI(layout)
         self.setLayout(layout)
+        
+        parent.testitemchanged.connect(self.updateDetailPanel)
 
     def initUI(self, layout):
                 
         testInfoPane = QTextEdit(self)
         testInfoPane.setReadOnly(True)
         testInfoPane.setAutoFormatting(QTextEdit.AutoFormattingFlag.AutoAll)
-        
+        self.testInfoPane = testInfoPane
         ### ButtonLayout
 
         buttonLayout = QHBoxLayout()
@@ -123,50 +121,39 @@ class TestPanelLayout(QFrame, ProjectContainer):
         
         return
         
-    def actionUpdateDetailPanel(self, curr=None, prev=None):
+    @Slot(object)
+    def updateDetailPanel(self, curr=None, prev=None):
 
-        debug(type(curr), repr(curr), repr(prev))
-        self._test_measurements = DataTree(area="", min_area="", gauge="")
-
-        item = self.testList.getitem(curr.text() if curr else None)
-        self.current_item = item
-        self.current_testinfo = TestInfo(name=item.name) if item else None
-
-        self._infotext = self.get_testitem_info(self.current_item, self.current_testinfo)
-        self.testInfoPane.setText(self._infotext)
+        infotext = self.testHandler.get_testitem_info(curr)
+        self.testInfoPane.setText(infotext)
     
 
 
 class TestHandler(object):
     
-    def __init__(self):
-        
-        # self.testfs = test_filestructure
-        # self.projectdir = test_filestructure.projectspath.resolve()
-        # self.projectdir = file_dir
-        self.current_item = None
-        self.current_testinfo = None
-        
+    def __init__(self, parent):        
+        self.parent = parent
 
-    def get_testitem_info(self, item, testinfo):
+    def get_testitem_info(self, item):
 
-        if not item or not testinfo:
+        if not item:
             return
 
-
+        testinfo = item.test
+        
         def getsubfolders(items, pd):
             return '\n'.join(map(lambda x: str(x.relative_to(pd)), images))
 
         try:
 
-            projectdir = self.projectdir
+            projectdir = self.parent.projectdir
 
             images = []
-            images += list(item.rglob("*.JPG"))
-            images += list(item.rglob("*.JPG"))
+            images += list(item.folder.rglob("*.JPG"))
+            images += list(item.folder.rglob("*.JPG"))
 
             otherfiles = []
-            otherfiles += list(item.rglob('*'))
+            otherfiles += list(item.folder.rglob('*'))
             otherfiles = otherfiles[:100] # safety test for now.
 
             return """

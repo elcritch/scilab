@@ -27,6 +27,8 @@ class ExperTestList(QListWidget):
     def __init__(self, parent):
         super(ExperTestList, self).__init__(parent=parent)
         # self.settestfs(testfs)
+        self.parent = parent
+        self.currentItemChanged.connect(self.updateTestItem)
 
     def _populate(self):
         ''' Fill the list with images from the
@@ -40,19 +42,23 @@ class ExperTestList(QListWidget):
         # Order Tests by last modification time
         self._testitems = collections.OrderedDict(
                     sorted(
-                        ( (str(name), test) for name, test in testitemsd.items() ),
-                        key=lambda f: f[1].stat().st_mtime
+                        ( (test.short, DataTree(folder=folder, test=test)) for test, folder in testitemsd.items() ),
+                        key=lambda f: f[1].folder.stat().st_mtime
                     ))
 
-        print("Setting testfolders:", repr(self._testitems))
+        print("Setting testfolders:", len(self._testitems))
 
-        for key in self._testitems.keys():
+        for key, value in self._testitems.items():
             item = QListWidgetItem(self)
             item.setText(key)
 
+    def updateTestItem(self, curr=None, prev=None):
+        item = self.getitem(curr.text() if curr else None)
+        self.current_item = item
+        self.parent.testitemchanged.emit(item)
+    
     def getitem(self, text):
         return self._testitems.get(text, None)
-
 
     def settestfs(self, testfs):
         ''' Set the current image directory and refresh the list. '''
@@ -62,6 +68,8 @@ class ExperTestList(QListWidget):
 import importlib
 
 class DataProcessorGuiMain(QMainWindow):
+
+    testitemchanged = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -76,26 +84,27 @@ class DataProcessorGuiMain(QMainWindow):
         # == TestInfo List ==
         self.testList = ExperTestList(parent=self)
         
+        # self.testList.currentItemChanged.connect(lambda c, p: self.testitemchanged.emit(c))
+        
         leftLayout.addWidget(self.testList)
 
         updateButton = QPushButton("Refresh")
-
-        def actionRefresh():
-            self.testList.settestfs(self.testfs)
-            importlib.reload(scilab)
-            importlib.reload(scilab.expers.mechanical.fatigue)
-
-        updateButton.clicked.connect(actionRefresh)
+        updateButton.clicked.connect(lambda: self.testpanel.projectrefresh.emit())
         leftLayout.addWidget(updateButton)
 
+        self.testpanel.projectrefresh.connect(self.testlistRefresh)
+        
         return leftLayout
 
+    @Slot()
+    def testlistRefresh(self):
+        print("testlistRefresh")
+        self.testList.settestfs(self.testpanel.fs)
 
     def initUI(self):
 
-        # self.projectPanel = self.projectPanel()
-        self.testInfoPanel = self.infoTestInfoPanel()
         self.testpanel = TestPanelLayout(parent=self)
+        self.testInfoPanel = self.infoTestInfoPanel()
         
         lFrame = QFrame(self)
         lFrame.setLayout(self.testInfoPanel)
@@ -108,7 +117,6 @@ class DataProcessorGuiMain(QMainWindow):
         mainPanel.addWidget(lFrame)
         mainPanel.addWidget(self.testpanel)
 
-        self.testList.currentItemChanged.connect(self.testpanel.actionUpdateDetailPanel)
 
         mainLayout = QVBoxLayout()
         
@@ -118,8 +126,7 @@ class DataProcessorGuiMain(QMainWindow):
 
         refresh = QAction(QIcon.fromTheme('refresh.png'), 'Refresh', self)
         refresh.setShortcut('Ctrl+R')
-        refresh.triggered.connect(self.testpanel.projectrefresh)
-                
+        refresh.triggered.connect(lambda: self.testpanel.projectrefresh.emit())
         
         mainToolbar = self.addToolBar("Main")
         mainToolbar.addAction(refresh)
@@ -144,6 +151,7 @@ class DataProcessorGuiMain(QMainWindow):
         combobox.setEditable(True)
         combobox.addItems(getfiledialogdir())
         combobox.setEditText("")
+        combobox.setCurrentIndex(-1)
         
         @Slot(str)
         def dropdownfilebox_history(projdir):
@@ -152,7 +160,7 @@ class DataProcessorGuiMain(QMainWindow):
             
             if projdir in previousprojs: 
                 idx = previousprojs.index(projdir)
-                combobox.setCurrentIndex(0)
+                combobox.setCurrentIndex(idx)
             else:
                 previousprojs.insert(0,str(projdir))
                 combobox.insertItem(0,str(projdir))
@@ -162,12 +170,14 @@ class DataProcessorGuiMain(QMainWindow):
                 self.settings.setValue("dropdownfilebox/previousprojs", json.dumps(previousprojs))
             
             combobox.setEditText( Path(projdir).name )
+            self.testpanel.projectrefresh.emit()
+            
         
         @Slot(int)
         def dropdownfilebox_selected(idx):
             debug("dropdownfilebox_selected", idx)
             projdir = combobox.itemText(idx)
-            self.testpanel.setprojdir(projdir)
+            testpanel.setprojdir(projdir)
             
         combobox.activated.connect(dropdownfilebox_selected)
         testpanel.projectdirchanged.connect(dropdownfilebox_history)
