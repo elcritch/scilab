@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections
+import sys, collections, json
 from PySide.QtCore import *
 from PySide.QtGui import *
 
@@ -65,12 +65,8 @@ class DataProcessorGuiMain(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
-        # self.testDetails = TestHandler()
-        self.initUI()
-        
         self.settings = QSettings("Scilab", "Dataprocessor Gui")
-
+        self.initUI()
 
     def infoTestInfoPanel(self):
         
@@ -120,14 +116,18 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.statusBar()
 
-        openFile = QAction(QIcon.fromTheme('refresh.png'), 'Refresh', self)
-        openFile.setShortcut('Ctrl+R')
-        openFile.triggered.connect(self.testpanel.projectrefresh)
+        refresh = QAction(QIcon.fromTheme('refresh.png'), 'Refresh', self)
+        refresh.setShortcut('Ctrl+R')
+        refresh.triggered.connect(self.testpanel.projectrefresh)
                 
+        
         mainToolbar = self.addToolBar("Main")
-        mainToolbar.addAction(openFile)
+        mainToolbar.addAction(refresh)
         mainToolbar.addSeparator()
-        mainToolbar.addWidget(self.dropdownfilebox(self.testpanel))
+        
+        dropdown, openfile = self.dropdownfilebox(self.testpanel)
+        mainToolbar.addWidget(dropdown)
+        mainToolbar.addAction(openfile)
 
         self.setWindowTitle('Project Test DataProcessor')
         
@@ -135,30 +135,61 @@ class DataProcessorGuiMain(QMainWindow):
     
     def dropdownfilebox(self, testpanel):
         
-        layout = QHBoxLayout(self)
-        button = QToolButton(self)
-        button.setPopupMode(QToolButton.MenuButtonPopup)
-        button.setMenu(QMenu(button))
-        textBox = QTextBrowser(self)
-        action = QWidgetAction(button)
-        action.setDefaultWidget(textBox)
-        button.menu().addAction(action)
+        def getfiledialogdir():
+            return json.loads(self.settings.value("dropdownfilebox/previousprojs", "[]"))
+            
+        filedialogdir = getfiledialogdir()
+        
+        combobox = QComboBox(self)
+        combobox.setEditable(True)
+        combobox.addItems(getfiledialogdir())
+        combobox.setEditText("")
         
         @Slot(str)
-        def dropdownfilebox_update(projdir):
-            ''' Give evidence that a bag was punched. '''
-            print("Dropdown project dir update:", projdir)
-            button.setText("{:<80s}".format(Path(str(projdir)).name))
+        def dropdownfilebox_history(projdir):
+            # update dropdown box
+            previousprojs = [ combobox.itemText(idx) for idx in range(combobox.count()) ]
+            
+            if projdir in previousprojs: 
+                idx = previousprojs.index(projdir)
+                combobox.setCurrentIndex(0)
+            else:
+                previousprojs.insert(0,str(projdir))
+                combobox.insertItem(0,str(projdir))
+                combobox.setCurrentIndex(0)
+                
+                print("Dropdown project history update:", previousprojs)
+                self.settings.setValue("dropdownfilebox/previousprojs", json.dumps(previousprojs))
+            
+            combobox.setEditText( Path(projdir).name )
         
-        dropdownfilebox_update("Project Directory ... ")
-        testpanel.projectdirchanged.connect(dropdownfilebox_update)
-        button.clicked.connect(self.showFileDialog)
-        return button
+        @Slot(int)
+        def dropdownfilebox_selected(idx):
+            debug("dropdownfilebox_selected", idx)
+            projdir = combobox.itemText(idx)
+            self.testpanel.setprojdir(projdir)
+            
+        combobox.activated.connect(dropdownfilebox_selected)
+        testpanel.projectdirchanged.connect(dropdownfilebox_history)
+        
+        openfile = QAction(QIcon.fromTheme('open.png'), 'Open', self)
+        openfile.setShortcut('Ctrl+O')
+        openfile.triggered.connect(self.showFileDialog)
+        
+        # button.clicked.connect(self.showFileDialog)
+        # return button
+        return combobox, openfile
 
     def showFileDialog(self):
-        fname = QFileDialog.getExistingDirectory(self, 'Choose Project Directory', '~/')
+        filedialogdir = self.settings.value("dropdownfilebox/filedialogdir", os.path.expanduser("~/"))
+        debug(filedialogdir)
+        
+        fname = QFileDialog.getExistingDirectory(self, 'Choose Project Directory', filedialogdir)
+        if not fname:
+            return
+            
         debug(fname)
-        # self.testpanel.projectdirchanged.emit(str(fname)+os.path.sep)
+        self.settings.setValue("dropdownfilebox/filedialogdir", fname)
         self.testpanel.setprojdir(fname)
 
 def main():
@@ -173,5 +204,11 @@ if __name__ == '__main__':
 
     # from scilab.expers.mechanical.fatigue.cycles import FileStructure
     # from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
+        # button = QToolButton(self)
+        # button.setPopupMode(QToolButton.MenuButtonPopup)
+        # button.setMenu(QMenu(button))
+        # action = QWidgetAction(button)
+        # action.setDefaultWidget(combobox)
+        # button.menu().addAction(action)
 
     main()

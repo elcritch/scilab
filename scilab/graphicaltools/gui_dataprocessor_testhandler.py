@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, logging
+import sys, collections, logging, traceback
 from PySide.QtCore import *
 from PySide.QtGui import *
 
 from scilab.tools.project import *
 from pathlib import *
 # from fn import _ as __
-import formlayout
+import formlayout, boltons.tbutils
 
 import scilab
 from scilab.expers.configuration import FileStructure
@@ -40,9 +40,13 @@ class ProjectContainer():
     @Slot(str)
     def setprojdir(self, testdir):
 
-        def showErrorMessage(errmsg, dir):
+        def showErrorMessage(errmsg, dir, ex=None):
             errorfmt = "Invalid project:<br>Dir `{1}`<br>Error `{0}`"
-            QMessageBox.warning(self, "Project Directory", errorfmt.format(errmsg, dir), QMessageBox.Ok)
+            if ex: 
+                errorfmt += "<br>Exception:<br><pre><code>{ex}</code></pre>"
+            errorMessageDialog = QErrorMessage(self)
+            errorMessageDialog.showMessage(errorfmt.format(errmsg, dir, ex=ex))
+            # QMessageBox.warning(self, "Project Directory", errorfmt.format(errmsg, dir), QMessageBox.Ok)
         
         projectdir = Path(str(testdir))
         
@@ -58,29 +62,33 @@ class ProjectContainer():
         else:
             try:
                 projdescpath.resolve()
-                json.loads(str(projdescpath))
+                Json.load_json_from(str(projdescpath))
             except Exception as err:
-                showErrorMessage("Error loading project description: "+str(err), testdir)
+                logging.exception(err)
+                # ei = boltons.tbutils.ExceptionInfo.from_current()
+                # debug(ei)
+                showErrorMessage("Error loading project description: ", testdir, ex=traceback.format_exc())
                 return
         
         try:
             self.fs = config.FileStructure(
                         projdescpath=projdescpath,
-                        testinfo=exper.TestInfo, 
+                        testinfo=TestInfo, 
                         verify=True, 
                         project=projectdir)
         
-            self.test_dir = fs.tests.resolve()
-            self.testitemsd = fs.testitemsd()
+            self.test_dir = self.fs.tests.resolve()
+            self.testitemsd = self.fs.testitemsd()
             self.args = DataTree()
 
             # = Emit projectdirchanged =
-            print("Setting test directory:", test_dir)
-            self.projectdirchanged.emit(str())
+            print("Setting test directory:", self.test_dir)
+            self.projectdirchanged.emit(str(projectdir))
             
         except Exception as err:
             logging.exception(err)
-            showErrorMessage("Error setting project: "+str(err), testdir)
+            # ei = boltons.tbutils.ExceptionInfo.from_current()
+            showErrorMessage("Error setting project: ", testdir, ex=traceback.format_exc())
             return
 
 class TestPanelLayout(QFrame, ProjectContainer):
