@@ -10,6 +10,7 @@ sys.path.insert(0, '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Proj
 import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
+from scilab.tools.excel import *
 
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
@@ -64,115 +65,111 @@ class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
     pass
 
 
-
-class FileStructure(DataTree):
-
-    def __init__(self, experiment_name:str, test_name):
-
-        self.experiment_name = experiment_name
-        self.test_name = test_name
-
-        self.project = None
-        curr = Path('.').resolve()
-        for path in [curr] + list(curr.parents):
-            # debug(path, self.experiment_name)
-            if path.name == self.experiment_name:
-                self.project = path
-
-        if not self.project:
-            raise Exception("Could not find experiment (project) path: "+experiment_name)
-
-        project = self.project
-        raw = self.raw = self.project / '01_Raw'
-
-        self.raws = addict()
-        
-        self.raws.csv_step01_preload = raw / '01 (uts) preloads'
-        self.raws.csv_step02_precond = raw / '02 (uts) preconditions'
-        self.raws.csv_step04_uts     = raw / '04 (uts) uts-test'
-
-        self.test_parent         = project / '02_Tests' / self.test_name
-        self.results_dir         = project / '04_Results'
-
-        for name in (self.test_parent, self.results_dir, self.raw):
-            logging.info("FileStructure: Resolving: "+str(name))
-            name.resolve()
-
-    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False):
-        test_dir = self.test_parent / testinfo.name
-
-        def findFilesIn(testfolder, pattern='*', kind='png'):
-            return list( testfolder.glob('{pattern}.{kind}'.format(**locals())) )
-
-        folder = DataTree()
-        folder.project_dir = self.project
-        folder.testfs = self
-        folder.main           = test_dir 
-        folder.graphs         = test_dir / 'graphs'
-        folder.json           = test_dir / 'json'
-        folder.jsoncalc       = folder.json / 'calculated'
-        folder.images         = test_dir / 'images'
-        folder.raws           = self.findRaws(testinfo)
-        folder.datasheet      = next(test_dir.glob('*.xlsx'), None)
-        folder.details        = folder.json / '{testname}.calculated.json'.format(testname=testinfo.name)
+def parser_data_sheet_excel(ws):
     
-        if ensure_folders_exists:
-            for v in sorted(folder.values(), key=lambda x: str(x)):
-                if not v.exists():
-                    v.mkdir()
+    rng = rangerForRow(ws)
 
-        return folder
+    data = DataTree()
+    data['info'] = DataTree()
+    data['info'].update( dictFrom(rng('A1:B1')) )
+    
+    measurements = DataTree(withProperties='width depth area')
+    measurements["width"] = valueUnitsStd(ws['B6'].value, units="mm", stdev=ws['B8'].value)._asdict()
+    measurements["depth"] = valueUnitsStd(ws['C6'].value, units="mm", stdev=ws['C8'].value)._asdict()
+    measurements["area"]  = valueUnits(ws['E6'].value, units="mm")._asdict()
+    
+    measurements["unadjusted","width"] = valueUnitsStd(ws['B7'].value, units="mm", stdev=ws['B8'].value)._asdict()
+    measurements["unadjusted","depth"] = valueUnitsStd(ws['C7'].value, units="mm", stdev=ws['C8'].value)._asdict()
+    measurements["unadjusted","area"]  = valueUnits(ws['E7'].value, units="mm")._asdict()
+    
+    # Process all the values in these rows
+    other = DataTree()
+    
+    ## continue reading the column down 
+    end = process_definitions_column(ws, other, 'A',9,24, stop_key='UTS Stress', dbg=False, has_units=False)    
+    # debug(end, other.keys())
+    
+    # startUnitValues = [ i for i in ( 20, 21, 22, 23 ) if 'uts stress' in ws["A"+str(i)].tolower() ][0]
+    end = process_definitions_column(ws, other, 'A', end, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
 
-    def findRaws(self, testinfo):
+    # debug(end, other.keys())
+    assert "uts_stress" in other.keys()
+    
+    # valueUnitsOverride = [ ('cycles', 'Nº Cycles'), ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
+    # for key, units in valueUnitsOverride:
+    #     other[key] = valueUnits(value=other[key] if key in other else float('nan'), units=units)._asdict()
+    
+    if 'area' in other:
+        other.pop('area')
+    
+    debug(other)
+    
+    # gauge
+    gauge = measurements['gauge',] = DataTree()
+    
+    units = 'mm' # default
+    
+    if 'gauge' in other:
+        gauge.length = valueUnits(other.pop('gauge'), units)._asdict()
+    
+    if 'gauge_init' in other:
+        gauge.init_position = valueUnits(other.pop('gauge_init'), units)._asdict()
+    else:
+        raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
+    
+    if 'gauge_base' in other:
+        gauge.base = valueUnits(other.pop('gauge_base'), units)._asdict()
+    else:
+        raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
+    
+    data['excel','other'] = other
+    data['measurements','datasheet'] = measurements
+    
+    debug(data.keys())
+    # data.measurements.area.value = other.pop('area')
+    
+    notes = {}
+    process_definitions_column(ws, notes, 'A', end+1,end+5, stop_key=None, dbg=None)
+    data['excel','notes'] = notes
+    
+    return data
         
-        testraws = DataTree()
-        for name, datafolder in self.raws.items():            
-            testraws[name] = self.findTestCsv(testinfo, datafolder)
+def parser_image_measurements(testconf, imgdata):
         
-        return testraws
-
-    def testitemsd(self):
-
-        folders = [ (self.infoOrNone(f.name), f)
-                        for f in self.test_parent.glob('*')
-                            if f.is_dir() ]
-        folders = [ (i,f) for i,f in folders if i ]
-        folders = sorted(folders, key=lambda item: item[0].short )
-        folderd = collections.OrderedDict(folders)
-
-        return folderd
-
-
-    def infoOrNone(self, item):
-        try:
-            return TestInfo(name=str(item))
-        except Exception as err:
-            logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
-            return None
-
-    def findTestCsv(self, testinfo, rawfolder):
-                        
-        globfiles = rawfolder.glob( testinfo.name+'*' )
+    data = DataTree()
+    data['info'] = DataTree()
+    data['info'].update( testconf.info.as_dict() )
+    data['info']['set'] = testconf.info.name
+    
+    # debug('\n'.join(map(str,flatten(imgdata,sep='.').items())))
+    
+    measurements = DataTree(width=DataTree(), depth=DataTree(), area=DataTree())
+    measurements.width.value = imgdata.front.mm.summaries.widths.average.mean
+    
+    if not 'side' in imgdata:
+        logging.warn("Could not find side measurement for: "+str(testconf.info))
+        measurements.depth.value = 1.00
+        measurements.depth.stdev = -1.0
+    else:
+        measurements.depth.value = imgdata.side.mm.summaries.widths.average.mean
+        measurements.depth.stdev = imgdata.side.mm.summaries.widths.average.std
         
-        testfolders = sorted( [ t for t in globfiles if t.is_dir() ], key=lambda x: x.stem)
-        
-        if not testfolders:
-            return DataTree(tracking=None, trends=None, stop=None)
-        
-        testfolder = testfolders[-1]
-        
-        if len(testfolders) > 1:
-            logging.warn("Multiple csv test folders match, chose: %s from %s"%(testfolder.name, [ i.name for i in testfolders ]))
-        
-        tracking = next(testfolder.glob('*.tracking.csv'),None)
-        trends   = next(testfolder.glob('*.trends.csv'),None)
-        stop     = next(testfolder.glob('*.stop.csv'),None)
-        
-        # if tracking or trends or stop:
-        return DataTree(tracking=tracking, trends=trends, stop=stop)
-        # else:
-            # return DataTree()
-
+    measurements.area.value = float(measurements.width.value)*float(measurements.depth.value)
+    
+    measurements.width.stdev = imgdata.front.mm.summaries.widths.average.std
+    
+    measurements.width.units = 'mm'
+    measurements.depth.units = 'mm'
+    measurements.area.units = 'mm^2'
+    
+    measurements.image = DataTree(other={})
+    
+    for k in 'front side fail'.split():
+        measurements.image.other[k] = imgdata[k].mm.other if k in imgdata else {}
+    
+    data['measurements','image'] = measurements
+    
+    return data
 
 def main():
 

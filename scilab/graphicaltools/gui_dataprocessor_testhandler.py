@@ -185,10 +185,6 @@ class TestHandler(object):
             {err}
             """.format(err=errstr)
 
-
-
-
-
     def setupTestList(self):
 
         win = QWidget()

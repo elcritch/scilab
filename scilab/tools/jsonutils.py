@@ -216,9 +216,9 @@ def update_json_at(update_path, update_data, dbg=None, mergeschema=None, **kwarg
     json_data = load_json_from(update_path)
     update_json_data = load_json_from_str(dump_json(update_data))
     
-    merger = Merger(mergeschema) if mergeschema else jsonmerge
+    # merger = Merger(mergeschema) if mergeschema else jsonmerge
     
-    json_to_write = merger.merge(json_data, update_json_data)
+    json_to_write = jsonmerge.merge(json_data, update_json_data)
 
     write_json_to(update_path, json_to_write, dbg=dbg)
 

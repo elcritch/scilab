@@ -42,7 +42,7 @@ def parse_from_image_measurements(parser_image_measurements, testconf, args):
 
     # imgMeasureFile = testconf.folder.image / 'processed' / (testconf.info.name + '.measurements.json')
     imgMeasureFile = testconf.folder.images / 'processed' / 'data.json'
-    imgMeasureFile = imgMeasureFile.resolve()        
+    imgMeasureFile = imgMeasureFile.resolve()
     
     imgMeasurements = Json.load_json(imgMeasureFile.parent.as_posix(), json_url=imgMeasureFile.name)
     # debug(imgMeasurements)
@@ -84,8 +84,14 @@ def handler(testconf, excelfile, args):
     # excel_data = DataTree(notes=data.pop("notes"), other=data.pop("other"))
     json_data = collections.OrderedDict(sorted(data.items()))
     testconf.folder.save_calculated_json_raw(test=testconf, name='excel',json_data=json_data, overwrite=True)
-    
+
+def update_image_measurements(testconf, excelfile, args):
     ## Update with Image Measurements
+    def updateMetaData(data):
+        ## Handle Names    
+        data['name'] = testconf.info.name
+        data['id'] = testconf.info.short
+        data['info'] = testconf.info.as_dict()
     
     data = parse_from_image_measurements(
         parser_image_measurements=args.parser_image_measurements,

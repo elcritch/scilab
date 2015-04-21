@@ -70,6 +70,7 @@ DIMS = {
 
 
 import scipy, scipy.ndimage as ndimage
+import skimage, skimage.filter 
 import skimage as ski, skimage.io as io, skimage.feature as feature, skimage.morphology as morphology
 import scipy.ndimage as ndimage
 from skimage.data import data_dir; from skimage.util import img_as_ubyte; from skimage import io

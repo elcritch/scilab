@@ -171,7 +171,7 @@ class FileStructure(DataTree):
         # Handle Raw Data #
         for name, test in tf.raws.items():
             
-            test = safefmt(test, raw=folder.raw)
+            test = safefmt(test, raw=folder.raw, testinfo=testinfo)
             rawdir = Path(test)
             
             if not rawdir.exists():

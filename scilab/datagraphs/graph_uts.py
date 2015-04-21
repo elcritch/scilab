@@ -39,7 +39,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     ax1.set_ylabel(labeler(yl))
     
     load_offset = test.details.variables.precond.tracking.norm.pre.load_balance
-    loadbalance = -load_offset/test.details.measurements.area.value
+    loadbalance = -load_offset.value/test.details.measurements.image.area.value
     ax1.hlines(loadbalance, x[0],x[-1], linestyles='dashed')
         
     uts_label = "UTS: (%.2f, %.2f) [%s,%s]"%(ymax.value, x[ymax.idx], yl.units, xl.units, )

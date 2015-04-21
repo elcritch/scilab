@@ -106,9 +106,9 @@ def safefmt(strval, *args, **kwargs):
     if reterr:
         funcs = '.'.join( f[3] for f in reversed(inspect.stack()) )
         args_d = { i:a for i,a in enumerate(args) }
-        # args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
-        # kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
-        kwargs_json = json.dumps(kwargs, cls=CustomDebugJsonEncoder)
+        args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
+        kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
+        # kwargs_json = json.dumps(kwargs, cls=CustomDebugJsonEncoder)
         
         # print(" <em>Script:</em> ")
         # print("""__CONSOLE__::

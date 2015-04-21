@@ -25,7 +25,7 @@ import PIL
 
 
 # from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
-from scilab.expers.mechanical.fatigue.uts import TestInfo, FileStructure
+from scilab.expers.mechanical.fatigue.uts import TestInfo
 
 def get_cropped(imgurl:Path, dims=DataTree(xr=(2000,3000), yr=(1000,2000))):
     imgpng = imgurl.with_suffix('.png')
@@ -93,7 +93,7 @@ def process_test(testinfo, testfolder):
     return processSpecimenImages(testinfo, testfolder, reducedimgs)
 
 
-def process_tests(experfiles:FileStructure, testfolders):
+def process_tests(experfiles, testfolders):
 
     tests = collections.OrderedDict()
     for testfolder in testfolders:

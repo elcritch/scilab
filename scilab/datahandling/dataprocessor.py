@@ -15,6 +15,7 @@ from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
 import scilab.datahandling.datasheetparser as datasheetparser
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
+import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
 import numpy as np
 
@@ -139,7 +140,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     if not variables_input: 
         variables = DataTree()
     else:
-        env = DataTree(details=state.details, **data)
+        env = DataTree(details=state.details, code={'run_image_measure': run_image_measure}, **data )
         variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
@@ -282,7 +283,7 @@ def handle_files(data, methoditem, state, testfolder):
             #     raise Exception("format exception:",filevalue, filenameerr)
             
             # raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err )
-            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name), err,['optional'])
+            raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name),['optional'])
 
 
 def push(state, key, value):
@@ -414,14 +415,18 @@ def execute(fs, name, testconf, args):
     testconf.folder = folder
     
     # update json details
+    print(mdHeader(2, "Run Image Measurement"))    
+    run_image_measure.process_test(testconf.info, testconf.folder)
     
     print(mdHeader(2, "Make JSON Data"))
     datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+    datasheetparser.update_image_measurements(testconf=testconf, excelfile=folder.datasheet, args=args)
     merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
     
     print(mdHeader(2, "Run"))
     run(fs, folder, args)
 
+    
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
 
@@ -429,15 +434,16 @@ def execute(fs, name, testconf, args):
 def test_folder(args):
     
     import scilab.expers.configuration as config
-    # import scilab.expers.mechanical.fatigue.uts as exper
-    import scilab.expers.mechanical.fatigue.cycles as exper
+    import scilab.expers.mechanical.fatigue.uts as exper
+    # import scilab.expers.mechanical.fatigue.cycles as exper
     
     args.parser_data_sheet_excel = exper.parser_data_sheet_excel
     args.parser_image_measurements = exper.parser_image_measurements
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
@@ -463,7 +469,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            # raise err
+            raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -472,15 +478,15 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "0"
     
     # === Excel === 
     args.excel = False
     # args.excel = True
     # === Only Update Variables === 
-    # args.onlyVars = False
-    args.onlyVars = True
+    args.onlyVars = False
+    # args.onlyVars = True
     
     test_folder(args)
     

@@ -88,7 +88,7 @@ def run_config(test, args, config, configfile):
     sns.set_style("ticks")
     sns.set_style("whitegrid")
     
-    handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
+    # handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
     handle_grapher(graph_uts, test, matdata, args, zconfig)
@@ -114,7 +114,8 @@ def test_folder():
     import scilab.expers.configuration as config
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
