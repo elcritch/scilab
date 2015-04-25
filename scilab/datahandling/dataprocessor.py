@@ -286,8 +286,6 @@ def handle_files(data, methoditem, state, testfolder):
             raise ProcessorException("Cannot find file for pattern: {} in method: {}".format(filevalue, methoditem.name),['optional'])
 
 
-def push(state, key, value):
-    state['position'] = state.position + [ (key, value) ]
 
 def process_method(methodname, method, testfolder, projdesc, state):
         
@@ -356,28 +354,11 @@ def run(filestructure, testfolder, args):
     # push(state, 'testinfo', args.testconf.info.short)
     # push(state,  'testfolder', testfolder)
     
-    process_methods(testfolder, state, args)
 
 
 print("Run normalize_instron_data")
 
 
-def test_run():
-    
-    samplefiles = Path(__file__).parent.resolve()/'..'/'..'/'test/instron-test-files'
-    samplefiles = samplefiles.resolve()
-    debug(samplefiles)
-    
-    ## create fake folder structure 
-    testfolder = DataTree()
-    testfolder['data'] = samplefiles / 'data' 
-    testfolder['details'] = samplefiles / 'data' / 'instron-testconf.details.json'
-    testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
-    testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
-    testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
-    
-    args = DataTree()
-    run(testfolder, args)
 
 # ====================
 # = Script Execution =
@@ -414,17 +395,29 @@ def execute(fs, name, testconf, args):
     
     testconf.folder = folder
     
+    # Setup Arguments Environment
+    state = DataTree()
+    state.args = args
+    state.filestructure = filestructure
+    state.position = []
+    
     # update json details
-    print(mdHeader(2, "Run Image Measurement"))    
-    run_image_measure.process_test(testconf.info, testconf.folder)
+    print(mdHeader(2, "Run Image Measurement"))
+    
+    debug(args, testconf, fs)
+    imageconfstate = state.set(imageconfig=fs.projdesc["experiment_config","config","calibration","image_measurement"])
+    processimagemeasurement.process_test(testconf, state=imageconfstate, args=args)
+    # run_image_measure.process_test(testconf.info, testconf.folder)
     
     print(mdHeader(2, "Make JSON Data"))
+    
     datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
     datasheetparser.update_image_measurements(testconf=testconf, excelfile=folder.datasheet, args=args)
     merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
     
-    print(mdHeader(2, "Run"))
-    run(fs, folder, args)
+    print(mdHeader(2, "Executing"))
+    
+    process_methods(testfolder, state, args)
 
     
     print(mdHeader(2, "Merging JSON Data"))
@@ -493,4 +486,21 @@ def main():
 if __name__ == '__main__':
     main()
     
+
+def test_run():
     
+    samplefiles = Path(__file__).parent.resolve()/'..'/'..'/'test/instron-test-files'
+    samplefiles = samplefiles.resolve()
+    debug(samplefiles)
+    
+    ## create fake folder structure 
+    testfolder = DataTree()
+    testfolder['data'] = samplefiles / 'data' 
+    testfolder['details'] = samplefiles / 'data' / 'instron-testconf.details.json'
+    testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
+    testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
+    testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
+    
+    args = DataTree()
+    run(testfolder, args)
+

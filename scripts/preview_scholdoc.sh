@@ -2,6 +2,7 @@
 
 FILE=$1
 PD=${SCHOLDOC:-$2}
+# CITEPROC=${SCHOLDOC_CITE:-$2}
 
 OUTPUT="${FILE:r}.html" 
 OUTPUT_DOC="${FILE:r}.docx" 
@@ -31,7 +32,7 @@ echo "CSS_REF: $CSS_REF" >> /tmp/run_scholdoc.log
 $PD \
 	--css="$CSS_REF" \
 	-w docx -o "$OUTPUT_DOC" \
-	--citeproc --bibliography="${FILEDIR}/${BIB}" \
 	-w html5 -s -S -o $OUTPUT < "$FILE"
+	# --citeproc --bibliography="${FILEDIR}/${BIB}" \
 
 cat $OUTPUT

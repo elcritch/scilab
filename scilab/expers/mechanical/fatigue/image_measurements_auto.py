@@ -90,21 +90,33 @@ def crop(img, xr, yr):
 
 import PIL.Image
 
-def saveStep(processedDir, imgName, doSave='save'):
-    def saver(stepName, img, dbg=None):
-        if doSave == 'save' and processedDir and imgName:
+def saveStep(processedDir, imgName, mode='save'):
+    def saver(stepName, img, dbg=None, mode=mode):        
+        path = (processedDir / str(imgName)).with_suffix(".{}.png".format(stepName) if stepName else ".png")
+        
+        if mode == 'cache' and processedDir and imgName:
+            mode = 'save'
+            if path.exists():
+                print("Loading cached image:", path)
+                img = ski.img_as_ubyte(io.imread(str(path)))
+                mode = 'done'
+            elif isinstance(img,type(None)):
+                print("Caching image:", path)
+                img = ski.img_as_ubyte(io.imread(str(imgName)))
+            
+        assert not isinstance(img,type(None))
+        
+        if mode == 'save' and processedDir and imgName:
             try:
-                path = processedDir / imgName.with_suffix(".{}.png".format(stepName)).name
-#                 print("Saving:", img.shape, img.dtype,path.name, path.name, flush=True, )
+                print("Saving:", img.shape, img.dtype, path.name, flush=True, )
                 pil_img = PIL.Image.fromarray(img_as_ubyte(img))
                 pil_img.save(str(path))
-#                 print("Saved:", img.shape, img.dtype,path.name, path.name, flush=True, )
                 if dbg:
                     dbg.saved_path = path
             except Exception as err:
-                print("Error Saving:", img.shape, img.dtype,path.name, path.name, err, flush=True, )
+                print("Error Saving:",path, err, flush=True, )
 
-        elif doSave == 'plot':
+        elif mode == 'plot':
             plt.imshow(img)
             plt.suptitle(stepName+" "+imgName.name)
             plt.show(block=True)
@@ -210,8 +222,8 @@ def locationsToTB(img_shape, img_crop_shape, locations, crops):
 
     debug(img_shape[0]-crops['yr'][1], img_shape[1]-crops['yr'][1])
     return (image_top-y_top, image_top-y_bottom)
-
-
+    
+    
 def process(processedDir, testpaths, imgPath, dims, orientation, aspect,
             locations=None, scale_factor=4, min_size=1000):
 
@@ -222,11 +234,14 @@ def process(processedDir, testpaths, imgPath, dims, orientation, aspect,
         return (None, None)
 
     print("Processing:",imgPath.name)
+    
+    
     print("output dir:", processedDir)
 
-    saver = saveStep(processedDir, imgPath,doSave='save')
+    saver = saveStep(processedDir, imgPath, doSave='save')
 
-    img = ski.img_as_ubyte(io.imread(str(imgPath)))
+    img = saver('', None, mode='cache')
+    
     img_crop = crop(img, **dims[orientation][aspect])
 
     saver("cropped", img_crop)

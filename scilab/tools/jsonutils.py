@@ -209,7 +209,6 @@ def update_json(parentdir, update_data, json_url="data.json", **kwargs):
     json_path = Path(str(parentdir)) / json_url
     return update_json_at(json_path, update_data, **kwargs)
 
-
 def update_json_at(update_path, update_data, dbg=None, mergeschema=None, **kwargs):
     """ Simple update method. Needs to handle merging better.  """
 
