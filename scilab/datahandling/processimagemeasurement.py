@@ -10,6 +10,7 @@ import scipy.misc
 import scipy, scipy.ndimage as ndimage
 import skimage as ski, skimage.io as io, skimage.feature as feature, skimage.morphology as morphology, skimage.filter as imgfilter
 from skimage.util import img_as_ubyte
+from PIL import Image as PILImage
 
 def processimg(img, scale, max_width,
                 gamma, gain, img_otsu, 
@@ -58,8 +59,9 @@ def argvaluechanges(data):
 
 def samplemeasurement(scale, img_bw):
     
-    hori_indices = argvaluechanges(np.where(np.sum(img_bw, 0) > 0))
-    vert_indices = argvaluechanges(np.where(np.sum(img_bw, 1) > 0))
+    hori_indices = argvaluechanges(np.sum(img_bw, 0) > 0)
+    vert_indices = argvaluechanges(np.sum(img_bw, 1) > 0)
+    debug(hori_indices, vert_indices, np.sum(img_bw, 0) > 0)
     assert len(vert_indices) >= 2
     
     top, bottom = vert_indices[0], vert_indices[-1]
@@ -68,12 +70,12 @@ def samplemeasurement(scale, img_bw):
     boundingbox = DataTree(top=top, left=left, right=right, bottom=bottom, units="px")
     
     def calcwidths(arr):
-        widths = (np.sum(arr, 1))/scale
-        return valueUnits(widths, np.std(widths), units="mm")
+        widths = (np.sum(arr, 1))/scale.value
+        return valueUnitsStd(widths, stdev=np.std(widths), units="mm")
     
     measurements = DataTree()
     measurements.boundingbox = boundingbox
-    measurements.length = valueUnits((boundingbox.top-boundingbox.bottom)/scale, units="mm")
+    measurements.length = valueUnits((boundingbox.top-boundingbox.bottom)/scale.value, units="mm")
     
     measurements.widths = calcwidths(img_bw[top:bottom])
     measurements["thirds", "upper"]  = calcwidths(img_bw[top+0*vsize//3:top+1*vsize//3])
@@ -90,21 +92,28 @@ def loadimage(imagepath, imageconf):
         debug(img_raw.shape, img_raw.dtype)
         return ski.img_as_ubyte(img_raw)
         # return io.imread(str(imagepath))
+        # return img_raw
     except Exception as err:
         raise err
         # raise Exception("Error loading image: "+str(imagepath), imageconf, err)
 
 def saveimage(image, imagepath, imageconf):
     try:
+        print("Saving image:", imagepath)
         return scipy.misc.imsave(str(imagepath), image)
+        # pypng.from_array(image, "RGB").save(str(imagepath))
+        # im = PILImage.fromarray(image)
+        # im.save(str(imagepath))  
     except Exception as err:
-        raise Exception("Error loading image: "+imagepath, imageconf, err)
+        raise err
+        # raise Exception("Error loading image: "+imagepath, imageconf, err)
     
 def crop(img, xd, yd, **kws):
     xd_ = np.s_[xd[0]:xd[1]]
     yd_ = np.s_[yd[0]:yd[1]]
     debug(xd, yd, img.shape)
     crop_img = img[yd_, xd_]
+    debug(crop_img.shape)
     return crop_img
 
 def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args):
@@ -146,6 +155,8 @@ def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args
     saveimage(processedimages.adjusted, getimagepath("adjusted"), imageconf=imageconf)
     saveimage(processedimages.binarized, getimagepath("binarized"), imageconf=imageconf)
     
+    return processedimages
+        
 def process_imageconf(testconf, imageconf, state, args):
     
     # Image Measurement Scaling
@@ -167,7 +178,18 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)    
+    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)    
+    
+    measurments = samplemeasurement(scaling, processedimages.binarized )
+    
+    debug(measurments)
+    
+    jsonpath, allvariables = testconf.folder.save_calculated_json(
+        test=state.args.testconf, 
+        name="measurments.image.{}".format(imageconf["name"]),
+        data=measurments,
+        )
+
 
 def process_test(testconf, state, args):
     
