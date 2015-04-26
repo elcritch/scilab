@@ -68,7 +68,7 @@ class TestFileStructure(DataTree):
         return self.save_calculated_json_raw(test, name, {name:data}, **kwargs)
         
     def save_calculated_json_raw(self, test, name, json_data, field="{name}", **kwargs):
-        filename = self.get_calculated_json_name(test, name, field="{name}", **kwargs)
+        filename = self.get_calculated_json_name(test, name, field=field, **kwargs)
         
         json_path = self.jsoncalc / filename
         

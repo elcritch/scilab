@@ -177,16 +177,15 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)    
-    
-    measurments = samplemeasurement(scaling, processedimages.binarized )
-    
-    debug(measurments)
+    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)
+    measurements = samplemeasurement(scaling, processedimages.binarized )
+    debug(measurements)
     
     jsonpath, allmeasurements = testconf.folder.save_calculated_json(
         test=state.args.testconf, 
-        name="imagemeasurments",
-        data={ imageconf["name"]: measurments },
+        name="measurements",
+        field="images",
+        data={ imageconf["name"]: measurements },
         )
 
     return allmeasurements
@@ -194,7 +193,9 @@ def process_imageconf(testconf, imageconf, state, args):
 def process_test(testconf, state, args):
     
     image_measurement = state["image_measurement"]
-        
+    
+    testconf.folder.save_calculated_json(test=state.args.testconf, name="measurements",field="images",data={},overwrite=True)
+    
     for imageconf in image_measurement["imageconfs"]:
         
         imagestate = state.set(imagename=imageconf.name, imageconf=imageconf)
@@ -207,13 +208,9 @@ def process_test(testconf, state, args):
         for calc in calcs:
             name, calcexpr = getpropertypair(calc)
             debug(name, calcexpr)
-            results = executeexpr(calcexpr, results=results, calc=env, **allmeasurements["imagemeasurments"])
-            debug(results)
-            results[name] = results
+            result = executeexpr(calcexpr, results=results, calc=env, **allmeasurements["measurements"])
+            debug(result)
+            results[calcname, name] = result
 
-    debug(results)
-    # measurements["calc","length"] = valueUnits((vsize)/scale.value, units="mm")
-    # measurements["calc","width"]  = measurements["thirds", "middle"]
-    
-    raise Exception(allmeasurements)
-    
+    testconf.folder.save_calculated_json(data=results, test=state.args.testconf, name="measurements", field="images")
+

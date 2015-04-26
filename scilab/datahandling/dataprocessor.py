@@ -141,7 +141,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     if not variables_input: 
         variables = DataTree()
     else:
-        env = DataTree(details=state.details, code={'run_image_measure': run_image_measure}, **data )
+        env = DataTree(details=state.details, **data )
         variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
@@ -413,7 +413,6 @@ def execute(fs, name, testconf, args):
     print(mdHeader(2, "Make JSON Data"))
     
     datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-    datasheetparser.update_image_measurements(testconf=testconf, excelfile=folder.datasheet, args=args)
     merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
     
     print(mdHeader(2, "Executing"))
@@ -485,8 +484,7 @@ def main():
     test_folder(args)
     
 if __name__ == '__main__':
-    main()
-    
+    main()    
 
 def test_run():
     
