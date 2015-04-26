@@ -66,18 +66,17 @@ def samplemeasurement(scale, img_bw):
     
     top, bottom = vert_indices[0], vert_indices[-1]
     left, right = hori_indices[0], hori_indices[-1]
-    vsize, hsize = top-bottom, right-left
+    vsize, hsize = bottom-top, right-left
     boundingbox = DataTree(top=top, left=left, right=right, bottom=bottom, units="px")
     
     def calcwidths(arr):
         widths = (np.sum(arr, 1))/scale.value
-        return valueUnitsStd(widths, stdev=np.std(widths), units="mm")
+        return valueUnitsStd(np.mean(widths), stdev=np.std(widths), units="mm")._asdict()
     
     measurements = DataTree()
     measurements.boundingbox = boundingbox
-    measurements.length = valueUnits((boundingbox.top-boundingbox.bottom)/scale.value, units="mm")
     
-    measurements.widths = calcwidths(img_bw[top:bottom])
+    measurements["raw","widths"] = calcwidths(img_bw[top:bottom])
     measurements["thirds", "upper"]  = calcwidths(img_bw[top+0*vsize//3:top+1*vsize//3])
     measurements["thirds", "middle"] = calcwidths(img_bw[top+1*vsize//3:top+2*vsize//3])
     measurements["thirds", "lower"]  = calcwidths(img_bw[top+2*vsize//3:top+3*vsize//3])
@@ -184,12 +183,13 @@ def process_imageconf(testconf, imageconf, state, args):
     
     debug(measurments)
     
-    jsonpath, allvariables = testconf.folder.save_calculated_json(
+    jsonpath, allmeasurements = testconf.folder.save_calculated_json(
         test=state.args.testconf, 
-        name="measurments.image.{}".format(imageconf["name"]),
-        data=measurments,
+        name="imagemeasurments",
+        data={ imageconf["name"]: measurments },
         )
 
+    return allmeasurements
 
 def process_test(testconf, state, args):
     
@@ -199,5 +199,21 @@ def process_test(testconf, state, args):
         
         imagestate = state.set(imagename=imageconf.name, imageconf=imageconf)
         push(imagestate, 'imageconf', imageconf.name)
-        process_imageconf(testconf, imageconf=imageconf, state=imagestate, args=args)
+        allmeasurements = process_imageconf(testconf, imageconf=imageconf, state=imagestate, args=args)
+    
+    env=calcenv()
+    results = DataTree()
+    for calcname, calcs in image_measurement["calculations",].items():
+        for calc in calcs:
+            name, calcexpr = getpropertypair(calc)
+            debug(name, calcexpr)
+            results = executeexpr(calcexpr, results=results, calc=env, **allmeasurements["imagemeasurments"])
+            debug(results)
+            results[name] = results
+
+    debug(results)
+    # measurements["calc","length"] = valueUnits((vsize)/scale.value, units="mm")
+    # measurements["calc","width"]  = measurements["thirds", "middle"]
+    
+    raise Exception(allmeasurements)
     
