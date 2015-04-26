@@ -4,14 +4,15 @@ from tabulate import *
 
 import scilab, scilab.tools.jsonutils
 from scilab.tools.project import *
+from scilab.datahandling.datahandlers import *
 
-import scipy.misc.imsave 
+import scipy.misc
 import scipy, scipy.ndimage as ndimage
 import skimage as ski, skimage.io as io, skimage.feature as feature, skimage.morphology as morphology, skimage.filter as imgfilter
 from skimage.util import img_as_ubyte
 
 def processimg(img, scale, max_width,
-                gamma, gain, ricis_factor, img_otsu, sobel_otsu,
+                gamma, gain, img_otsu, 
                remove_small, remove_small_pre, 
                min_size, auto_otsu, equalize_adapthist,
                ):
@@ -41,8 +42,8 @@ def processimg(img, scale, max_width,
     img_bw_lens = lambda aa: aa.shape[1] - np.argmax( aa[:, ::-1] > 0, 1 ) - np.argmax( aa > 0, 1)
     
     # check for both start/end of objects AND the total area
-    img_valid_widths = np.array(img_bw_lens(img_bw) < max_width*scale, dtype='int') *
-                            np.array(np.sum(img_bw,1) < max_width*scale, dtype='int') 
+    img_valid_widths = np.array(img_bw_lens(img_bw) < max_width*scale.value, dtype='int') * \
+                            np.array(np.sum(img_bw,1) < max_width*scale.value, dtype='int') 
                             
     img_bw = np.array([ r*s for r, s in zip(img_bw, img_valid_widths) ], dtype=img_bw.dtype)
 
@@ -83,9 +84,15 @@ def samplemeasurement(scale, img_bw):
 
 def loadimage(imagepath, imageconf):
     try:
-        return ski.img_as_ubyte(skimage.io.imread(str(imagepath)))    
+        print("Loading image: ", str(imagepath))
+        # img_raw = io.imread(str(imagepath))
+        img_raw = scipy.ndimage.imread(str(imagepath))
+        debug(img_raw.shape, img_raw.dtype)
+        return ski.img_as_ubyte(img_raw)
+        # return io.imread(str(imagepath))
     except Exception as err:
-        raise Exception("Error loading image: "+imagepath, imageconf, err)
+        raise err
+        # raise Exception("Error loading image: "+str(imagepath), imageconf, err)
 
 def saveimage(image, imagepath, imageconf):
     try:
@@ -93,10 +100,11 @@ def saveimage(image, imagepath, imageconf):
     except Exception as err:
         raise Exception("Error loading image: "+imagepath, imageconf, err)
     
-def crop(img, xr, yr):
-    xr = np.s_[xr[0]:xr[1]]
-    yr = np.s_[yr[0]:yr[1]]
-    crop_img = img[yr, xr]
+def crop(img, xd, yd, **kws):
+    xd_ = np.s_[xd[0]:xd[1]]
+    yd_ = np.s_[yd[0]:yd[1]]
+    debug(xd, yd, img.shape)
+    crop_img = img[yd_, xd_]
     return crop_img
 
 def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args):
@@ -117,56 +125,57 @@ def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args
         processingconfs.update(testconf['options','processing'])
     
     def getimagepath(stage):
-        croppedimage = state.processed / "{name}.{stage}.png".format(name=imageconf["name"], stage=stage)
+        return state.processed / "{name}.{stage}.png".format(name=imageconf["name"], stage=stage)
     
     croppedimage = getimagepath(stage="cropped")
     debug(croppedimage)
     
     if not imagepath.exists():
         raise ValueError("Image file not found: "+str(imagepath), imageconf)
-        
-    if note croppedimage.exists():
+    
+    if not croppedimage.exists():
         print("Cropping and caching image")
-        img = loadimage(imagepath)
+        img = loadimage(imagepath=imagepath, imageconf=imageconf)
+        debug(img.shape)
         img_crop = crop(img, **cropping)
         saveimage(img_crop, croppedimage, imageconf)
     
-    image = loadimage(croppedimage)
+    image = loadimage(croppedimage, imageconf)
     processedimages = processimg(image, scale=scaling, **processingconfs)
     
-    saveimage(processedimages.adjusted, getimagepath("adjusted"))
-    saveimage(processedimages.binarized, getimagepath("binarized"))
+    saveimage(processedimages.adjusted, getimagepath("adjusted"), imageconf=imageconf)
+    saveimage(processedimages.binarized, getimagepath("binarized"), imageconf=imageconf)
     
 def process_imageconf(testconf, imageconf, state, args):
     
     # Image Measurement Scaling
-    scaling = getproperty(imageconf["scales"], action=True, env=state)
+    scaling = getproperty(state["image_measurement"]["scales"], action=True, env=state)
     
     # Image Cropping
-    cropping = imageconf["crops"]
+    cropping = state.image_measurement["crops"]
     while isinstance(cropping, collections.Mapping) and '_lookup_' in cropping:
         cropping = getproperty(cropping, action=True, env=state)
         debug(cropping)
         
     # === Process Image === 
-    
     processedFolder = testconf.folder.images / 'processed'
-    if not imagename in testconf.folder.keys():
+    if not imageconf["name"] in testconf.folder.keys():
         raise ValueError("Missing file in projdesc.json configuration. ", imageconf)
     
-    imagepath = builtin_action_resolve(testconf.folder[imagename])
+    imagepath = builtin_action_resolve(testconf.folder[imageconf["name"]], env=state)
+
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    process_image(testconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)    
+    process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)    
 
 def process_test(testconf, state, args):
     
-    imageconfs = state["imageconfs"]
+    image_measurement = state["image_measurement"]
         
-    for imageconf in imageconfs:
+    for imageconf in image_measurement["imageconfs"]:
         
         imagestate = state.set(imagename=imageconf.name, imageconf=imageconf)
         push(imagestate, 'imageconf', imageconf.name)
-        process_imageconf(testconf, imageconf=imageconf, state=imagestate, args)
+        process_imageconf(testconf, imageconf=imageconf, state=imagestate, args=args)
     

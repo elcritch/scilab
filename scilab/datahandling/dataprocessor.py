@@ -13,7 +13,8 @@ from scilab.tools.instroncsv import *
 
 from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
-import scilab.datahandling.datasheetparser as datasheetparser
+import scilab.datahandling.datasheetparser as datasheetparser  
+import scilab.datahandling.processimagemeasurement as processimagemeasurement
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
@@ -398,14 +399,14 @@ def execute(fs, name, testconf, args):
     # Setup Arguments Environment
     state = DataTree()
     state.args = args
-    state.filestructure = filestructure
+    state.filestructure = fs
     state.position = []
     
     # update json details
     print(mdHeader(2, "Run Image Measurement"))
     
     debug(args, testconf, fs)
-    imageconfstate = state.set(imageconfig=fs.projdesc["experiment_config","config","calibration","image_measurement"])
+    imageconfstate = state.set(image_measurement=fs.projdesc["experiment_config","config","calibration","image_measurement"])
     processimagemeasurement.process_test(testconf, state=imageconfstate, args=args)
     # run_image_measure.process_test(testconf.info, testconf.folder)
     
@@ -417,7 +418,7 @@ def execute(fs, name, testconf, args):
     
     print(mdHeader(2, "Executing"))
     
-    process_methods(testfolder, state, args)
+    process_methods(folder, state, args)
 
     
     print(mdHeader(2, "Merging JSON Data"))
@@ -452,7 +453,7 @@ def test_folder(args):
         
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:1]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             

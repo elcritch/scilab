@@ -101,13 +101,14 @@ def userstrtopath(filepattern, env):
 def builtin_action_resolve(filevalue, env, strictmatch=False):
     try:
         debug(filevalue)
-        filename = safefmt(filevalue,**env)
+        filename = safefmt(str(filevalue),**env)
         debug(filename)
         filepath = matchfilename(filename, strictmatch=strictmatch)
         debug(filepath)
-        
+        return filepath
     except Exception as err:
-        raise Exception("Error resolving filename: ", filevalue, err, ['optional'])
+        raise err
+        # raise Exception("Error resolving filename: ", filevalue, err, ['optional'])
 
 @debugger
 def builtin_action_csv(filevalue, **env):
