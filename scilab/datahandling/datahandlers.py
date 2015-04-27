@@ -18,6 +18,24 @@ import scilab.datahandling.columnhandlers as columnhandlers
 
 import numpy as np
 
+def loadimage(imagepath):
+    try:
+        import scipy.ndimage, skimage
+        print("Loading image: ", str(imagepath))
+        img_raw = scipy.ndimage.imread(str(imagepath))
+        debug(img_raw.shape, img_raw.dtype)
+        return skimage.img_as_ubyte(img_raw)
+    except Exception as err:
+        raise err
+
+def saveimage(image, imagepath):
+    try:
+        import scipy.misc
+        print("Saving image:", imagepath)
+        return scipy.misc.imsave(str(imagepath), image)
+    except Exception as err:
+        raise err
+    
 
 
 get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])

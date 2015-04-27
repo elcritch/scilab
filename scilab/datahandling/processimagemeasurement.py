@@ -89,30 +89,6 @@ def samplemeasurement(scale, img_bw):
     
     return measurements
 
-def loadimage(imagepath, imageconf):
-    try:
-        print("Loading image: ", str(imagepath))
-        # img_raw = io.imread(str(imagepath))
-        img_raw = scipy.ndimage.imread(str(imagepath))
-        debug(img_raw.shape, img_raw.dtype)
-        return ski.img_as_ubyte(img_raw)
-        # return io.imread(str(imagepath))
-        # return img_raw
-    except Exception as err:
-        raise err
-        # raise Exception("Error loading image: "+str(imagepath), imageconf, err)
-
-def saveimage(image, imagepath, imageconf):
-    try:
-        print("Saving image:", imagepath)
-        return scipy.misc.imsave(str(imagepath), image)
-        # pypng.from_array(image, "RGB").save(str(imagepath))
-        # im = PILImage.fromarray(image)
-        # im.save(str(imagepath))  
-    except Exception as err:
-        raise err
-        # raise Exception("Error loading image: "+imagepath, imageconf, err)
-    
 def crop(img, xd, yd, **kws):
     xd_ = np.s_[xd[0]:xd[1]]
     yd_ = np.s_[yd[0]:yd[1]]
@@ -153,18 +129,18 @@ def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf,
     
     if not croppedimage.exists() or args["force", "imagecaching"]:
         print("Cropping and caching image")
-        img = loadimage(imagepath=imagepath, imageconf=imageconf)
+        img = loadimage(imagepath=imagepath)
         debug(img.shape)
         imgout = crop(img, **cropping)
         imgout = scipy.ndimage.zoom(imgout, (zoomfactor, zoomfactor, 1), order=3)
         debug(imgout.shape)
-        saveimage(imgout, croppedimage, imageconf)
+        saveimage(imgout, croppedimage)
     
-    image = loadimage(croppedimage, imageconf)
+    image = loadimage(croppedimage)
     processedimages = processimg(image, scale=scaling, zoomfactor=zoomfactor, **processingconfs)
     
-    saveimage(processedimages.adjusted, getimagepath("adjusted"), imageconf=imageconf)
-    saveimage(processedimages.binarized, getimagepath("binarized"), imageconf=imageconf)
+    saveimage(processedimages.adjusted, getimagepath("adjusted"))
+    saveimage(processedimages.binarized, getimagepath("binarized"))
     
     return processedimages
         
@@ -198,6 +174,9 @@ def process_imageconf(testconf, imageconf, state, args):
     processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
                                     state=imageprocessstate, args=args)
     measurements = samplemeasurement(scaling, processedimages.binarized)
+    measurements["parameters", "scale"] = scaling  
+    measurements["parameters", "zoomfactor"] = valueUnits(100*zoomfactor, units='%')._asdict()
+    
     debug(measurements)
     
     jsonpath, allmeasurements = testconf.folder.save_calculated_json(
