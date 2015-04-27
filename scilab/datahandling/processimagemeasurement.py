@@ -16,6 +16,8 @@ def processimg(img, scale, max_width,
                 gamma, gain, img_otsu, 
                remove_small, remove_small_pre, 
                min_size, auto_otsu, equalize_adapthist,
+               erode_pixels, 
+               zoomfactor,
                ):
     image = np.copy(img[:,:,0])
     
@@ -32,6 +34,10 @@ def processimg(img, scale, max_width,
         img_otsu = imgfilter.threshold_otsu(image)
 
     img_bw = (image > img_otsu)
+    
+    if erode_pixels and erode_pixels > 0:
+        print("Eroding binary image: ", erode_pixels)
+        img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
     
     if remove_small_pre:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
@@ -115,7 +121,7 @@ def crop(img, xd, yd, **kws):
     debug(crop_img.shape)
     return crop_img
 
-def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args):
+def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf, state, args):
     
     processingconfs = DataTree(
                 max_width=2.0, # e.g. mm (converted to pixels during processing)
@@ -127,8 +133,12 @@ def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args
                 min_size=1000,
                 auto_otsu=True,
                 equalize_adapthist=True,
+                erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
                 )
-        
+    
+    # The cropped image will be "zoomed" so adjust the scaling factor appropriately
+    debug(zoomfactor)
+    
     if testconf['options','processing']:
         processingconfs.update(testconf['options','processing'])
     
@@ -141,15 +151,17 @@ def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args
     if not imagepath.exists():
         raise ValueError("Image file not found: "+str(imagepath), imageconf)
     
-    if not croppedimage.exists():
+    if not croppedimage.exists() or args["force", "imagecaching"]:
         print("Cropping and caching image")
         img = loadimage(imagepath=imagepath, imageconf=imageconf)
         debug(img.shape)
-        img_crop = crop(img, **cropping)
-        saveimage(img_crop, croppedimage, imageconf)
+        imgout = crop(img, **cropping)
+        imgout = scipy.ndimage.zoom(imgout, (zoomfactor, zoomfactor, 1), order=3)
+        debug(imgout.shape)
+        saveimage(imgout, croppedimage, imageconf)
     
     image = loadimage(croppedimage, imageconf)
-    processedimages = processimg(image, scale=scaling, **processingconfs)
+    processedimages = processimg(image, scale=scaling, zoomfactor=zoomfactor, **processingconfs)
     
     saveimage(processedimages.adjusted, getimagepath("adjusted"), imageconf=imageconf)
     saveimage(processedimages.binarized, getimagepath("binarized"), imageconf=imageconf)
@@ -159,7 +171,9 @@ def process_image(testconf, imagepath, scaling, cropping, imageconf, state, args
 def process_imageconf(testconf, imageconf, state, args):
     
     # Image Measurement Scaling
+    zoomfactor = state["image_measurement"].get("zoomfactor", 2)
     scaling = getproperty(state["image_measurement"]["scales"], action=True, env=state)
+    scaling = scaling.set(value=scaling.value*zoomfactor)
     
     # Image Cropping
     cropping = state.image_measurement["crops"]
@@ -169,6 +183,10 @@ def process_imageconf(testconf, imageconf, state, args):
         
     # === Process Image === 
     processedFolder = testconf.folder.images / 'processed'
+    
+    if not processedFolder.exists():
+        os.mkdir(str(processedFolder))
+        
     if not imageconf["name"] in testconf.folder.keys():
         raise ValueError("Missing file in projdesc.json configuration. ", imageconf)
     
@@ -177,8 +195,9 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, state=imageprocessstate, args=args)
-    measurements = samplemeasurement(scaling, processedimages.binarized )
+    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
+                                    state=imageprocessstate, args=args)
+    measurements = samplemeasurement(scaling, processedimages.binarized)
     debug(measurements)
     
     jsonpath, allmeasurements = testconf.folder.save_calculated_json(

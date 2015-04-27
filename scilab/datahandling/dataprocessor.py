@@ -446,13 +446,12 @@ def test_folder(args):
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
-    
 
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
-        
+    
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[-2:]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             
@@ -462,7 +461,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -473,7 +472,7 @@ def main():
     args = DataTree()
     args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "0"
-    
+    # args["force", "imagecaching"] = True
     # === Excel === 
     args.excel = False
     # args.excel = True
