@@ -54,10 +54,8 @@ def processimg(img, scale, max_width,
         print("Eroding binary image: ", erode_pixels)
         img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
     
-    
     if remove_small:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
-    
     
     return DataTree(image=img, adjusted=image, binarized=img_bw)
 
@@ -65,7 +63,7 @@ def argvaluechanges(data):
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
     return indices
 
-def samplemeasurement(scale, img_bw):
+def samplemeasurement(scale, img_bw, zoomfactor):
     
     hori_indices = argvaluechanges(np.sum(img_bw, 0) > 0)
     vert_indices = argvaluechanges(np.sum(img_bw, 1) > 0)
@@ -75,19 +73,28 @@ def samplemeasurement(scale, img_bw):
     top, bottom = vert_indices[0], vert_indices[-1]
     left, right = hori_indices[0], hori_indices[-1]
     vsize, hsize = bottom-top, right-left
-    boundingbox = DataTree(top=top, left=left, right=right, bottom=bottom, units="px")
+    rawboundingbox = DataTree(top=top, left=left, right=right, bottom=bottom, units="px")
+    boundingbox    = DataTree( { k:v/scale.value for k,v in rawboundingbox.items() if k != "units"} , units="mm")
     
     def calcwidths(arr):
         widths = (np.sum(arr, 1))/scale.value
         return valueUnitsStd(np.mean(widths), stdev=np.std(widths), units="mm")._asdict()
     
     measurements = DataTree()
+    measurements.rawboundingbox = rawboundingbox
     measurements.boundingbox = boundingbox
     
+    idx_upper = np.s_[top+0*vsize//3:top+1*vsize//3]
+    idx_middle = np.s_[top+1*vsize//3:top+2*vsize//3]
+    idx_lower = np.s_[top+2*vsize//3:top+3*vsize//3]
+    
+    debug(idx_upper, idx_middle, idx_lower, )
     measurements["raw","widths"] = calcwidths(img_bw[top:bottom])
-    measurements["thirds", "upper"]  = calcwidths(img_bw[top+0*vsize//3:top+1*vsize//3])
-    measurements["thirds", "middle"] = calcwidths(img_bw[top+1*vsize//3:top+2*vsize//3])
-    measurements["thirds", "lower"]  = calcwidths(img_bw[top+2*vsize//3:top+3*vsize//3])
+    measurements["thirds", "upper"]  = calcwidths(img_bw[idx_upper])
+    measurements["thirds", "middle"] = calcwidths(img_bw[idx_middle])
+    measurements["thirds", "lower"]  = calcwidths(img_bw[idx_lower])
+    
+    measurements["thirds", "middleValues"] = (np.sum(img_bw[idx_middle], 1)/scale.value)[::scale.value//zoomfactor]
     
     return measurements
 
@@ -109,7 +116,6 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
                 remove_small=True, 
                 remove_small_pre=True,
                 min_size=minsamplesize.x*minsamplesize.z*scaling.value**2,
-                min_size=1000*zoomfactor,
                 auto_otsu=True,
                 equalize_adapthist=True,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
@@ -179,7 +185,7 @@ def process_imageconf(testconf, imageconf, state, args):
                                     scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
                                     minsamplesize=minsamplesize, # rough sample size est
                                     state=imageprocessstate, args=args)
-    measurements = samplemeasurement(scaling, processedimages.binarized)
+    measurements = samplemeasurement(scaling, processedimages.binarized, zoomfactor)
     measurements["parameters", "scale"] = scaling  
     measurements["parameters", "zoomfactor"] = valueUnits(100*zoomfactor, units='%')._asdict()
     

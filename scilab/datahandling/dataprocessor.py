@@ -451,7 +451,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:2]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             
@@ -472,7 +472,7 @@ def main():
     args = DataTree()
     args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
-    args["force", "imagecaching"] = False
+    # args["force", "imagecaching"] = False
     # === Excel === 
     args.excel = False
     # args.excel = True

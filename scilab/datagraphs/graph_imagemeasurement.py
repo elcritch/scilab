@@ -10,12 +10,14 @@ import numpy as np
 import scilab.tools.fitting as Fitting
 
 from scilab.datahandling.datahandlers import *
+import scipy.ndimage, skimage
 
 def graphimage(test, axes, imageName, measureName, testfolder):
 
     scale = test.details.measurements[imageName]["parameters"]["scale"]
     zoomfactor = test.details.measurements[imageName]["parameters"]["zoomfactor"]
     middle = test.details.measurements[imageName]["thirds"]["middle"]
+    middleValues = test.details.measurements[imageName]["thirds"]["middleValues"]
     measureValue = test.details.measurements["image"][measureName]
     
     # debug(test.details)
@@ -25,7 +27,8 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     imgadjusted  = loadimage( processedFolder / '{}.adjusted.png'.format(imageName) )
     imgbinarized = loadimage( processedFolder / '{}.binarized.png'.format(imageName) )
     imgcropped   = loadimage( processedFolder / '{}.cropped.png'.format(imageName) )
-        
+    
+    imgbinarized = skimage.img_as_bool(imgbinarized, force_copy=True) # change to bools... 
     ax_main, ax_adj, ax_bw, ax_width = axes
 
     ax_main.set_title(measureName)
@@ -34,15 +37,13 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     ax_main.imshow(imgcropped)
     ax_main.contour(imgbinarized, linewidth=0.5, colors='b')
 
-    # Binary
+    # Adjusted
     ax_adj.imshow(imgadjusted  )
     
     # Binary
     ax_bw.imshow(imgbinarized, label="Binarized")
     
     # Width
-    print(np.sum(imgbinarized, 1))
-    
     ax_width.plot(np.sum(imgbinarized, 1)/scale.value, -np.arange(0, imgbinarized.shape[0])/scale.value,  color='purple')
     # ax_width.set_xlim(0, 3 * scale.value/zoomfactor.value)
     ax_width.set_ylim(-imgbinarized.shape[0]/scale.value, 0)
@@ -65,8 +66,8 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
     testinfo = test.info
     testfolder = test.folder
     
-    fig, (axr1, axr2) = plt.subplots(ncols=4, nrows=2, figsize=(12,8), 
-                                                gridspec_kw=DataTree(width_ratios=[2,2,2,1]))
+    fig, (axr1, axr2) = plt.subplots(ncols=4, nrows=2, figsize=(12,8), )
+                                                # gridspec_kw=DataTree(width_ratios=[2,2,2,1]))
 
     fig.suptitle("Image Measurement", fontsize=18, fontweight='bold') 
     
