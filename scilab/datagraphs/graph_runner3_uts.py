@@ -63,7 +63,6 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
     
-    
     plt.close()
 
 # =================
@@ -89,9 +88,9 @@ def run_config(test, args, config, configfile):
     sns.set_style("whitegrid")
     
     handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
-    handle_grapher(graph_overview, test, matdata, args, zconfig)
-    handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
-    handle_grapher(graph_uts, test, matdata, args, zconfig)
+    # handle_grapher(graph_overview, test, matdata, args, zconfig)
+    # handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
+    # handle_grapher(graph_uts, test, matdata, args, zconfig)
 
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)

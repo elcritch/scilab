@@ -35,10 +35,6 @@ def processimg(img, scale, max_width,
 
     img_bw = (image > img_otsu)
     
-    if erode_pixels and erode_pixels > 0:
-        print("Eroding binary image: ", erode_pixels)
-        img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
-    
     if remove_small_pre:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
 
@@ -54,8 +50,14 @@ def processimg(img, scale, max_width,
                             
     img_bw = np.array([ r*s for r, s in zip(img_bw, img_valid_widths) ], dtype=img_bw.dtype)
 
+    if erode_pixels and erode_pixels > 0:
+        print("Eroding binary image: ", erode_pixels)
+        img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
+    
+    
     if remove_small:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
+    
     
     return DataTree(image=img, adjusted=image, binarized=img_bw)
 
@@ -106,7 +108,7 @@ def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf,
                 img_otsu=0.14,  
                 remove_small=True, 
                 remove_small_pre=True,
-                min_size=1000,
+                min_size=1000*zoomfactor,
                 auto_otsu=True,
                 equalize_adapthist=True,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement

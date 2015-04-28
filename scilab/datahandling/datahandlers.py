@@ -36,6 +36,9 @@ def saveimage(image, imagepath):
     except Exception as err:
         raise err
     
+def argvaluechanges(data):
+    indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
+    return indices
 
 
 get_attr_to_item = lambda xs: ''.join([ "['%s']"%x for x in xs.split('.')])
