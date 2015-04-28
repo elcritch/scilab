@@ -11,22 +11,24 @@ import scilab.tools.fitting as Fitting
 
 from scilab.datahandling.datahandlers import *
 
-def graphimage(test, axes, imageName, testfolder):
+def graphimage(test, axes, imageName, measureName, testfolder):
 
     scale = test.details.measurements[imageName]["parameters"]["scale"]
     zoomfactor = test.details.measurements[imageName]["parameters"]["zoomfactor"]
     middle = test.details.measurements[imageName]["thirds"]["middle"]
+    measureValue = test.details.measurements["image"][measureName]
     
     # debug(test.details)
-    debug(scale, zoomfactor, middle)
+    debug(scale, zoomfactor, middle, measureValue)
     
     processedFolder = testfolder.images / 'processed' 
     imgadjusted  = loadimage( processedFolder / '{}.adjusted.png'.format(imageName) )
     imgbinarized = loadimage( processedFolder / '{}.binarized.png'.format(imageName) )
     imgcropped   = loadimage( processedFolder / '{}.cropped.png'.format(imageName) )
         
-    ax_main, ax_adj, ax_width = axes
+    ax_main, ax_adj, ax_bw, ax_width = axes
 
+    ax_main.set_title(measureName)
     
     # Main
     ax_main.imshow(imgcropped)
@@ -35,15 +37,20 @@ def graphimage(test, axes, imageName, testfolder):
     # Binary
     ax_adj.imshow(imgadjusted  )
     
+    # Binary
+    ax_bw.imshow(imgbinarized, label="Binarized")
+    
     # Width
-    avg_width = middle.value - middle.stdev
+    print(np.sum(imgbinarized, 1))
     
-    ax_width.plot(np.sum(imgbinarized, 1)/scale.value/zoomfactor.value,-np.arange(0, imgbinarized.shape[0])/scale.value,  color='purple' )
+    ax_width.plot(np.sum(imgbinarized, 1)/scale.value, -np.arange(0, imgbinarized.shape[0])/scale.value,  color='purple')
+    # ax_width.set_xlim(0, 3 * scale.value/zoomfactor.value)
+    ax_width.set_ylim(-imgbinarized.shape[0]/scale.value, 0)
     
-    # ax_width.set_xlim(0, 3 * scale.value)
-    ax_width.annotate("Avg Width:%5.2f"%(avg_width), xy=(0,0))
-    ax_width.vlines(avg_width, 0, -imgbinarized.shape[0]/scale.value)
-    ax_width.vlines(middle.value, 0, -imgbinarized.shape[0]/scale.value, color='green')
+    y0, y1 = ax_width.get_ylim()
+    ax_width.annotate("Avg Width:%5.2f"%(measureValue.value), xy=(0,0))
+    ax_width.vlines(measureValue.value, y0, y1, label='Measured Value')
+    ax_width.vlines(middle.value, y0, y1, color='green', label='Measure Std.Dev.')
 
     return 
     
@@ -58,13 +65,13 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
     testinfo = test.info
     testfolder = test.folder
     
-    fig, (axr1, axr2) = plt.subplots(ncols=3, nrows=2, figsize=(12,8), 
-                                                gridspec_kw=DataTree(width_ratios=[2,2,1]))
+    fig, (axr1, axr2) = plt.subplots(ncols=4, nrows=2, figsize=(12,8), 
+                                                gridspec_kw=DataTree(width_ratios=[2,2,2,1]))
 
     fig.suptitle("Image Measurement", fontsize=18, fontweight='bold') 
     
-    graphimage(test, axr1, "frontImage", testfolder)
-    graphimage(test, axr2, "sideImage", testfolder)
+    graphimage(test, axr1, "frontImage", "width", testfolder)
+    graphimage(test, axr2, "sideImage", "depth", testfolder)
 
     return DataTree(fig=fig, calcs=DataTree())
     

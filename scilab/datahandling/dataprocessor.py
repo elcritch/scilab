@@ -470,9 +470,9 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=True, norm=True)
+    args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
-    # args["force", "imagecaching"] = True
+    args["force", "imagecaching"] = False
     # === Excel === 
     args.excel = False
     # args.excel = True
