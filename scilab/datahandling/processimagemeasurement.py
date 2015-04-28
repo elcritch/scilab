@@ -97,7 +97,7 @@ def crop(img, xd, yd, **kws):
     debug(crop_img.shape)
     return crop_img
 
-def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf, state, args):
+def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfactor, imageconf, state, args):
     
     processingconfs = DataTree(
                 max_width=2.0, # e.g. mm (converted to pixels during processing)
@@ -106,7 +106,7 @@ def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf,
                 img_otsu=0.14,  
                 remove_small=True, 
                 remove_small_pre=True,
-                min_size=1000,
+                min_size=minsamplesize.x*minsamplesize.z*scaling.value**2,
                 auto_otsu=True,
                 equalize_adapthist=True,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
@@ -147,7 +147,8 @@ def process_image(testconf, imagepath, scaling, cropping, zoomfactor, imageconf,
 def process_imageconf(testconf, imageconf, state, args):
     
     # Image Measurement Scaling
-    zoomfactor = state["image_measurement"].get("zoomfactor", 2)
+    zoomfactor = state["image_measurement","parameters"].get("zoomfactor", 2)
+    minsamplesize = state["image_measurement","parameters"]["minsamplesize"]
     scaling = getproperty(state["image_measurement"]["scales"], action=True, env=state)
     scaling = scaling.set(value=scaling.value*zoomfactor)
     
@@ -171,7 +172,9 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
+    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, 
+                                    scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
+                                    minsamplesize=minsamplesize, # rough sample size est
                                     state=imageprocessstate, args=args)
     measurements = samplemeasurement(scaling, processedimages.binarized)
     measurements["parameters", "scale"] = scaling  

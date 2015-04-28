@@ -451,7 +451,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:2]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             
