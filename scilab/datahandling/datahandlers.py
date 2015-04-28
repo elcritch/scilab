@@ -68,7 +68,8 @@ def executeexpr(expr, **kwargs):
         raise NameError(err, "Variables available: {}".format(list(env.keys())), expr)
     except Exception as err:
         # debughere()
-        raise Exception(err, "Expression: {}".format(expr))
+        raise err
+        # raise Exception(err, "Expression: {}".format(expr))
 
 def builtin_action_lookup(prop, **env):
     # debug(prop)

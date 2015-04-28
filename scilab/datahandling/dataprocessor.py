@@ -141,7 +141,7 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     if not variables_input: 
         variables = DataTree()
     else:
-        env = DataTree(details=state.details, **data )
+        env = DataTree(details=state.details, codehandlers=state.args.codehandlers, **data )
         variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
@@ -432,6 +432,7 @@ def test_folder(args):
     
     args.parser_data_sheet_excel = exper.parser_data_sheet_excel
     args.parser_image_measurements = exper.parser_image_measurements
+    args.codehandlers = exper.getcodehandlers()
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
@@ -451,7 +452,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:1]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
             # continue
             
@@ -461,7 +462,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed"
-            # raise err
+            raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))

@@ -11,6 +11,7 @@ import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
 from scilab.tools.excel import *
+import scilab.datahandling.processingpreconditioning 
 
 class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
 
@@ -218,7 +219,10 @@ def main():
 
     print("\n\nTests:\n\n",fs.testitemsd())
 
-
+def getcodehandlers():
+    
+    return DataTree(process_precondition=scilab.datahandling.processingpreconditioning.process_precondition)
+    
 if __name__ == '__main__':
     main()
 
