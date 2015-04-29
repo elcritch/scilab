@@ -28,7 +28,7 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     imgbinarized = loadimage( processedFolder / '{}.binarized.png'.format(imageName) )
     imgcropped   = loadimage( processedFolder / '{}.cropped.png'.format(imageName) )
     
-    imgbinarized = skimage.img_as_bool(imgbinarized, force_copy=True) # change to bools... 
+    imgbinarized = imgbinarized.astype('bool') # change to bools... otherwise scaling issues (e.g. 255)
     ax_main, ax_adj, ax_bw, ax_width = axes
 
     ax_main.set_title(measureName)
