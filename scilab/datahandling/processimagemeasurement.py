@@ -90,8 +90,8 @@ def argvaluechanges(data):
 
 def samplemeasurement(scale, img_bw, zoomfactor, dbg=False):
     
-    hori_indices = argvaluechanges(np.sum(img_bw, 0) > 0)
-    vert_indices = argvaluechanges(np.sum(img_bw, 1) > 0)
+    hori_indices = list(argvaluechanges(np.sum(img_bw, 0) > 0))
+    vert_indices = list(argvaluechanges(np.sum(img_bw, 1) > 0))
     debug(hori_indices, vert_indices)
     
     hori_sums = (np.sum(img_bw, 0) > 0).astype('uint8')
@@ -104,7 +104,7 @@ def samplemeasurement(scale, img_bw, zoomfactor, dbg=False):
     # = Handle case where sample runs to an edge (vert or hori) =
     # ===========================================================
     def singleindex(arr_sums, indicies, maxdim):
-        sum_idx = np.where(arr_sums > 0)
+        sum_idx = np.where(arr_sums > 0)[0]
         debug(sum_idx[-1], sum_idx[0])
         if sum_idx[-1] + 1 == img_bw.shape[0]:
             indicies.append(sum_idx[-1])
@@ -120,12 +120,13 @@ def samplemeasurement(scale, img_bw, zoomfactor, dbg=False):
     # = Check for errors =
     # ====================
     if len(vert_indices) > 2 or len(hori_indices) > 2:
-        raise ValueError("Can only handle one object! Check min_size settings")
+        raise ValueError("IndexingError:TooMany", "Can only handle one object! Check min_size settings")
+        
     elif len(vert_indices) == 0 or len(hori_indices) == 0:
         print("Image sums:")
         debug( hori_sums )
         debug( vert_sums )
-        raise ValueError("No objects found! Check image settings", )
+        raise ValueError("IndexingError:NoObjects", "No objects found! Check image settings", )
     
     # ======================================
     # = Find Sample Shape and Measurements =
@@ -164,7 +165,8 @@ def crop(img, xd, yd, **kws):
     crop_img = img[yd_, xd_]
     return crop_img
 
-def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfactor, imageconf, state, args):
+def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfactor, equalize_adapthist, imageconf, state, args):
+    
     
     processingconfs = DataTree(
                 max_width=2.0, # e.g. mm (converted to pixels during processing)
@@ -175,9 +177,11 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
                 remove_small_pre=True,
                 min_size=minsamplesize.x*minsamplesize.z*scaling.value**2,
                 auto_otsu=True,
-                equalize_adapthist=True,
+                equalize_adapthist=equalize_adapthist,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
                 )
+    
+    processingconfs.update( { k:v for k,v in state["image_measurement","parameters"].items() if k in processingconfs } )
     
     # The cropped image will be "zoomed" so adjust the scaling factor appropriately
     args["dbg","image_measurement"] and debug(zoomfactor)
@@ -208,17 +212,15 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     # =================
     # = Process Image =
     # =================
-    try:
-        processedimages = processimg(image, scale=scaling, zoomfactor=zoomfactor, 
+    
+    args_processimg = DataTree(img=image, scale=scaling, zoomfactor=zoomfactor, 
                                 dbg=args["dbg","image_measurement"], **processingconfs)
+    try:
+        processedimages = processimg(**args_processimg)
     except ValueError as err:
-        
-        # ============================================================================================
         # = Handle case where equalize_adapthist fails (this could be improved via a two stage algo) =
-        # ============================================================================================
-        if processingconfs["equalize_adapthist"]==True:           
-            processedimages = processimg(image, scale=scaling, zoomfactor=zoomfactor, 
-                                dbg=args["dbg","image_measurement"], **processingconfs.set(equalize_adapthist=False))
+        if processingconfs["equalize_adapthist"] == True:           
+            processedimages = processimg(**args_processimg.set(equalize_adapthist=False))
             logging.warning("Binarized image below minimum size! Turned off skimage.exposure.equalize_adapthist")
         
     
@@ -255,11 +257,24 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, 
+    args_process_img = DataTree(testconf=testconf, imageconf=imageconf, imagepath=imagepath, 
                                     scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
+                                    equalize_adapthist=True,
                                     minsamplesize=minsamplesize, # rough sample size est
                                     state=imageprocessstate, args=args)
-    measurements = samplemeasurement(scaling, processedimages.binarized, zoomfactor, dbg=args["dbg","image_measurement"])
+    
+    processedimages = process_image(**args_process_img)
+    args_samplemeasurement = DataTree(scale=scaling, img_bw=processedimages.binarized, zoomfactor=zoomfactor, 
+                                        dbg=args["dbg","image_measurement"])
+
+    try:
+        measurements = samplemeasurement(**args_samplemeasurement)
+    except ValueError as err:
+        if err.args[0] == "IndexingError:TooMany":
+            processedimages = process_image(**args_process_img.set(equalize_adapthist=False))
+            measurements = samplemeasurement(**args_samplemeasurement)
+            logging.warn("Too many objects found, turning. Turned off skimage.exposure.equalize_adapthist")
+    
     measurements["parameters", "scale"] = scaling  
     measurements["parameters", "zoomfactor"] = valueUnits(100*zoomfactor, units='%')._asdict()
     
