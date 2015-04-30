@@ -57,6 +57,9 @@ def processimg(img, scale, max_width,
     if remove_small:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
     
+    if fill_holes:
+        scipy.ndimage.binary_fill_holes
+    
     return DataTree(image=img, adjusted=image, binarized=img_bw)
 
 def argvaluechanges(data):

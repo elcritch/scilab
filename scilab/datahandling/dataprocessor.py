@@ -437,7 +437,7 @@ def test_folder(args):
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)

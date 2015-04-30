@@ -132,7 +132,7 @@ def test_folder():
 
     args = DataTree()
     
-    for name, test in sorted( testitems.items() )[:]:
+    for name, test in sorted( testitems.items() )[:1]:
         # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
             # continue
         
