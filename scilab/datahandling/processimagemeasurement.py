@@ -195,8 +195,8 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     croppedimage = getimagepath(stage="cropped")
     args["dbg","image_measurement"] and debug(croppedimage)
     
-    if not imagepath.exists():
-        raise ValueError("Image file not found: "+str(imagepath), imageconf)
+    if not imagepath or not imagepath.exists():
+        raise ValueError("Image file not found: "+str(croppedimage), imageconf)
     
     if not croppedimage.exists() or args["force", "imagecaching"]:
         print("Cropping and caching image")
