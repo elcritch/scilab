@@ -18,6 +18,7 @@ def processimg(img, scale, max_width,
                min_size, auto_otsu, equalize_adapthist,
                erode_pixels, 
                zoomfactor,
+               fill_holes_pre, fill_holes_post,
                dbg=False,
                ):
     
@@ -40,6 +41,9 @@ def processimg(img, scale, max_width,
     if remove_small_pre:
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
 
+    if fill_holes_pre:
+        img_bw = scipy.ndimage.binary_fill_holes(img_bw).astype(bool)
+    
     # =============================================================
     # = Calculate regions which satisfy the region area containts =
     # =============================================================
@@ -74,6 +78,9 @@ def processimg(img, scale, max_width,
     
     # img_bw = img_bw*255 # scaling??
     dbg and print( "sum after remove small:", np.sum(img_bw, 1))
+
+    if fill_holes_post:
+        img_bw = scipy.ndimage.binary_fill_holes(img_bw).astype(bool)
     
     # = Reconvert back to boolean! (Just in case... this has a tendency to revert after various ops causing issues) =
     img_bw = img_bw.astype('bool')
@@ -81,9 +88,6 @@ def processimg(img, scale, max_width,
     if np.sum(img_bw) < min_size:
         
             raise ValueError("Binarized image below minimum size! Sum: ", np.sum(img_bw)/zoomfactor**2, min_size/zoomfactor**2)
-    
-    if fill_holes:
-        scipy.ndimage.binary_fill_holes
     
     return DataTree(image=img, adjusted=image, binarized=img_bw)
 
@@ -148,17 +152,19 @@ def samplemeasurement(scale, img_bw, zoomfactor, dbg=False):
     measurements.rawboundingbox = rawboundingbox
     measurements.boundingbox = boundingbox
     
-    idx_upper = np.s_[top+0*vsize//3:top+1*vsize//3]
-    idx_middle = np.s_[top+1*vsize//3:top+2*vsize//3]
-    idx_lower = np.s_[top+2*vsize//3:top+3*vsize//3]
+    idx_upper  = [top+0*vsize//3,top+1*vsize//3]
+    idx_middle = [top+1*vsize//3,top+2*vsize//3]
+    idx_lower  = [top+2*vsize//3,top+3*vsize//3]
     
     debug(idx_upper, idx_middle, idx_lower, )
     measurements["raw","widths"] = calcwidths(img_bw[top:bottom])
     measurements["thirds", "upper"]  = calcwidths(img_bw[idx_upper])
     measurements["thirds", "middle"] = calcwidths(img_bw[idx_middle])
     measurements["thirds", "lower"]  = calcwidths(img_bw[idx_lower])
+    measurements["thirds", "indexes"]  = DataTree(upper = idx_upper, middle = idx_middle, lower = idx_lower)
     
     measurements["thirds", "middleValues"] = (np.sum(img_bw[idx_middle], 1)/scale.value)[::scale.value//zoomfactor]
+    
     
     return measurements
 
@@ -182,6 +188,8 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
                 auto_otsu=True,
                 equalize_adapthist=equalize_adapthist,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
+                fill_holes_post=True,
+                fill_holes_pre=False,
                 )
     
     processingconfs.update( { k:v for k,v in state["image_measurement","parameters"].items() if k in processingconfs } )
