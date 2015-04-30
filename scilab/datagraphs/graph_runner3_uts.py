@@ -114,8 +114,8 @@ def test_folder():
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
@@ -133,7 +133,7 @@ def test_folder():
 
     args = DataTree()
     
-    for name, test in sorted( testitems.items() )[:1]:
+    for name, test in sorted( testitems.items() )[:]:
         # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
             # continue
         
