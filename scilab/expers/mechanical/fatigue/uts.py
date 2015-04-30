@@ -94,7 +94,7 @@ def parser_data_sheet_excel(ws):
     end = process_definitions_column(ws, other, 'A', end, 50, stop_key='Failure Notes / Test Results', dbg=False, has_units=True)
 
     # debug(end, other.keys())
-    assert "uts_stress" in other.keys()
+    # assert "uts_stress" in other.keys()
     
     # valueUnitsOverride = [ ('cycles', 'Nº Cycles'), ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
     # for key, units in valueUnitsOverride:
@@ -112,14 +112,20 @@ def parser_data_sheet_excel(ws):
     
     if 'gauge' in other:
         gauge.length = valueUnits(other.pop('gauge'), units)._asdict()
+    else:
+        raise Exception("Excel file missing gauge! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
     if 'gauge_init' in other:
         gauge.init_position = valueUnits(other.pop('gauge_init'), units)._asdict()
+    elif 'init_position' in other:
+        gauge.init_position = valueUnits(other.pop('init_position'), units)._asdict()
     else:
         raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
     if 'gauge_base' in other:
         gauge.base = valueUnits(other.pop('gauge_base'), units)._asdict()
+    elif 'base_position' in other:
+        gauge.base = valueUnits(other.pop('base_position'), units)._asdict()
     else:
         raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     

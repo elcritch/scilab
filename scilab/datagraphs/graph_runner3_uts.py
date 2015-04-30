@@ -114,7 +114,8 @@ def test_folder():
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)

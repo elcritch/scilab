@@ -18,7 +18,9 @@ def processimg(img, scale, max_width,
                min_size, auto_otsu, equalize_adapthist,
                erode_pixels, 
                zoomfactor,
+               dbg=False,
                ):
+    
     image = np.copy(img[:,:,0])
     
     image = ski.exposure.adjust_gamma(image, gamma=gamma, gain=gain)
@@ -45,17 +47,40 @@ def processimg(img, scale, max_width,
     img_bw_lens = lambda aa: aa.shape[1] - np.argmax( aa[:, ::-1] > 0, 1 ) - np.argmax( aa > 0, 1)
     
     # check for both start/end of objects AND the total area
+    dbg and print("Removing rows less wide than zoomed max width (max_width*scale)", max_width*scale.value, max_width, scale.value)
+    
     img_valid_widths = np.array(img_bw_lens(img_bw) < max_width*scale.value, dtype='int') * \
                             np.array(np.sum(img_bw,1) < max_width*scale.value, dtype='int') 
                             
+    dbg and print( "sum before:", np.sum(img_bw, 1))
+    
     img_bw = np.array([ r*s for r, s in zip(img_bw, img_valid_widths) ], dtype=img_bw.dtype)
 
+    dbg and print( "sum after:", np.sum(img_bw, 1))
+    
     if erode_pixels and erode_pixels > 0:
-        print("Eroding binary image: ", erode_pixels)
+        dbg and print("Eroding binary image: ", erode_pixels)
         img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
     
+    dbg and print( "sum after erode:", np.sum(img_bw, 1))
+        
+    # = Reconvert back to boolean! =
+    img_bw = img_bw.astype('bool')
+    
     if remove_small:
-        img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=2)
+        dbg and print("Removing small features less than: ", min_size)
+        img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=1)
+    
+    
+    # img_bw = img_bw*255 # scaling??
+    dbg and print( "sum after remove small:", np.sum(img_bw, 1))
+    
+    # = Reconvert back to boolean! (Just in case... this has a tendency to revert after various ops causing issues) =
+    img_bw = img_bw.astype('bool')
+    
+    if np.sum(img_bw) < min_size:
+        
+            raise ValueError("Binarized image below minimum size! Sum: ", np.sum(img_bw)/zoomfactor**2, min_size/zoomfactor**2)
     
     if fill_holes:
         scipy.ndimage.binary_fill_holes
@@ -66,13 +91,49 @@ def argvaluechanges(data):
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
     return indices
 
-def samplemeasurement(scale, img_bw, zoomfactor):
+def samplemeasurement(scale, img_bw, zoomfactor, dbg=False):
     
-    hori_indices = argvaluechanges(np.sum(img_bw, 0) > 0)
-    vert_indices = argvaluechanges(np.sum(img_bw, 1) > 0)
-    debug(hori_indices, vert_indices, np.sum(img_bw, 0) > 0)
-    assert len(vert_indices) >= 2
+    hori_indices = list(argvaluechanges(np.sum(img_bw, 0) > 0))
+    vert_indices = list(argvaluechanges(np.sum(img_bw, 1) > 0))
+    debug(hori_indices, vert_indices)
     
+    hori_sums = (np.sum(img_bw, 0) > 0).astype('uint8')
+    vert_sums = (np.sum(img_bw, 1) > 0).astype('uint8')
+    
+    dbg and debug( hori_sums )
+    dbg and debug( vert_sums )
+
+    # ===========================================================
+    # = Handle case where sample runs to an edge (vert or hori) =
+    # ===========================================================
+    def singleindex(arr_sums, indicies, maxdim):
+        sum_idx = np.where(arr_sums > 0)[0]
+        debug(sum_idx[-1], sum_idx[0])
+        if sum_idx[-1] + 1 == img_bw.shape[0]:
+            indicies.append(sum_idx[-1])
+        elif sum_idx[0] == 0:
+            indicies.append(sum_idx[0])
+        
+    if len(vert_indices) == 1:
+        singleindex(vert_sums, vert_indices, maxdim=img_bw.shape[0])
+    if len(hori_indices) == 1:
+        singleindex(hori_sums, hori_indices, maxdim=img_bw.shape[1])
+        
+    # ====================
+    # = Check for errors =
+    # ====================
+    if len(vert_indices) > 2 or len(hori_indices) > 2:
+        raise ValueError("IndexingError:TooMany", "Can only handle one object! Check min_size settings")
+        
+    elif len(vert_indices) == 0 or len(hori_indices) == 0:
+        print("Image sums:")
+        debug( hori_sums )
+        debug( vert_sums )
+        raise ValueError("IndexingError:NoObjects", "No objects found! Check image settings", )
+    
+    # ======================================
+    # = Find Sample Shape and Measurements =
+    # ======================================
     top, bottom = vert_indices[0], vert_indices[-1]
     left, right = hori_indices[0], hori_indices[-1]
     vsize, hsize = bottom-top, right-left
@@ -104,12 +165,11 @@ def samplemeasurement(scale, img_bw, zoomfactor):
 def crop(img, xd, yd, **kws):
     xd_ = np.s_[xd[0]:xd[1]]
     yd_ = np.s_[yd[0]:yd[1]]
-    debug(xd, yd, img.shape)
     crop_img = img[yd_, xd_]
-    debug(crop_img.shape)
     return crop_img
 
-def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfactor, imageconf, state, args):
+def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfactor, equalize_adapthist, imageconf, state, args):
+    
     
     processingconfs = DataTree(
                 max_width=2.0, # e.g. mm (converted to pixels during processing)
@@ -120,12 +180,14 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
                 remove_small_pre=True,
                 min_size=minsamplesize.x*minsamplesize.z*scaling.value**2,
                 auto_otsu=True,
-                equalize_adapthist=True,
+                equalize_adapthist=equalize_adapthist,
                 erode_pixels=1, # 1 pixel of erosion at 2*zoom yields good avg of extra pixel gained during binarization/measurement
                 )
     
+    processingconfs.update( { k:v for k,v in state["image_measurement","parameters"].items() if k in processingconfs } )
+    
     # The cropped image will be "zoomed" so adjust the scaling factor appropriately
-    debug(zoomfactor)
+    args["dbg","image_measurement"] and debug(zoomfactor)
     
     if testconf['options','processing']:
         processingconfs.update(testconf['options','processing'])
@@ -134,7 +196,7 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
         return state.processed / "{name}.{stage}.png".format(name=imageconf["name"], stage=stage)
     
     croppedimage = getimagepath(stage="cropped")
-    debug(croppedimage)
+    args["dbg","image_measurement"] and debug(croppedimage)
     
     if not imagepath.exists():
         raise ValueError("Image file not found: "+str(imagepath), imageconf)
@@ -149,7 +211,21 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
         saveimage(imgout, croppedimage)
     
     image = loadimage(croppedimage)
-    processedimages = processimg(image, scale=scaling, zoomfactor=zoomfactor, **processingconfs)
+    
+    # =================
+    # = Process Image =
+    # =================
+    
+    args_processimg = DataTree(img=image, scale=scaling, zoomfactor=zoomfactor, 
+                                dbg=args["dbg","image_measurement"], **processingconfs)
+    try:
+        processedimages = processimg(**args_processimg)
+    except ValueError as err:
+        # = Handle case where equalize_adapthist fails (this could be improved via a two stage algo) =
+        if processingconfs["equalize_adapthist"] == True:           
+            processedimages = processimg(**args_processimg.set(equalize_adapthist=False))
+            logging.warning("Binarized image below minimum size! Turned off skimage.exposure.equalize_adapthist")
+        
     
     saveimage(processedimages.adjusted, getimagepath("adjusted"))
     saveimage(processedimages.binarized, getimagepath("binarized"))
@@ -168,7 +244,7 @@ def process_imageconf(testconf, imageconf, state, args):
     cropping = state.image_measurement["crops"]
     while isinstance(cropping, collections.Mapping) and '_lookup_' in cropping:
         cropping = getproperty(cropping, action=True, env=state)
-        debug(cropping)
+        args["dbg","image_measurement"] and debug(cropping)
         
     # === Process Image === 
     processedFolder = testconf.folder.images / 'processed'
@@ -184,15 +260,28 @@ def process_imageconf(testconf, imageconf, state, args):
     print("Processing Image Measurements from: ", imagepath)
     imageprocessstate = state.set(imagepath=imagepath, processed=processedFolder)
     
-    processedimages = process_image(testconf, imageconf=imageconf, imagepath=imagepath, 
+    args_process_img = DataTree(testconf=testconf, imageconf=imageconf, imagepath=imagepath, 
                                     scaling=scaling, cropping=cropping, zoomfactor=zoomfactor, 
+                                    equalize_adapthist=True,
                                     minsamplesize=minsamplesize, # rough sample size est
                                     state=imageprocessstate, args=args)
-    measurements = samplemeasurement(scaling, processedimages.binarized, zoomfactor)
+    
+    processedimages = process_image(**args_process_img)
+    args_samplemeasurement = DataTree(scale=scaling, img_bw=processedimages.binarized, zoomfactor=zoomfactor, 
+                                        dbg=args["dbg","image_measurement"])
+
+    try:
+        measurements = samplemeasurement(**args_samplemeasurement)
+    except ValueError as err:
+        if err.args[0] == "IndexingError:TooMany":
+            processedimages = process_image(**args_process_img.set(equalize_adapthist=False))
+            measurements = samplemeasurement(**args_samplemeasurement)
+            logging.warn("Too many objects found, turning. Turned off skimage.exposure.equalize_adapthist")
+    
     measurements["parameters", "scale"] = scaling  
     measurements["parameters", "zoomfactor"] = valueUnits(100*zoomfactor, units='%')._asdict()
     
-    debug(measurements)
+    args["dbg","image_measurement"] and debug(measurements)
     
     jsonpath, allmeasurements = testconf.folder.save_calculated_json(
         test=state.args.testconf, 
@@ -207,6 +296,8 @@ def process_test(testconf, state, args):
     
     image_measurement = state["image_measurement"]
     
+    args["dbg","image_measurement"] and debug(image_measurement)
+    
     testconf.folder.save_calculated_json(test=state.args.testconf, name="measurements",field="images",data={},overwrite=True)
     
     for imageconf in image_measurement["imageconfs"]:
@@ -220,9 +311,9 @@ def process_test(testconf, state, args):
     for calcname, calcs in image_measurement["calculations",].items():
         for calc in calcs:
             name, calcexpr = getpropertypair(calc)
-            debug(name, calcexpr)
+            args["dbg","image_measurement"] and debug(name, calcexpr)
             result = executeexpr(calcexpr, results=results, calc=env, **allmeasurements["measurements"])
-            debug(result)
+            args["dbg","image_measurement"] and debug(result)
             results[calcname, name] = result
 
     testconf.folder.save_calculated_json(data=results, test=state.args.testconf, name="measurements", field="images")

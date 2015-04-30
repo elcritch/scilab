@@ -31,7 +31,7 @@ def loadimage(imagepath):
 def saveimage(image, imagepath):
     try:
         import scipy.misc
-        print("Saving image:", imagepath)
+        print("Saving image:", image.shape, image.dtype, np.sum(image), imagepath,)
         return scipy.misc.imsave(str(imagepath), image)
     except Exception as err:
         raise err
