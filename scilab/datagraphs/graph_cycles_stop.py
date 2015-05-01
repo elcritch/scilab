@@ -16,7 +16,7 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
     data, colinfo, indexes = matdata.data, matdata.columninfo, matdata.indexes
     
-    if not (zconfig == DataTree(stage='norm', method='m3_cycles', item='tracking')):
+    if not ("norm" in zconfig["stage"] and "m3_cycles" in zconfig["method"] and "tracking" in zconfig["item"]):
         print("WARNING::Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     

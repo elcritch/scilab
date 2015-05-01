@@ -18,13 +18,13 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     
     getfield = lambda n: ( getattr(matdata.data, n), getattr(matdata.columninfo, n) )
     
-    if zconfig['item'] == "tracking":    
-        if zconfig['stage'] == "norm":
+    if "tracking" in zconfig["item"]:    
+        if "norm" in zconfig["stage"]:
             t,tl = getfield("totalTime"); x,xl = getfield("stress"); y,yl = getfield("strain")
         else:
             t,tl = getfield("totalTime"); x,xl = getfield("load"); y,yl = getfield("disp")
-    elif zconfig['item'] == "trends":
-        if zconfig['stage'] == "norm":
+    elif "trends" in zconfig["item"]:
+        if "norm" in zconfig["stage"]:
             t,tl = getfield("cycleStartTime"); x,xl = getfield("stress_max"); y,yl = getfield("strain_max")
         else:
             t,tl = getfield("cycleStartTime"); x,xl = getfield("load_max"); y,yl = getfield("disp_max")

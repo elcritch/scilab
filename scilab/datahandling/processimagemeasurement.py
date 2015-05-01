@@ -56,28 +56,29 @@ def processimg(img, scale, max_width,
     img_valid_widths = np.array(img_bw_lens(img_bw) < max_width*scale.value, dtype='int') * \
                             np.array(np.sum(img_bw,1) < max_width*scale.value, dtype='int') 
                             
-    dbg and print( "sum before:", np.sum(img_bw, 1))
+    # dbg and print( "sum before:", np.sum(img_bw, 1).tolist())
+    # dbg and print( "sum before:", np.sum(img_bw, 1).tolist())
     
     img_bw = np.array([ r*s for r, s in zip(img_bw, img_valid_widths) ], dtype=img_bw.dtype)
 
-    dbg and print( "sum after:", np.sum(img_bw, 1))
+    # dbg and print( "sum after:", np.sum(img_bw, 1).tolist())
     
     if erode_pixels and erode_pixels > 0:
         dbg and print("Eroding binary image: ", erode_pixels)
         img_bw = morphology.binary_erosion(img_bw, morphology.disk(int(erode_pixels)))
     
-    dbg and print( "sum after erode:", np.sum(img_bw, 1))
+    # dbg and print( "sum after erode:", np.sum(img_bw, 1).tolist())
         
     # = Reconvert back to boolean! =
     img_bw = img_bw.astype('bool')
     
     if remove_small:
-        dbg and print("Removing small features less than: ", min_size)
+        dbg and print("Removing small features less than: ", min_size, " for total sums of:", np.sum(img_bw))
         img_bw = morphology.remove_small_objects(img_bw, min_size=min_size, connectivity=1)
     
     
     # img_bw = img_bw*255 # scaling??
-    dbg and print( "sum after remove small:", np.sum(img_bw, 1))
+    # dbg and print( "sum after remove small:", np.sum(img_bw, 1).tolist())
 
     if fill_holes_post:
         img_bw = scipy.ndimage.binary_fill_holes(img_bw).astype(bool)
@@ -209,7 +210,7 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     if not imagepath or not imagepath.exists():
         raise ValueError("Image file not found: "+str(croppedimage), imageconf)
     
-    if not croppedimage.exists() or args["force", "imagecaching"]:
+    if not croppedimage.exists() or args["force", "imagecropping"]:
         print("Cropping and caching image")
         img = loadimage(imagepath=imagepath)
         debug(img.shape)

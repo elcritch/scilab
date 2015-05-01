@@ -74,7 +74,7 @@ def graphimage(test, axes, imageName, measureName, testfolder):
 
 def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
 
-    if not (zconfig['stage']=='norm' and 'precond' in zconfig['method'] and zconfig['item']=='tracking'):
+    if not ('norm' in zconfig['stage'] and 'precond' in zconfig['method'] and 'tracking' in zconfig['item']):
         logging.warning("Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     

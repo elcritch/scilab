@@ -21,7 +21,7 @@ import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_args):
 
-    if not (zconfig == DataTree(stage='norm', method='m3_cycles', item='trends')):
+    if not ("norm" in zconfig["stage"] and "cycles" in zconfig["method"] and "trends" in zconfig["item"]):
         print("WARNING::Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     

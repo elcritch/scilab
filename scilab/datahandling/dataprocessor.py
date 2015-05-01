@@ -435,9 +435,9 @@ def test_folder(args):
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
@@ -455,16 +455,18 @@ def test_folder(args):
     for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
-        # if name < "nov24(gf9.2-lmm)-wf-lg-l4-x1":
-        #     continue
-            
+        # if name < "jan14":
+            # continue
+        # if name not in ["jan14(gf10.2-rlm)-wa-lg-l9-x2",]:
+            # continue
+        
         try:
             execute(fs, name, testconf, args, )
             summaries[name] = "Success", ""
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed", str(err)
-            # raise err
+            raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -475,7 +477,7 @@ def main():
     args = DataTree()
     args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
-    # args["force", "imagecaching"] = True
+    # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
     args.excel = False

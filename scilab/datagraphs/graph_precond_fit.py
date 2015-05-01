@@ -17,7 +17,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     
     debug(zconfig)
     
-    if not ( zconfig['stage'] == 'norm' and 'precond' in zconfig['method'] and zconfig['item'] == 'tracking' ):
+    if not ( "norm" in zconfig["stage"] and "precond" in zconfig["method"] and "tracking" in zconfig["item"] ):
         logging.warning("Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     

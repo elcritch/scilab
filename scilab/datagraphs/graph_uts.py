@@ -11,7 +11,7 @@ import scilab.tools.fitting as Fitting
 
 def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_args):
 
-    if not (zconfig == DataTree(stage='norm', method='uts', item='tracking')):
+    if not (zconfig["stage"] =='norm' and "uts" in zconfig["method"] and "tracking" in zconfig["item"])):
         logging.warning("Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     
