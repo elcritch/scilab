@@ -141,13 +141,13 @@ def test_folder():
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
     
         folder = fs.testfolder(testinfo=test.info)
-    
-    #     debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
+        
+        # debug(mapd(flatten(folder), valuef=lambda x: type(x), keyf=lambda x: x))
         
         data = [ (k,v.relative_to(parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                     for k,v in flatten(folder).items() ]
         data = sorted(data)
-    
+        
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
         debug(folder.data.relative_to(parentdir))
         
