@@ -110,14 +110,21 @@ class TestHandler(QObject, ProjectContainer):
         self.test.folder = self.fs.testfolder(testinfo=self.test.info, ensure_folders_exists=False)
         print("Setting Test:", self.test)
 
+    def getitem(self):
+        
+        return self.test
+
     def getinfopanelhtml(self, item):
         
         print("HTML:", self.test.folder.main)
         reportUrl = next(self.test.folder.main.glob("report*.html"), None)
         
         debug(reportUrl)
-        with reportUrl.open('rb') as reportFile:            
-            reportHtmlStr = reportFile.read().decode(encoding='UTF-8')
+        if reportUrl and reportUrl.exists():
+            with reportUrl.open('rb') as reportFile:            
+                reportHtmlStr = reportFile.read().decode(encoding='UTF-8')
+        else:
+            reportHtmlStr = ""
         
         return reportHtmlStr, self.test.folder.main
 

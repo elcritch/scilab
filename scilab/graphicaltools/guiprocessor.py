@@ -144,9 +144,9 @@ class TestPageWebView(BasicWebView):
 
 class TestProtocolView(QFrame):
     
-    def __init__(self):
+    def __init__(self, parent):
         super(TestProtocolView, self).__init__()
-    
+        self.parent = parent
         self.setFrameStyle(QFrame.StyledPanel)
         self.protocolView = BasicWebView()
         
@@ -156,6 +156,22 @@ class TestProtocolView(QFrame):
 
     def setHtml(testhtml, testqurl):
         self.protocolView.setHtml(testhtml, testqurl)
+        
+    @Slot(object)
+    def update(self, obj):
+        
+        print("TestProtocolView", obj)
+        test = self.parent.tester.getitem()
+        
+        protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
+        
+        with protocolUrl.open('rb') as protocolFile:            
+            protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
+        
+            self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
+        
+        # self.testitemchanged.connect(lambda obj: setitem(obj) )
+        
 
 class DataProcessorGuiMain(QMainWindow):
 
@@ -255,7 +271,8 @@ class DataProcessorGuiMain(QMainWindow):
         self.testPanelTabs.addTab(self.tabDataProcessor, "Data Processor")
         
         self.testInfoPanel = self.infoTestInfoPanel()
-        self.testProtocolView = TestProtocolView()
+        self.testProtocolView = TestProtocolView(self)
+        self.testitemchanged.connect(self.testProtocolView.update)
         
         lFrame = QFrame(self)
         lFrame.setLayout(self.testInfoPanel)
@@ -265,9 +282,9 @@ class DataProcessorGuiMain(QMainWindow):
         self.testSplitter.addWidget(self.testPanelTabs)
         self.testLabel = QLabel("<h2>Test:</h2> ")
 
+
         testPanelsLayout = QVBoxLayout()
         testPanelsLayout.addWidget(self.testLabel)
-        # testPanelsLayout.addWidget()
         testPanelsLayout.addWidget(self.testSplitter)
         
         self.testPanels = QFrame(self)
@@ -277,10 +294,7 @@ class DataProcessorGuiMain(QMainWindow):
         mainPanel = QSplitter(self)
         mainPanel.addWidget(lFrame)
         mainPanel.addWidget(self.testPanels)
-        # mainPanel.addWidget(self.testProtocolView)
-        # mainPanel.addWidget(self.testPanelTabs)
-
-
+        
         mainLayout = QVBoxLayout()
         
         self.setCentralWidget(mainPanel)
