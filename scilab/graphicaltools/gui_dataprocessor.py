@@ -2,13 +2,20 @@
 
 # Import PySide classes
 import sys, collections, json
-from PySide.QtCore import *
-from PySide.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtWebKitWidgets import QWebView
+from PyQt5.QtWebKit import QWebSettings
+from PyQt5.QtNetwork import QNetworkRequest
+
+Signal = pyqtSignal
+Slot = pyqtSlot
 
 from scilab.tools.project import *
 from pathlib import *
 # from fn import _ as __
-import formlayout
+# import formlayout
 
 import scilab
 from scilab.expers.configuration import FileStructure
@@ -20,6 +27,55 @@ def supported_image_extensions():
     formats = QImageReader().supportedImageFormats()
     # Convert the QByteArrays to strings
     return [str(fmt) for fmt in formats]
+
+class BasicHub(QObject):
+ 
+    def __init__(self):
+        super().__init__()
+ 
+    @Slot(str)
+    def display(self, config):
+        print(config)
+        self.on_client_event.emit("Howdy!")
+ 
+    @Slot(str)
+    def disconnect(self, config):
+        print(config)
+ 
+    on_client_event = Signal(str)
+    on_actor_event = Signal(str)
+    on_connect = Signal(str)
+    on_disconnect = Signal(str)
+
+
+class BasicWebView(QWebView):
+    
+    def __init__(self):
+        super().__init__()
+        
+        # self.baseHtml = Path(__file__).parent / "www" / "basic.html"
+        self.hub = BasicHub()
+        
+    def init(self):
+        self.loadFinished.connect(self.onLoad)
+        # self.load(self.baseHtml.as_posix())
+        # self.setHtml("<html><h1>Test</h1></html>")
+        self.show()
+    
+    def onLoad(self):
+                
+        # This is the body of a web browser tab
+        self.page().settings().setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
+        
+        # This is the actual context/frame a webpage is running in.
+        # Other frames could include iframes or such.
+        self.myFrame = self.page().mainFrame()
+        
+        # ATTENTION here's the magic that sets a bridge between Python to HTML
+        self.myFrame.addToJavaScriptWindowObject("hub", self.hub)
+        
+        # Tell the HTML side, we are open for business
+        self.myFrame.evaluateJavaScript("ApplicationIsReady()")
 
 
 class ExperTestList(QListWidget):
@@ -67,6 +123,27 @@ class ExperTestList(QListWidget):
 
 import importlib
 
+class DataProcessorWebView(BasicWebView):
+    
+    def __init__(self):
+        super(DataProcessorWebView, self).__init__()
+    
+    def init(self):
+        
+        self.setContent("<html><h1>Text:</h1></html>", "text/html", QUrl("./"))
+        
+    
+class TestPageWebView(BasicWebView):
+    
+    def __init__(self):
+        super(TestPageWebView, self).__init__()
+    
+    def init(self):
+        
+        self.setContent("<html>Test!</html>", "text/html", QUrl("./"))
+        
+
+
 class DataProcessorGuiMain(QMainWindow):
 
     testitemchanged = Signal(object)
@@ -89,21 +166,81 @@ class DataProcessorGuiMain(QMainWindow):
         leftLayout.addWidget(self.testList)
 
         updateButton = QPushButton("Refresh")
-        updateButton.clicked.connect(lambda: self.testpanel.projectrefresh.emit())
+        updateButton.clicked.connect(lambda: self.tester.projectrefresh.emit())
         leftLayout.addWidget(updateButton)
 
-        self.testpanel.projectrefresh.connect(self.testlistRefresh)
+        self.tester.projectrefresh.connect(self.testlistRefresh)
         
         return leftLayout
 
     @Slot()
     def testlistRefresh(self):
         print("testlistRefresh")
-        self.testList.settestfs(self.testpanel.fs)
+        self.testList.settestfs(self.tester.fs)
 
+    def initDataProcessorWidget(self):
+        
+        widget = QWidget()
+        
+        self.dataProcessorOutput = DataProcessorWebView()
+        self.dataProcessorRun = QPushButton("Execute")
+        
+        h12	= QHBoxLayout()
+        h12.addStretch(stretch=100)
+        h12.addWidget(self.dataProcessorRun)
+        
+        q12 = QWidget()
+        q12.setLayout(h12)
+        
+        v1	= QVBoxLayout()
+        v1.addWidget(self.dataProcessorOutput)
+        v1.addWidget(q12)
+        
+        widget.setLayout(v1)
+        
+        self.dataProcessorOutput.init()
+        self.testitemchanged.connect(lambda x: print("Item changed!", type(x), x))
+        
+        return widget
+    
+    def initTestPageWebView(self):
+        
+        widget = QWidget()
+        
+        self.testPageWebView = TestPageWebView()
+        
+        v1	= QVBoxLayout()
+        v1.addWidget(self.testPageWebView)        
+        widget.setLayout(v1)
+        
+        self.testPageWebView.init()
+        
+        def setitem(testobj):
+            
+            self.tester.setitem(testobj)
+            testhtml, testurl = self.tester.getinfopanelhtml(testobj)
+            testqurl = QUrl("file://{}/".format(testurl.resolve()))
+            print("Test URL:", testqurl)
+            # testhtml = testhtml.replace("graphs/", str(testurl)+"/graphs/")
+            # print("TestHTML:", testhtml.replace('<', '≤'))
+            self.testPageWebView.setHtml(testhtml, testqurl)
+        
+        self.testitemchanged.connect(lambda obj: setitem(obj) )
+        
+        return widget
+        
+        
     def initUI(self):
 
-        self.testpanel = TestPanelLayout(parent=self)
+        self.tester = TestHandler(self)
+            
+        self.tabTestPanel = self.initTestPageWebView()
+        self.tabDataProcessor = self.initDataProcessorWidget()
+        
+        self.testPanelTabs = QTabWidget(self)
+        self.testPanelTabs.addTab(self.tabTestPanel, "Test Panel")
+        self.testPanelTabs.addTab(self.tabDataProcessor, "Data Processor")
+        
         self.testInfoPanel = self.infoTestInfoPanel()
         
         lFrame = QFrame(self)
@@ -115,7 +252,7 @@ class DataProcessorGuiMain(QMainWindow):
         # == Main Panel Init ==
         mainPanel =  QSplitter(self)
         mainPanel.addWidget(lFrame)
-        mainPanel.addWidget(self.testpanel)
+        mainPanel.addWidget(self.testPanelTabs)
 
 
         mainLayout = QVBoxLayout()
@@ -126,13 +263,13 @@ class DataProcessorGuiMain(QMainWindow):
 
         refresh = QAction(QIcon.fromTheme('refresh.png'), 'Refresh', self)
         refresh.setShortcut('Ctrl+R')
-        refresh.triggered.connect(lambda: self.testpanel.projectrefresh.emit())
+        refresh.triggered.connect(lambda: self.tester.projectrefresh.emit())
         
         mainToolbar = self.addToolBar("Main")
         mainToolbar.addAction(refresh)
         mainToolbar.addSeparator()
         
-        dropdown, openfile = self.dropdownfilebox(self.testpanel)
+        dropdown, openfile = self.dropdownfilebox(self.tester)
         mainToolbar.addWidget(dropdown)
         mainToolbar.addAction(openfile)
 
@@ -140,7 +277,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.show()
     
-    def dropdownfilebox(self, testpanel):
+    def dropdownfilebox(self, tester):
         
         def getfiledialogdir():
             return json.loads(self.settings.value("dropdownfilebox/previousprojs", "[]"))
@@ -170,17 +307,17 @@ class DataProcessorGuiMain(QMainWindow):
                 self.settings.setValue("dropdownfilebox/previousprojs", json.dumps(previousprojs))
             
             combobox.setEditText( Path(projdir).name )
-            self.testpanel.projectrefresh.emit()
+            self.tester.projectrefresh.emit()
             
         
         @Slot(int)
         def dropdownfilebox_selected(idx):
             debug("dropdownfilebox_selected", idx)
             projdir = combobox.itemText(idx)
-            testpanel.setprojdir(projdir)
+            tester.setprojdir(projdir)
             
         combobox.activated.connect(dropdownfilebox_selected)
-        testpanel.projectdirchanged.connect(dropdownfilebox_history)
+        tester.projectdirchanged.connect(dropdownfilebox_history)
         
         openfile = QAction(QIcon.fromTheme('open.png'), 'Open', self)
         openfile.setShortcut('Ctrl+O')
@@ -200,7 +337,7 @@ class DataProcessorGuiMain(QMainWindow):
             
         debug(fname)
         self.settings.setValue("dropdownfilebox/filedialogdir", fname)
-        self.testpanel.setprojdir(fname)
+        self.tester.setprojdir(fname)
 
 def main():
 
