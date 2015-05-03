@@ -14,14 +14,8 @@
 						"info": { "name": "disp", "label": "Displacement", "units": "mm", "full": "Displacement(Linear|Digital Position) (mm)" }
 					},
 		            { 
-						"info": { "name": "load_1kN", "label": "Load (1kN)", "units": "N", "full": "Load(Linear|Load) (N)" }
-					},
-		            { 
-						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" }
-					},
-		            { 
-						"info": { "name": "load_missus", "label": "Load (Missus)", "units": "N",   "full": "Load(Linear|Load1) (N)" },
-						"source": { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } }
+						"info": { "name": "load", "label": "Load (OmgDyn25)", "units": "N" },
+						"fulls": ["Load(Linear|OmgDyn25) (N)", "Load(Linear|OmgDy25) (N)", "Load(Linear|OmgDyb25lb) (N)"]
 					},
 		            { 
 						"info": { "name": "elapsedCycles", "label": "Elapsed Cycles", "units": "Nº",  "full": "Elapsed Cycles" }
@@ -36,34 +30,42 @@
 				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
 			},
 			{
-				"name":"normalize",
+				"name":"norm",
 				"columns": [
 					{
-						"source":     { "column": " totalTime" }
+						"source":     { "column": "totalTime" }
 					},
 					{ 
-						"source":     { "column": " elapsedCycles" }
+						"source":     { "column": "elapsedCycles" }
 					},
 					{
-						"source":     { "column": " totalCycleCount" }
+						"source":     { "column": "totalCycleCount" }
 					},
 					{
-						"source":     { "column": " cycleElapsedTime" }
+						"source":     { "column": "cycleElapsedTime" }
+					},
+					{
+						"info": { "name": "disp", "label": "Displacement", "units": "mm", "full": "Displacement(Linear|Digital Position) (mm)" },
+						"source":     { "column": "disp" }
+					},
+					{
+						"info": { "name": "load", "label": "Load", "units": "N", "full": "Load(Linear|Load) (N)" },
+						"source":     { "column": "load" },
+						"conversion": { "func": "1.0 * x - variables.load_balance.value" }
 					},
 					{
 						"info":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-						"source":     { "column":   " disp"},
-						"conversion": { "constant": "1.0/details.gauge.value" }
+						"source":     { "column": "disp"},
+						"conversion": { "constant": "1.0/details['measurements']['datasheet']['gauge']['length']['value']" }
 					},
 					{
 						"info":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"source":     { "_lookup_": { "details.info.orientation": {"tr": " load_missus", "lg": " load_1kN" } } },
-						"conversion": { "constant": "1.0/details.measurements.area.value - variables.get('load_balance',0.0)" }
+						"source":     { "column": "load" },
+						"conversion": { "func": "1.0/ (details['measurements']['image']['area']['value'] or 1.0) * (x - variables.load_balance.value)" }
 					},
 					{
 						"info":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-						"source":     { "column":    " step" }, 
-						"conversion": { "constant": "1.0/details.measurements.area.value" }
+						"source":     { "column": "step" }
 					}
 				],
 				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
@@ -76,7 +78,16 @@
  				{
 					"name": "tracking",
  					"processor": { "$ref": "#/processors/tracking" },
- 					"files": { "_csv_": "raw/01 Preloads/*.tracking.csv" }
+ 					"files": { "_csv_": "{testfolder.raws.instron_method01_preload}/*.tracking.csv.gz" },
+					"variables": {
+						"norm": {
+							"pre": { 
+								"_exec_": { 
+									"load_balance": { "value": "0.0", "units": "'N'" }
+								}
+							}
+						}
+					}
  				}
  			]
  		},
@@ -85,33 +96,54 @@
 				{
 					"name": "tracking",
 					"processor": { "$ref": "#/processors/tracking" },
-					"files": { "_csv_": "raw/02 Preconditions/*.tracking.csv" },
+					"files": { "_csv_": "{testfolder.raws.instron_method02_precond}/*.tracking.csv.gz" },
 					"variables": {
-						"normalize": {
-							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" }
+						"norm": {
+							"pre": { 
+								"_exec_": { 
+									"load_balance": { 
+										"value": "calc.mean( raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
+										"stdev": "calc.std(  raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
+										"units": "'N'"
+									}
+								}
+							},
+							"post": {
+								"_exec_": { 
+									"fitting": " codehandlers.process_precondition(norm, step_idx='idx_2') "
+								}
+							}
 						}
 					}
 				}
 			]
 		},
 		{
-			"cycles": [
+			"uts": [
 				{
 					"name": "tracking",
 					"processor": { "$ref": "#/processors/tracking"},
-					"files": {
-						"_csv_": {
-							"_lookup_": { 
-								"details.info.orientation": {
-									"tr": "raw/03 Fatigue Cycles (TR)/*.tracking.csv",
-									"lg": "raw/03 Fatigue Cycles (LG)/*.tracking.csv"
+					"files": { "_csv_": "{testfolder.raws.instron_method03_uts}/*.tracking.csv.gz" },
+					"variables": {
+						"norm": {
+							"pre": { 
+								"_exec_": { 
+									"load_balance": { 
+										"value": "calc.mean( raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
+										"stdev": "calc.std(  raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
+										"units": "'N'"
+									}
+								}
+							},
+							"post": {
+								"_exec_": {
+									"load_max":         " calc.getmax( norm.data.load ).set(units='N')",
+									"stress_max":       " calc.getmax( norm.data.stress ).set(units='MPa')",
+									"disp_max_value":   " calc.asvalue( norm.data.disp[ norm.data.load.argmax() ], units='mm' )",
+									"strain_max_value": " calc.asvalue( norm.data.strain[ norm.data.stress.argmax() ], units='∆' )",
+									"strain_rate":  " calc.asvalue( 100.0*calc.diff(norm.data.strain[slice(*raw.indexes.step.idx_2)][0:100:99])[0] / calc.diff(norm.data.totalTime[slice(*raw.indexes.step.idx_2)][0:100:99])[0], units='%/s')"
 								}
 							}
-						}
-					},
-					"variables": {
-						"normalize": { 
-							"_exec_": { "load_balance": "calc.mean(raw.indexes.step.idx_1)" } 
 						}
 					}
 				}
@@ -129,9 +161,67 @@
 		        "tests": "02_Tests/",
 		        "results": "04_Results/",
 				"raws": {
-			        "01 Preload": "{raw}/01 (uts) preloads",
-			        "02 Precond": "{raw}/02 (uts) preconditions",
-			        "03 Uts":    " {raw}/04 (uts) uts-test"			
+			        "method01_Preload": "{raw}/01 Preloads",
+			        "method02_Precond": "{raw}/02 Preconditions",
+			        "method03_UTS": "{raw}/03 UTS"
+				}
+			}
+		},
+		"config": { 
+			"calibration": {
+				"image_measurement": {
+					"imageconfs": [
+						{
+							"name": "frontImage",
+							"aspect": "front",
+							"crops": "front"
+						},
+						{
+							"name": "sideImage",
+							"aspect": "side",
+							"crops": "side"
+						}
+					],
+					"parameters": {
+						"minsamplesize": { "x":0.8, "y":0.8, "z":7.0, "units": "mm" }
+					},
+		      "scales": {
+						"_lookup_": {
+							"imageconf.aspect": { 
+								"front" : { "value": 12.492081448, "units":"px/mm" },
+								"side" :  { "value": 13.3873114463, "units":"px/mm" }
+							}
+						}
+					},
+					"crops": {
+						"_lookup_": {
+							"args.testconf.info.orientation": {
+						      "tr": {
+										"_lookup_": {
+											"imageconf.aspect": { 
+								          "front": { "xd": [2325,3550], "yd": [1300,2550], "units": "px"  },
+								          "side":  { "xd": [2350,3550], "yd": [1300,2535], "units": "px"  }
+											}
+										}
+						      },
+						      "lg": {
+										"_lookup_": {
+											"imageconf.aspect": { 
+								          "front":  { "xd": [2325,2550], "yd": [1250,1550], "units": "px" },
+								          "side":   { "xd": [2325,2525], "yd": [1250,1550], "units": "px" }
+										 }
+									 }
+								 }
+							}
+						}
+					},
+					"calculations": {
+						"image": [
+							{ "width": " calc.asvalue( frontImage['thirds']['middle']['value'] - frontImage['thirds']['middle']['stdev'], units='mm') " },
+							{ "depth": " calc.asvalue( sideImage['thirds']['middle']['value'] - sideImage['thirds']['middle']['stdev'], units='mm') " },
+							{ "area":  " calc.asvalue( results['image']['width']['value']*results['image']['depth']['value'] , units='mm^2') " }
+						]
+					}
 				}
 			}
 		},
@@ -139,12 +229,13 @@
 			"_metadata_": "describe folders structure for tests in experiment",
 			"folder": "{tests}/{testinfo.name}",
 			"raws": {
-		        "01 Preload": "{testinfo.name}-r*",
-		        "02 Precond": "{testinfo.name}-r*",
-		        "03 Uts":     "{testinfo.name}-r*"
+				"instron_method01_preload": "{raw}/01_Preload/",
+				"instron_method02_precond": "{raw}/02_Precond/",
+				"instron_method03_uts": "{raw}/03_UTS/"					
 			},
 			"filestructure": {
-		        "raw":            "raw/",
+		        "main":           "",
+		        "raw":            "raws/",
 		        "data":           "data/",
 		        "graphs":         "graphs/",
 		        "json":           "json/",
@@ -152,8 +243,10 @@
 		        "images":         "images/"
 			},
 			"files": {
-		        "datasheet":      "{testinfo.name}.xlsx",
-		        "details":        "{json}/{testinfo.name}.calculated.json'"
+		        "datasheet":      "data_sheet {testinfo.name}.xlsx",
+		        "details":        "{json}/{testinfo.short}.calculated.json",
+		        "frontImage":        "{images}/D*.front.JPG",
+		        "sideImage":        "{images}/D*.side.JPG"
 			}			
 		}
 	} 

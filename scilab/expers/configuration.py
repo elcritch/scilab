@@ -12,7 +12,7 @@ from scilab.tools.project import *
 from scilab.tools.helpers import *
 import scilab.tools.jsonutils as Json
 
-class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orientation layer sample run')):
+class TestInfo(collections.namedtuple('TestInfo', 'name date batch side wedge orientation layer sample run')):
 
     def __new__(self, reTestName=None, name=None, *args, **kwargs):
         if name and not args and not kwargs:
@@ -42,12 +42,14 @@ class TestInfo(collections.namedtuple('TestInfo', 'name date set side wedge orie
         toset = lambda ti: set( (k,v) for k,v in zip(ti._fields,ti))
         this, that = toset(self), toset(that)
         return that-this
+    
+    @staticmethod 
+    def format(date,batch,side,wedge,orientation,layer,sample,run):
+        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}"
+        return fmt.format(**locals())
 
     def __str__(self):
         return "{name} ({short})".format(name=self.name, short=self.short)
-
-class ImageSet(collections.namedtuple('TestSet', 'info, front, side, fail')):
-    pass
 
 class TestFileStructure(DataTree):
 
@@ -157,12 +159,20 @@ class FileStructure(DataTree):
         
         return _files
         
-    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, verify=False):
+    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, makenew=False, verify=False):
         
         tf = DataTree(self.projdesc["experiment_config"]["testfolder"])
         
         testdir = Path(tf['folder'].format(testinfo=testinfo, **self._files))
-        testenv = DataTree(folder=testdir,testinfo=testinfo)
+        
+        if makenew and testdir.exists():
+                raise ValueError("Cannot make a new test folder. Directory exist. ": testdir)
+        elif makenew:
+                os.makedirs( str(testdir) )
+        elif verify:
+                raise ValueError("Test Directory does not exist. ": testdir)            
+        
+        testenv = DataTree(folder=testdir, testinfo=testinfo)
 
         folder = TestFileStructure()
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv, makedirs=True) )
@@ -193,6 +203,18 @@ class FileStructure(DataTree):
                     v.mkdir()
 
         return folder
+    
+    def makenewfolder(self, **kwargs):
+        date='may02'
+        testinfo = TestInfo(name=TestInfo.format(date=date, **kwargs), date=date, **kwargs)
+        
+        testfolder = self.testfolder(self, testinfo:TestInfo, makenew=True, ensure_folders_exists=True, verify=False)
+        
+        ## TODO: add post folder hooks, eg copy protocols into folder
+        
+        ## Bam, done...     
+    
+        return testfolder
 
     def testitemsd(self):
 
@@ -213,6 +235,11 @@ class FileStructure(DataTree):
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None
 
+
+def testMakeNew():
+    
+    
+        
 def main():
     pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
     pdp = pdp.resolve()
@@ -235,6 +262,14 @@ def main():
     
     for test in tests:
         print("test:", test,'\n')
+
+    print("## Verify Make New Test")
+    
+    newtestfolder = fs.makenewfolder(batch='gf10.1',side='llm',wedge='wa',orientation='tr',layer='l7',sample='x1')
+    
+    os.rmtree(newtestfolder.testdir)
+    
+    
     
     
 if __name__ == '__main__':
