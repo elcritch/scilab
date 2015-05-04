@@ -160,12 +160,12 @@
 		        "raw": "01_Raw/",
 		        "tests": "02_Tests/",
 		        "results": "04_Results/",
-				"raws": {
-			        "method01_Preload": "{raw}/01 Preloads",
-			        "method02_Precond": "{raw}/02 Preconditions",
-			        "method03_UTS": "{raw}/03 UTS"
+						"raws": {
+					        "01 Preload": "{raw}/01 (uts) preloads",
+					        "02 Precond": "{raw}/02 (uts) preconditions",
+					        "03 Uts":    " {raw}/04 (uts) uts-test"			
+						}
 				}
-			}
 		},
 		"config": { 
 			"calibration": {
@@ -229,9 +229,9 @@
 			"_metadata_": "describe folders structure for tests in experiment",
 			"folder": "{tests}/{testinfo.name}",
 			"raws": {
-				"instron_method01_preload": "{raw}/01_Preload/",
-				"instron_method02_precond": "{raw}/02_Precond/",
-				"instron_method03_uts": "{raw}/03_UTS/"					
+				"instron_method01_preload": "{raw}/01 Preload/",
+				"instron_method02_precond": "{raw}/02 Precond/",
+				"instron_method03_uts": "{raw}/03 UTS/"					
 			},
 			"filestructure": {
 		        "main":           "",

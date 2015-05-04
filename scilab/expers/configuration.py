@@ -12,44 +12,84 @@ from scilab.tools.project import *
 from scilab.tools.helpers import *
 import scilab.tools.jsonutils as Json
 
-class TestInfo(collections.namedtuple('TestInfo', 'name date batch side wedge orientation layer sample run')):
+TestInfoTuple = collections.namedtuple('TestInfoTuple', 'name date batch side wedge orientation layer sample run')
 
-    def __new__(self, reTestName=None, name=None, *args, **kwargs):
-        if name and not args and not kwargs:
-
-            match = self.reTestName.match(name)
-            if not match:
-                raise Exception("Could not parse test name: "+name)
-
-            args = match.groups()
-            return super().__new__(self, name, *args)
-        else:
-            return super().__new__(self, name, *args, **kwargs)
+class BasicTestInfo(object):
 
     def validate(self):
         pass
 
+    @property
     def short(self):
-        pass
+        return self.format(**self._asdict())
     
-    def _strToOrd(s): 
-        return ''.join(str(ord(c.lower())-ord('a')+1) for c in s)
-
-    def as_dict(self):
-        return { f:v for f,v in zip(self._fields, self[:])}
-
+    @property
+    def name(self, **kwargs):
+        return self._fmt.format(self._asdict())
+        
     def differenceOf(self, that):
         toset = lambda ti: set( (k,v) for k,v in zip(ti._fields,ti))
         this, that = toset(self), toset(that)
         return that-this
-    
-    @staticmethod 
-    def format(date,batch,side,wedge,orientation,layer,sample,run):
-        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}"
-        return fmt.format(**locals())
 
     def __str__(self):
-        return "{name} ({short})".format(name=self.name, short=self.short)
+        print("str:self:",self._asdict(), self[:])
+        return self._fmt.format(**self._asdict())
+        
+    @classmethod
+    def parse(cls, name):
+        print("regex:", cls._regex, "fields:", cls._fields, "\n")
+        match = cls._regex.match(name)
+        if match:
+            print("matched:", match.groupdict())
+            return cls(**match.groupdict())
+        else:
+            raise ValueError("Couldn't parse: ", name, cls._regex)
+
+
+
+def generatetestinfoclass(
+        description, 
+        fields:tuple=[
+            ("date",        "\w+\d+"),
+            ("batch",       "..[\d\.]+"), 
+            ("side",        "..m"), 
+            ("wedge",       "w[a-f]"), 
+            ("orientation", "tr|lg"), 
+            ("layer",       "l\d+"), 
+            ("sample",      "x\d+"), 
+            ("run",         "(?:-.+)?"),
+            ],
+        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}-{run}",
+        ):
+    
+    description = "".join(description.capitalize() for x in description.split())
+    classname = description+'TestInfo'
+    AbbrevTestInfoTuple = collections.namedtuple(classname+"Tuple", [ f[0] for f in fields], rename=True)
+
+    try:
+        regexprfmt = fmt.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
+        debug(regexprfmt, fields)
+        regexpression = regexprfmt.format(**dict(fields)) 
+        regexpression = re.compile(regexpression)
+        debug(regexpression)
+    except Exception as err:
+        raise err
+        raise ValueError("Don't match:", fmt, fields)
+    
+    def __new__(cls, **kwargs):
+        return AbbrevTestInfoTuple.__new__(cls, **kwargs)
+    
+    def _asdict(self):
+        return { f:v for f,v in zip(self._fields, self[:])}
+        
+    classtype = type(classname, (AbbrevTestInfoTuple, BasicTestInfo), 
+                        dict( __new__ = __new__, _fmt = fmt, _regex = regexpression, _asdict = _asdict ))
+    # globals()[classname] = classtype
+        
+    # type(nameprefix+'TestInfo')
+    return classtype
+    
 
 class TestFileStructure(DataTree):
 
@@ -88,7 +128,6 @@ class TestFileStructure(DataTree):
     def save_graph_raw(self, testinfo, version, name:str, fig, imgkind="png", savefig_kws=DataTree(bbox_inches='tight')):
         
         namefmt = "{testname} | name={name} | test={testinfo} | {version}.{imgkind}"
-        
         
         filename = namefmt.format(
                 name=name,
@@ -144,6 +183,7 @@ class FileStructure(DataTree):
         env.update(files)
         
         for foldername, folderitem in flatten(files, sort=True, tolist=True):
+            debug( folderitem )
             folder = parent / folderitem.format(**env).strip()
             
             if makedirs and not folder.exists():
@@ -159,18 +199,18 @@ class FileStructure(DataTree):
         
         return _files
         
-    def testfolder(self, testinfo:TestInfo, ensure_folders_exists=False, makenew=False, verify=False):
+    def testfolder(self, testinfo:BasicTestInfo, ensure_folders_exists=False, makenew=False, verify=False):
         
         tf = DataTree(self.projdesc["experiment_config"]["testfolder"])
         
         testdir = Path(tf['folder'].format(testinfo=testinfo, **self._files))
         
         if makenew and testdir.exists():
-                raise ValueError("Cannot make a new test folder. Directory exist. ": testdir)
+                raise ValueError("Cannot make a new test folder. Directory exist. ", testdir)
         elif makenew:
                 os.makedirs( str(testdir) )
         elif verify:
-                raise ValueError("Test Directory does not exist. ": testdir)            
+                raise ValueError("Test Directory does not exist. ", testdir)            
         
         testenv = DataTree(folder=testdir, testinfo=testinfo)
 
@@ -205,10 +245,10 @@ class FileStructure(DataTree):
         return folder
     
     def makenewfolder(self, **kwargs):
-        date='may02'
-        testinfo = TestInfo(name=TestInfo.format(date=date, **kwargs), date=date, **kwargs)
+        props = DataTree(date='may02', run='').set(**kwargs)        
+        testinfo = TestInfo(name=TestInfo.format(**props), **props)
         
-        testfolder = self.testfolder(self, testinfo:TestInfo, makenew=True, ensure_folders_exists=True, verify=False)
+        testfolder = self.testfolder(testinfo=testinfo, makenew=True, ensure_folders_exists=True, verify=False)
         
         ## TODO: add post folder hooks, eg copy protocols into folder
         
@@ -236,11 +276,33 @@ class FileStructure(DataTree):
             return None
 
 
-def testMakeNew():
-    
-    
         
 def main():
+    
+    print("## Generating Testinfo Class")
+    ExampleTestInfo = generatetestinfoclass(
+        "Example",
+        fields=[
+            ("date",        "(\w+\d+)"), 
+            ("batch",       "(..[\d\.]+)"), 
+            ("side",        "(..m)"), 
+            ("wedge",       "w([a-f])"), 
+            ("orientation", "(tr|lg)"), 
+            ("layer",       "l(\d+)"), 
+            ("sample",      "x(\d+)"), 
+            ("run",         "(-.+)?"),
+            ],
+        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
+    )
+    
+    print(ExampleTestInfo)
+    ti1 = ExampleTestInfo(date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
+    print("ti1:", ti1)
+
+    ti2 = ExampleTestInfo.parse(name='dec01(gf10.1-llm)-wa-lg-l6-x1')
+    print("ti2:", ti2)
+    
+    print("## Loading Project Description")
     pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
     pdp = pdp.resolve()
     print(pdp)
@@ -249,7 +311,9 @@ def main():
     
     fs = FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
 
-    ti = DataTree(name='dec01(gf10.1-llm)-wa-lg-l6-x1')
+    ti = TestInfo(name='dec01(gf10.1-llm)-wa-lg-l6-x1', date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
+    debug(ti._asdict())
+    debug(ti)
     tf = fs.testfolder(ti)
     
     print("## Test: TF ##")
@@ -267,7 +331,9 @@ def main():
     
     newtestfolder = fs.makenewfolder(batch='gf10.1',side='llm',wedge='wa',orientation='tr',layer='l7',sample='x1')
     
-    os.rmtree(newtestfolder.testdir)
+    print("newtestfolder:", newtestfolder)
+    
+    # os.rmtree(newtestfolder.testdir)
     
     
     
