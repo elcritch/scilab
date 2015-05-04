@@ -21,20 +21,22 @@ class BasicTestInfo(object):
 
     @property
     def short(self):
-        return self.format(**self._asdict())
+        return self._shortfmt.format(**self._asdict())
     
     @property
-    def name(self, **kwargs):
-        return self._fmt.format(self._asdict())
+    def name(self):
+        return self._fmt.format(**self._asdict())
         
     def differenceOf(self, that):
         toset = lambda ti: set( (k,v) for k,v in zip(ti._fields,ti))
         this, that = toset(self), toset(that)
         return that-this
 
+    def __repr__(self):
+        return "{name} [{short}]".format(name=self.name, short=self.short)
+        
     def __str__(self):
-        print("str:self:",self._asdict(), self[:])
-        return self._fmt.format(**self._asdict())
+        return "{short}".format(name=self.name, short=self.short)
         
     @classmethod
     def parse(cls, name):
@@ -53,14 +55,9 @@ def generatetestinfoclass(
         fields:tuple=[
             ("date",        "\w+\d+"),
             ("batch",       "..[\d\.]+"), 
-            ("side",        "..m"), 
-            ("wedge",       "w[a-f]"), 
-            ("orientation", "tr|lg"), 
-            ("layer",       "l\d+"), 
-            ("sample",      "x\d+"), 
-            ("run",         "(?:-.+)?"),
             ],
         fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}-{run}",
+        shortfmt = "{batch}-{wedge}{orientation}-{layer:d}{sample:02d}",
         ):
     
     description = "".join(description.capitalize() for x in description.split())
@@ -70,7 +67,8 @@ def generatetestinfoclass(
     try:
         regexprfmt = fmt.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
         debug(regexprfmt, fields)
-        regexpression = regexprfmt.format(**dict(fields)) 
+        regexpression = regexprfmt.format(**{ k:"(?P<%s>%s)"%(k,v) for k,v in fields })
+        debug(regexpression)
         regexpression = re.compile(regexpression)
         debug(regexpression)
     except Exception as err:
@@ -84,7 +82,9 @@ def generatetestinfoclass(
         return { f:v for f,v in zip(self._fields, self[:])}
         
     classtype = type(classname, (AbbrevTestInfoTuple, BasicTestInfo), 
-                        dict( __new__ = __new__, _fmt = fmt, _regex = regexpression, _asdict = _asdict ))
+                    dict(__new__ = __new__, _fmt = fmt, _shortfmt = shortfmt,
+                            _regex = regexpression, 
+                            _asdict = _asdict, _testfields = fields ))
     # globals()[classname] = classtype
         
     # type(nameprefix+'TestInfo')

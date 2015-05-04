@@ -148,11 +148,11 @@ def test_folder():
     
     import shutil
     from tabulate import tabulate
-
+    
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items() }
-
+    
     summaries = OrderedDict()
-
+    
     for name, test in sorted( testitems.items() )[:]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
