@@ -293,6 +293,8 @@ class FileStructure(DataTree):
         
         ## TODO: add post folder hooks, eg copy protocols into folder
         
+        # TODO: implement copying template files... 
+        
         ## Bam, done...     
     
         return testfolder
