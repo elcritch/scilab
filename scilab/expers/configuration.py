@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import shutil, re, sys, os, itertools, collections, logging, glob
+import shutil, re, sys, os, itertools, collections, logging, glob, time, shutil
 from pathlib import Path
 from functools import partial
 
@@ -85,21 +85,21 @@ class BasicTestInfo(object):
 
 
 def generatetestinfoclass(
-        description, 
-        fields:tuple=[
+        prefix, 
+        fields:list=[
             ("date",        "\w+\d+"),
             ("batch",       "..[\d\.]+"), 
             ],
-        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}-{run}",
+        namefmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}-{run}",
         shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
         ):
     
-    description = "".join(description.capitalize() for x in description.split())
-    classname = description+'TestInfo'
+    prefix = "".join(prefix.capitalize() for x in prefix.split())
+    classname = prefix+'TestInfo'
     AbbrevTestInfoTuple = collections.namedtuple(classname+"Tuple", [ f[0] for f in fields], rename=True)
 
     try:
-        regexprfmt = fmt.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
+        regexprfmt = namefmt.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
         debug(regexprfmt, fields)
         regexpression = regexprfmt.format(**{ k:"(?P<%s>%s)"%(k,v) for k,v in fields })
         debug(regexpression)
@@ -117,7 +117,7 @@ def generatetestinfoclass(
         
     classtype = type(classname, (AbbrevTestInfoTuple, BasicTestInfo), 
                     dict( 
-                            __new__ = __new__, _fmt = fmt, _shortfmt = shortfmt,
+                            __new__ = __new__, _fmt = namefmt, _shortfmt = shortfmt,
                             _regex = regexpression, _asdict = _asdict, _regexfields = { k: re.compile(v) for k,v in fields } ,
                     ),
                 )
@@ -187,7 +187,7 @@ class TestFileStructure(DataTree):
         
 class FileStructure(DataTree):
 
-    def __init__(self, projdescpath, testinfo, verify=True, project=None):
+    def __init__(self, projdescpath, verify=True, project=None, ):
         projdescpath = Path(str(projdescpath)).resolve()
         
         if not projdescpath.exists():
@@ -195,7 +195,7 @@ class FileStructure(DataTree):
             
         projdesc = Json.load_json_from(projdescpath)
         self.projdesc = projdesc
-        self._testtnfo = testinfo
+        self._testtnfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
         
         names = self.projdesc.experiment_config.name.split('|')
         self.experiment_name = names[0]
@@ -229,7 +229,24 @@ class FileStructure(DataTree):
             _files[foldername] = folder
         
         return _files
+    
+    def copyrawdir(self):
         
+        assert "Not implemented yet!"
+        
+        if not rawdir.exists():
+            logging.debug("Missing raw file: {}: {} raw: {}".format(name, test, rawdir))
+            return
+        
+        sources = map(Path, glob.glob(str( rawdir / test)))
+        sources = sorted( [ t for t in sources if t.is_dir() ], key=lambda x: x.stem, reverse=True)
+        source = next(sources.__iter__(), None)
+        if len(sources) > 1:
+            logging.warn("Multiple raw test folders match, chose: %s from %s"%(
+                            source.name, [ i.name for i in sources ]))
+        
+        return None
+         
     def testfolder(self, testinfo:BasicTestInfo, ensure_folders_exists=False, makenew=False, verify=False):
         
         tf = DataTree(self.projdesc["experiment_config"]["testfolder"])
@@ -245,9 +262,8 @@ class FileStructure(DataTree):
         
         testenv = DataTree(folder=testdir, testinfo=testinfo)
 
-        folder = TestFileStructure()
+        folder = TestFileStructure(testdir=testdir)
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv, makedirs=True) )
-        folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
         
         # Handle Raw Data #
         for name, test in tf.raws.items():
@@ -255,29 +271,23 @@ class FileStructure(DataTree):
             test = safefmt(test, raw=folder.raw, testinfo=testinfo)
             rawdir = Path(test)
             
-            if not rawdir.exists():
-                logging.debug("Missing raw file: {}: {} raw: {}".format(name, test, rawdir))
-                continue
-            
-            sources = map(Path, glob.glob(str( rawdir / test)))
-            sources = sorted( [ t for t in sources if t.is_dir() ], key=lambda x: x.stem, reverse=True)
-            source = next(sources.__iter__(), None)
-            if len(sources) > 1:
-                logging.warn("Multiple raw test folders match, chose: %s from %s"%(
-                                source.name, [ i.name for i in sources ]))
-            
-            folder['raws',name] = source
-    
+            folder['raws',name] = rawdir
+
+        # populate folder
         if ensure_folders_exists:
-            for v in sorted(folder.values(), key=lambda x: str(x)):
+            for k, v in flatten(folder).items():
+                # debug(k,v)
                 if not v.exists():
                     v.mkdir()
+
+        folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
 
         return folder
     
     def makenewfolder(self, **kwargs):
-        props = DataTree(date='may02', run='').set(**kwargs)        
-        testinfo = TestInfo(name=TestInfo.format(**props), **props)
+        """ make a new test folder and populate it """        
+        props = DataTree(date=time.strftime("%b%d"), run='').set(**kwargs)        
+        testinfo = self._testtnfo(**props)
         
         testfolder = self.testfolder(testinfo=testinfo, makenew=True, ensure_folders_exists=True, verify=False)
         
@@ -301,31 +311,31 @@ class FileStructure(DataTree):
 
     def infoOrNone(self, item):
         try:
-            return self._testtnfo(name=str(item))
+            return self._testtnfo.parse(str(item))
         except Exception as err:
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None
 
+ExampleTestInfo = generatetestinfoclass(
+    "Example",
+    fields=[
+        ("date",        "\w+\d+"),
+        ("batch",       "(..)(\d+)\.(\d+)"), 
+        ("side",        "(l|r)(m|l)m"), 
+        ("wedge",       "w([a-f])"), 
+        ("orientation", "(tr|lg)"),
+        ("layer",       "l(\d+)"),
+        ("sample",      "x(\d+)"),
+        ("run",         "(-.+)?"),
+        ],
+    namefmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
+    shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
+    )
 
   
 def main():
     
     print("## Generating Testinfo Class")
-    ExampleTestInfo = generatetestinfoclass(
-        "Example",
-        fields=[
-            ("date",        "\w+\d+"),
-            ("batch",       "(..)(\d+)\.(\d+)"), 
-            ("side",        "(l|r)(m|l)m"), 
-            ("wedge",       "w([a-f])"), 
-            ("orientation", "(tr|lg)"),
-            ("layer",       "l(\d+)"),
-            ("sample",      "x(\d+)"),
-            ("run",         "(-.+)?"),
-            ],
-        fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
-        shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
-    )
     
     print(ExampleTestInfo)
     ti1 = ExampleTestInfo(date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
@@ -341,7 +351,7 @@ def main():
     
     import scilab.expers.mechanical.fatigue.uts as exper_uts
     
-    fs = FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
+    fs = FileStructure(projdescpath=pdp, verify=True)
 
     ti = ExampleTestInfo.parse(name='dec01(gf10.1-llm)-wa-lg-l6-x1') # , date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
     debug(ti._asdict())
@@ -361,12 +371,19 @@ def main():
 
     print("## Verify Make New Test")
     
-    newtestfolder = fs.makenewfolder(batch='gf10.1',side='llm',wedge='wa',orientation='tr',layer='l7',sample='x1')
+    prevtestfolder = next(fs.tests.glob("may01*gf99.1*"), None)
+    debug(fs.tests, prevtestfolder)
+    if prevtestfolder:
+        shutil.rmtree(str(prevtestfolder))
     
-    print("newtestfolder:", newtestfolder)
+    newtestfolder = fs.makenewfolder(date="may01", batch='gf99.1',side='llm',wedge='wa',orientation='tr',layer='l7',sample='x1')
     
-    # os.rmtree(newtestfolder.testdir)
+    print("newtestfolder:")
+    debug(newtestfolder)
     
+    print("\nfolder:", sep='\n', *newtestfolder.testdir.glob("**/*"))
+    
+    # shutil.rmtree(str(newtestfolder.testdir), ignore_errors=True)
     
     
     
