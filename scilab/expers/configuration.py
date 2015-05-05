@@ -13,6 +13,21 @@ from scilab.tools.helpers import *
 import scilab.tools.jsonutils as Json
 
 TestInfoTuple = collections.namedtuple('TestInfoTuple', 'name date batch side wedge orientation layer sample run')
+TestParseTypes = tuple([ type( 'parse'+tp.__name__, (tp,), {}) for tp in (str, float, int) ])
+
+def _parsevaluetry(val):
+    """ tries to parse from least to most specific for str, float, int 
+    
+    returns a custom parse type for the type that allows setting attributes. """
+    try:
+        ret = val
+        for pt in TestParseTypes:
+            ret = pt(val)
+    except:
+        pass
+    
+    return ret
+
 
 class BasicTestInfo(object):
 
@@ -39,12 +54,31 @@ class BasicTestInfo(object):
         return "{short}".format(name=self.name, short=self.short)
         
     @classmethod
+    def createfields(cls, valuedict):
+        
+        datafields = collections.OrderedDict()
+        
+        # for each field, process the matches
+        for fieldname, fieldregex in cls._regexfields.items():
+            
+            # re-match all the subgroups
+            fieldmatch = valuedict[fieldname]
+            fieldgroups = fieldregex.match(fieldmatch).groups()                
+            
+            # set the main field values
+            fieldvalue = _parsevaluetry( fieldmatch if fieldmatch else "")
+            # set "match" attribute for matches for each subgroup
+            fieldvalue.groups = [ _parsevaluetry(i) for i in fieldgroups ]
+            datafields[ fieldname ] = fieldvalue
+                    
+        return datafields
+        
+    @classmethod
     def parse(cls, name):
-        print("regex:", cls._regex, "fields:", cls._fields, "\n")
         match = cls._regex.match(name)
         if match:
             print("matched:", match.groupdict())
-            return cls(**match.groupdict())
+            return cls(**cls.createfields(valuedict=match.groupdict()))
         else:
             raise ValueError("Couldn't parse: ", name, cls._regex)
 
@@ -57,7 +91,7 @@ def generatetestinfoclass(
             ("batch",       "..[\d\.]+"), 
             ],
         fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}-{run}",
-        shortfmt = "{batch}-{wedge}{orientation}-{layer:d}{sample:02d}",
+        shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
         ):
     
     description = "".join(description.capitalize() for x in description.split())
@@ -76,15 +110,17 @@ def generatetestinfoclass(
         raise ValueError("Don't match:", fmt, fields)
     
     def __new__(cls, **kwargs):
-        return AbbrevTestInfoTuple.__new__(cls, **kwargs)
+        return AbbrevTestInfoTuple.__new__(cls, **cls.createfields(kwargs))
     
     def _asdict(self):
         return { f:v for f,v in zip(self._fields, self[:])}
         
     classtype = type(classname, (AbbrevTestInfoTuple, BasicTestInfo), 
-                    dict(__new__ = __new__, _fmt = fmt, _shortfmt = shortfmt,
-                            _regex = regexpression, 
-                            _asdict = _asdict, _testfields = fields ))
+                    dict( 
+                            __new__ = __new__, _fmt = fmt, _shortfmt = shortfmt,
+                            _regex = regexpression, _asdict = _asdict, _regexfields = { k: re.compile(v) for k,v in fields } ,
+                    ),
+                )
     # globals()[classname] = classtype
         
     # type(nameprefix+'TestInfo')
@@ -166,11 +202,6 @@ class FileStructure(DataTree):
         self.test_name = names[1:]
 
         self.project = projdescpath.parent if not project else project
-
-        if not (self.project / '.git').is_dir():
-            logging.warn("No git folder present for project: {}".format(self.project))
-            if verify:
-                raise Exception("No git folder present!")
 
         files = DataTree(projdesc.experiment_config.projectfolder.filestructure)
         self._files = self.parsefolders(files, verify, parent=self.project)
@@ -276,23 +307,24 @@ class FileStructure(DataTree):
             return None
 
 
-        
+  
 def main():
     
     print("## Generating Testinfo Class")
     ExampleTestInfo = generatetestinfoclass(
         "Example",
         fields=[
-            ("date",        "(\w+\d+)"), 
-            ("batch",       "(..[\d\.]+)"), 
-            ("side",        "(..m)"), 
+            ("date",        "\w+\d+"),
+            ("batch",       "(..)(\d+)\.(\d+)"), 
+            ("side",        "(l|r)(m|l)m"), 
             ("wedge",       "w([a-f])"), 
-            ("orientation", "(tr|lg)"), 
-            ("layer",       "l(\d+)"), 
-            ("sample",      "x(\d+)"), 
+            ("orientation", "(tr|lg)"),
+            ("layer",       "l(\d+)"),
+            ("sample",      "x(\d+)"),
             ("run",         "(-.+)?"),
             ],
         fmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
+        shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
     )
     
     print(ExampleTestInfo)
@@ -311,7 +343,7 @@ def main():
     
     fs = FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
 
-    ti = TestInfo(name='dec01(gf10.1-llm)-wa-lg-l6-x1', date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
+    ti = ExampleTestInfo.parse(name='dec01(gf10.1-llm)-wa-lg-l6-x1') # , date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
     debug(ti._asdict())
     debug(ti)
     tf = fs.testfolder(ti)

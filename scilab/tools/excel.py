@@ -1,6 +1,6 @@
 ## Utils 
 import shutil, re, sys, os, itertools, argparse, json, types
-import openpyxl
+# import openpyxl
 from scilab.tools.project import *
 
 
