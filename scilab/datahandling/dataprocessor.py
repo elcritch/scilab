@@ -457,8 +457,8 @@ def test_folder(args):
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
             # continue
-        if name not in ["jan12(gf11.5-llm)-wa-tr-l7-x1","jan14(gf10.6-rlm)-wa-tr-l7-x2"]:
-            continue
+        # if name not in ["jan12(gf11.5-llm)-wa-tr-l7-x1","jan14(gf10.6-rlm)-wa-tr-l7-x2"]:
+            # continue
         
         try:
             execute(fs, name, testconf, args, )
@@ -480,8 +480,8 @@ def main():
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
-    args.excel = False
-    # args.excel = True
+    # args.excel = False
+    args.excel = True
     # === Only Update Variables === 
     args.onlyVars = False
     # args.onlyVars = True
