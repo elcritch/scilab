@@ -165,6 +165,10 @@ class TestProtocolView(QFrame):
         
         protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
         
+        if not protocolUrl.exists():
+            logging.warn("Protocol doesn't exist for test: "+str(protocolUrl))
+            return 
+            
         with protocolUrl.open('rb') as protocolFile:            
             protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
         

@@ -195,6 +195,13 @@ class FileStructure(DataTree):
             
         projdesc = Json.load_json_from(projdescpath)
         self.projdesc = projdesc
+        
+        for i in ["testinfo", "testfolder", "projectfolder"]:
+            key = ("experiment_config",i)
+            if not projdesc[key]:
+                print('Missing:\n\n    File "{projdescpath}", line 1, in {key}\n\n'.format(projdescpath=projdescpath, key=("experiment_config",i)), file=sys.stdout)
+                raise ValueError("Missing config: ", key, projdescpath)
+        
         self._testtnfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
         
         names = self.projdesc.experiment_config.name.split('|')

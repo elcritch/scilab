@@ -38,7 +38,7 @@ def dobalances(colname, summary):
 
 @debugger
 def data_datasummaries(
-        testinfo:TestInfo,
+        testinfo:BasicTestInfo,
         data:DataTree,
         details:DataTree,
         balancestep=None,
@@ -63,7 +63,7 @@ def data_datasummaries(
     return datasummaries
 
 
-def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree, 
+def data_normalize_col(testinfo:BasicTestInfo, data:DataTree, details:DataTree, 
                     normfactor, xname, yname, yunits, balance, 
                     ):
 
@@ -85,11 +85,11 @@ def data_normalize_col(testinfo:TestInfo, data:DataTree, details:DataTree,
     
     return normalized
 
-def normalize_data(testinfo:TestInfo, testdetails, testdata, testargs):
+def normalize_data(testinfo:BasicTestInfo, testdetails, testdata, testargs):
     pass
 
 
-def handler(testinfo:TestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
+def handler(testinfo:BasicTestInfo, testfolder:FileStructure, details:DataTree, testdata:DataTree, args:DataTree):
     
     testname = 'cycles'
     csvdata = testdata.tests[testname].tracking

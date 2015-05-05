@@ -443,7 +443,7 @@ def test_folder(args):
     print(pdp)
     # print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
+    fs = config.FileStructure(projdescpath=pdp, verify=True, project=args.parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()

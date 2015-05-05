@@ -28,8 +28,7 @@ from scilab.datahandling.datahandlers import *
 import numpy as np
 
 import scilab.expers.configuration as config
-from scilab.expers.mechanical.fatigue.cycles import TestInfo
-
+from scilab.expers.configuration import BasicTestInfo
 
 
 class ProjectContainer():
@@ -43,14 +42,16 @@ class ProjectContainer():
         self.testitemsd = None
         self.args       = None        
 
-    @Slot(str)
+    @Slot(object)
     def setprojdir(self, testdir):
-
+        
+        debug(testdir)
+        
         def showErrorMessage(errmsg, dir, ex=None):
             errorfmt = "Invalid project:<br>Dir `{1}`<br>Error `{0}`"
             if ex: 
                 errorfmt += "<br>Exception:<br><pre><code>{ex}</code></pre>"
-            errorMessageDialog = QErrorMessage(self)
+            errorMessageDialog = QErrorMessage(self._parent)
             errorMessageDialog.showMessage(errorfmt.format(errmsg, dir, ex=ex))
         
         projectdir = Path(str(testdir))
@@ -77,8 +78,7 @@ class ProjectContainer():
             self.projectdir = projectdir
             self.fs = config.FileStructure(
                         projdescpath=projdescpath,
-                        testinfo=TestInfo, 
-                        verify=True, 
+                        verify=True,
                         project=projectdir)
         
             self.test_dir = self.fs.tests.resolve()
@@ -91,8 +91,11 @@ class ProjectContainer():
             self.projectrefresh.emit()
             
         except Exception as err:
-            logging.exception(err)
+            traceback.print_exc(file=sys.stderr)
+            
             # ei = boltons.tbutils.ExceptionInfo.from_current()
+            # raise err
+            
             showErrorMessage("Error setting project: ", testdir, ex=traceback.format_exc())
             return
 
@@ -102,7 +105,7 @@ class TestHandler(QObject, ProjectContainer):
     def __init__(self, parent):        
         super(TestHandler, self).__init__(parent=parent)
         super(ProjectContainer, self).__init__()
-        # self.parent = parent
+        self._parent = parent
 
     def setitem(self, item):
         self.test = DataTree()
@@ -168,11 +171,10 @@ class TestHandler(QObject, ProjectContainer):
                         ).strip().replace('\n            ','\n')
 
         except Exception as err:
-
+            traceback.print_exc(file=sys.stdout)
+            
             errstr = repr(err)
-
-            raise err
-
+            # raise err
             return """
             Exception:
 
