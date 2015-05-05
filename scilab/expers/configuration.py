@@ -77,7 +77,7 @@ class BasicTestInfo(object):
     def parse(cls, name):
         match = cls._regex.match(name)
         if match:
-            print("matched:", match.groupdict())
+            # print("matched:", match.groupdict())
             return cls(**cls.createfields(valuedict=match.groupdict()))
         else:
             raise ValueError("Couldn't parse: ", name, cls._regex)
@@ -100,11 +100,11 @@ def generatetestinfoclass(
 
     try:
         regexprfmt = namefmt.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
-        debug(regexprfmt, fields)
+        # debug(regexprfmt, fields)
         regexpression = regexprfmt.format(**{ k:"(?P<%s>%s)"%(k,v) for k,v in fields })
-        debug(regexpression)
+        # debug(regexpression)
         regexpression = re.compile(regexpression)
-        debug(regexpression)
+        # debug(regexpression)
     except Exception as err:
         raise err
         raise ValueError("Don't match:", fmt, fields)
@@ -221,7 +221,7 @@ class FileStructure(DataTree):
         env.update(files)
         
         for foldername, folderitem in flatten(files, sort=True, tolist=True, astuple=True,):
-            debug( folderitem )
+            # debug( folderitem )
             folder = parent / folderitem.format(**env).strip()
             
             if makedirs and not folder.exists():
@@ -292,10 +292,10 @@ class FileStructure(DataTree):
         if ensure_folders_exists:
             
             for tgtname, srcname in tf.templates.items():
-                debug(tgtname, srcname)
+                # debug(tgtname, srcname)
                 srcpath = safefmt(str(srcname), testinfo=testinfo, filestructure=self)
                 tgtpath = folder[tgtname]
-                debug(srcpath, tgtpath),
+                # debug(srcpath, tgtpath),
                 
                 shutil.copyfile(str(srcpath), str(tgtpath))
             
@@ -330,7 +330,10 @@ class FileStructure(DataTree):
 
     def infoOrNone(self, item):
         try:
-            return self._testtnfo.parse(str(item))
+            ti = self._testtnfo.parse(str(item))
+            if hasattr(ti, 'errors'):
+                return None
+            return ti
         except Exception as err:
             logging.warn("Could not parse test name: name: '%s' err: %s"%(str(item), str(err)))
             return None
@@ -338,6 +341,7 @@ class FileStructure(DataTree):
 ExampleTestInfo = generatetestinfoclass(
     "Example",
     fields=[
+        ("errors",        "(\[.+?\]\s+)?"),
         ("date",        "\w+\d+"),
         ("batch",       "(..)(\d+)\.(\d+)"), 
         ("side",        "(l|r)(m|l)m"), 
@@ -347,7 +351,7 @@ ExampleTestInfo = generatetestinfoclass(
         ("sample",      "x(\d+)"),
         ("run",         "(-.+)?"),
         ],
-    namefmt = "{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
+    namefmt = "{errors}{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
     shortfmt = "{batch}-{wedge}{orientation}-{layer.groups[0]:d}{sample.groups[0]:02d}",
     )
 
@@ -357,11 +361,14 @@ def main():
     print("## Generating Testinfo Class")
     
     print(ExampleTestInfo)
-    ti1 = ExampleTestInfo(date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1')
+    ti1 = ExampleTestInfo(date='dec01', run='', batch='gf10.1',side='llm',wedge='wa',orientation='lg',layer='l7',sample='x1', errors='')
     print("ti1:", ti1)
 
     ti2 = ExampleTestInfo.parse(name='dec01(gf10.1-llm)-wa-lg-l6-x1')
     print("ti2:", ti2)
+    
+    ti3 = ExampleTestInfo.parse(name='[unsure] dec01(gf10.1-llm)-wa-lg-l6-x1')
+    print("ti3:", ti3.errors)
     
     print("## Loading Project Description")
     pdp = Path(__file__).parent/'../../test/fatigue-failure|uts|expr1/projdesc.json'
@@ -397,7 +404,7 @@ def main():
     
     newtestfolder = fs.makenewfolder(date="may01", batch='gf99.1',side='llm',wedge='wa',orientation='tr',layer='l7',sample='x1')
     
-    print("newtestfolder:")
+    print("### newtestfolder:")
     debug(newtestfolder)
     
     print("\nfolder:", sep='\n', *newtestfolder.testdir.glob("**/*"))
