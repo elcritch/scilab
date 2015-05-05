@@ -457,8 +457,8 @@ def test_folder(args):
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
             # continue
-        # if name not in ["jan14(gf10.2-rlm)-wa-lg-l9-x2",]:
-            # continue
+        if name not in ["jan12(gf11.5-llm)-wa-tr-l7-x1","jan14(gf10.6-rlm)-wa-tr-l7-x2"]:
+            continue
         
         try:
             execute(fs, name, testconf, args, )
@@ -475,7 +475,7 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "0"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
@@ -489,7 +489,7 @@ def main():
     test_folder(args)
     
 if __name__ == '__main__':
-    main()    
+    main()
 
 def test_run():
     

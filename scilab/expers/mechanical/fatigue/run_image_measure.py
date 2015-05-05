@@ -25,7 +25,7 @@ import PIL
 
 
 # from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
-from scilab.expers.mechanical.fatigue.uts import TestInfo
+# from scilab.expers.mechanical.fatigue.uts import TestInfo
 
 def get_cropped(imgurl:Path, dims=DataTree(xr=(2000,3000), yr=(1000,2000))):
     imgpng = imgurl.with_suffix('.png')
@@ -112,6 +112,7 @@ def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
 
 def main():
 
+    FileStructure = None
     # experfiles = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
     experfiles = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
 

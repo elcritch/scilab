@@ -16,7 +16,7 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
 
     data, colinfo, indexes = matdata.data, matdata.columninfo, matdata.indexes
     
-    if not ("norm" in zconfig["stage"] and "m3_cycles" in zconfig["method"] and "tracking" in zconfig["item"]):
+    if not ("norm" in zconfig["stage"] and "cycles" in zconfig["method"] and "tracking" in zconfig["item"]):
         print("WARNING::Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     
@@ -24,6 +24,7 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     getfield = lambda n: ( getattr(matdata.data, n)[stepslice], getattr(matdata.columninfo, n) )
 
     t,tl = getfield("totalTime")
+    tc,tcl = getfield("elapsedCycles")
     x,xl = getfield("stress")
     y,yl = getfield("strain")
     
@@ -45,13 +46,19 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_opts):
     ax1.plot(t, x, label=xl.label)
     ax1.set_xlabel(labeler(tl))
     ax1.set_ylabel(labeler(xl))
-    ax2.set_ylabel(labeler(yl))
-    
     ax1.legend(loc=2, fontsize=10)
+    
+    # Twin x in cycles
+    ax12 = ax1.twiny() 
+    ax12.plot(tc, x)
+    ax1.set_xlabel(labeler(tcl))
+    
+    
     # fig.suptitle("Overview All: {} ({})".format(test.info.short, repr(zconfig)))
     
     # === Y2 Plot ===
     ax2.plot(t, y, color='darkgrey', label=yl.label)
+    ax2.set_ylabel(labeler(yl))
     ax2.legend(loc=1, fontsize=10)
     
     # === Titles === 
