@@ -213,7 +213,7 @@ class FileStructure(DataTree):
         _files = DataTree()
         env.update(files)
         
-        for foldername, folderitem in flatten(files, sort=True, tolist=True):
+        for foldername, folderitem in flatten(files, sort=True, tolist=True, astuple=True,):
             debug( folderitem )
             folder = parent / folderitem.format(**env).strip()
             
@@ -281,7 +281,17 @@ class FileStructure(DataTree):
                     v.mkdir()
 
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
-
+        
+        if ensure_folders_exists:
+            
+            for tgtname, srcname in tf.templates.items():
+                debug(tgtname, srcname)
+                srcpath = safefmt(str(srcname), testinfo=testinfo, filestructure=self)
+                tgtpath = folder[tgtname]
+                debug(srcpath, tgtpath),
+                
+                shutil.copyfile(str(srcpath), str(tgtpath))
+            
         return folder
     
     def makenewfolder(self, **kwargs):
