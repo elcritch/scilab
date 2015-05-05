@@ -331,7 +331,7 @@ class FileStructure(DataTree):
     def infoOrNone(self, item):
         try:
             ti = self._testtnfo.parse(str(item))
-            if hasattr(ti, 'errors'):
+            if hasattr(ti, 'errors') and ti.errors:
                 return None
             return ti
         except Exception as err:
