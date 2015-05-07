@@ -38,11 +38,11 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     
     # Main
     ax_main.imshow(imgcropped)
+    ax_main.contour(imgbinarized, levels=[0], colors='y', alpha=0.8)
     # ax_main.contour(imgbinarized, linewidth=0.5, colors='y')
 
     # Adjusted
     ax_adj.imshow(imgadjusted  )
-    ax_adj.contour(imgbinarized, levels=[0], colors='y', alpha=0.8)
     
     # Binary
     ax_bw.imshow(imgbinarized, label="Binarized")

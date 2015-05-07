@@ -16,7 +16,7 @@ from scilab.tools.project import *
 from pathlib import *
 # from fn import _ as __
 # import formlayout
-import boltons.tbutils
+# import boltons.tbutils
 
 import scilab
 from scilab.expers.configuration import FileStructure

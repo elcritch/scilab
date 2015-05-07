@@ -60,11 +60,11 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     
     # plt.show(block=True)
     
-    if 'cycles' in graphdata.calcs:
-        print(dir(graphdata['calcs']['cycles']['actual_perc']))
-    jsondata = remap(graphdata.calcs, valuef=lambda k,v: v._asdict() if hasattr(v,'_asdict') else v)
-    debug(jsondata)
-    test.folder.save_calculated_json(test=test, name='graphs', data=jsondata)
+    # if 'cycles' in graphdata.calcs:
+    #     print(dir(graphdata['calcs']['cycles']['actual_perc']))
+    # jsondata = remap(graphdata.calcs, valuef=lambda k,v: v._asdict() if hasattr(v,'_asdict') else v)
+    # debug(jsondata)
+    # test.folder.save_calculated_json(test=test, name='graphs', data=jsondata)
     
     figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], version=args.version)
     print(tag(b="Figure: "+figname))
@@ -104,8 +104,8 @@ def run_config(test, args, config, configfile):
     handle_grapher(graph_overview, test, matdata, args, zconfig)
     handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
     
-    print(mdHeader(2, "Merging JSON Data"))
-    merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
+    # print(mdHeader(2, "Merging JSON Data"))
+    # merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
 
 def run(test, args):
     # debug(test, args)
@@ -141,7 +141,7 @@ def test_folder():
     print(pdp)
     print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper.TestInfo, verify=True, project=args.parentdir)
+    fs = config.FileStructure(projdescpath=pdp, verify=True, project=args.parentdir)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()

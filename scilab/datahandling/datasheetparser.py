@@ -60,7 +60,7 @@ def handler(testconf, excelfile, args):
         ## Handle Names    
         data['name'] = testconf.info.name
         data['id'] = testconf.info.short
-        data['info'] = testconf.info.as_dict()
+        data['info'] = testconf.info._asdict()
         
 
     ## Update with Excel Values    

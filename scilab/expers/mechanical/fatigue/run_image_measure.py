@@ -112,6 +112,7 @@ def graphs2_handler(testinfo, testfolder, testdata, args, **kwargs):
 
 def main():
 
+    FileStructure = None
     # experfiles = FileStructure('fatigue failure (cycles, expr1)', 'cycles-expr1')
     experfiles = FileStructure('fatigue failure (uts, expr1)', 'fatigue-test-2')
 

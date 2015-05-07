@@ -284,6 +284,7 @@ def process_imageconf(testconf, imageconf, state, args):
     except ValueError as err:
         if err.args[0] == "IndexingError:TooMany":
             processedimages = process_image(**args_process_img.set(equalize_adapthist=False))
+            args_samplemeasurement.img_bw = processedimages.binarized
             measurements = samplemeasurement(**args_samplemeasurement)
             logging.warn("Too many objects found, turning. Turned off skimage.exposure.equalize_adapthist")
     
