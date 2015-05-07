@@ -382,8 +382,12 @@ def execute(fs, name, testconf, args):
     
     folder = fs.testfolder(testinfo=testconf.info)
     
-    # try:
-    os.symlink(str(folder.testdir), str(fs.processed / testconf.info.short ), target_is_directory=True )
+    try:
+        processed_link = fs.processed / testconf.info.short 
+        if not processed_link.exists():
+            os.symlink(str(folder.testdir), str(processed_link), target_is_directory=True )
+    except Exception, err:
+        logging.warn("Unable to link processed dir", err)
     
     data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                 for k,v in flatten(folder).items() if v ]
@@ -469,7 +473,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed", str(err)
-            raise err
+            # raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
