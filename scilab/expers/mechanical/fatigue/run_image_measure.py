@@ -25,7 +25,7 @@ import PIL
 
 
 # from scilab.expers.mechanical.fatigue.cycles import TestInfo, FileStructure
-from scilab.expers.mechanical.fatigue.uts import TestInfo
+# from scilab.expers.mechanical.fatigue.uts import TestInfo
 
 def get_cropped(imgurl:Path, dims=DataTree(xr=(2000,3000), yr=(1000,2000))):
     imgpng = imgurl.with_suffix('.png')

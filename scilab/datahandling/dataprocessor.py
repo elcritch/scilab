@@ -382,6 +382,9 @@ def execute(fs, name, testconf, args):
     
     folder = fs.testfolder(testinfo=testconf.info)
     
+    # try:
+    os.symlink(str(folder.testdir), str(fs.processed / testconf.info.short ), target_is_directory=True )
+    
     data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                 for k,v in flatten(folder).items() if v ]
     data = sorted(data)
@@ -475,7 +478,7 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
+    # args.forceRuns = DataTree(raw=False, norm=True)
     args.version = "0"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
@@ -483,8 +486,9 @@ def main():
     args.excel = False
     # args.excel = True
     # === Only Update Variables === 
-    args.onlyVars = False
-    # args.onlyVars = True
+    # args.onlyVars = False
+    args.onlyVars = True
+    
     
     test_folder(args)
     

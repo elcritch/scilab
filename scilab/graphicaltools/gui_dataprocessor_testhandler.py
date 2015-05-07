@@ -35,13 +35,27 @@ class ProjectContainer():
     
     projectdirchanged = Signal(str)
     projectrefresh = Signal()
+    createnewtest = Signal()
     
     def __init__(self):
         self.fs         = None
         self.test_dir   = None
         self.testitemsd = None
-        self.args       = None        
-
+        self.args       = None  
+        self.projectdesc = None
+    
+    @Slot()
+    def docreatenewtest(self):
+        
+        # TODO: show input dialog... 
+        userinputstr = "Get user input here..."
+        testinfoinput = self.fs.testinfo.parse(userinputstr)
+        
+        self.fs.makenewfolder(**testinfoinput._asdict())
+        
+        # TODO: refresh test list
+        # TODO: select new test
+        
     @Slot(object)
     def setprojdir(self, testdir):
         
@@ -68,7 +82,7 @@ class ProjectContainer():
         else:
             try:
                 projdescpath.resolve()
-                Json.load_json_from(str(projdescpath))
+                self.projectdesc = Json.load_json_from(str(projdescpath))
             except Exception as err:
                 logging.exception(err)
                 showErrorMessage("Error loading project description: ", testdir, ex=traceback.format_exc())

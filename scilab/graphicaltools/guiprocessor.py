@@ -201,6 +201,10 @@ class DataProcessorGuiMain(QMainWindow):
         updateButton = QPushButton("Refresh")
         updateButton.clicked.connect(lambda: self.tester.projectrefresh.emit())
         leftLayout.addWidget(updateButton)
+        
+        createButton = QPushButton("Create")
+        createButton.clicked.connect(lambda: self.tester.createnewtest.emit())
+        leftLayout.addWidget(createButton)
 
         self.tester.projectrefresh.connect(self.testlistRefresh)
         
