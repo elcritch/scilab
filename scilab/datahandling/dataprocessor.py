@@ -189,14 +189,14 @@ def process(testfolder, data, processor, state):
         output = DataTree()
         output['raw','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="raw", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
+            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel",])
     
         
         print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['raw',], missingFiles(output.raw.files.names)))
         
         if forceRuns['raw',] or missingFiles(output.raw.files.names):
-            if not state.args['onlyVars',]:
+            if not state.args.options["output","onlyVars",]:
                 missingFiles(output.raw.files.names)
                 columnmapping = process_raw_columns(data, raw_config, state)
                 indexes = default_index + raw_config.get('_slicecolumns_', [])
@@ -213,7 +213,7 @@ def process(testfolder, data, processor, state):
 
         output['norm','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="norm", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.excel)
+            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel"])
         
         print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['norm',], missingFiles(output.norm.files.names)))
@@ -385,9 +385,10 @@ def execute(fs, name, testconf, args):
     try:
         processed_link = fs.processed / testconf.info.short 
         if not processed_link.exists():
-            os.symlink(str(folder.testdir), str(processed_link), target_is_directory=True )
-    except Exception, err:
-        logging.warn("Unable to link processed dir", err)
+            debug("../"+str(folder.testdir.relative_to(fs.project)), str(processed_link))
+            os.symlink("../"+str(folder.testdir.relative_to(fs.project)), str(processed_link), target_is_directory=True )
+    except Exception as err:
+        logging.warn("Unable to link processed dir: "+str(err))
     
     data = [ (k,v.relative_to(args.parentdir), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
                 for k,v in flatten(folder).items() if v ]
@@ -419,7 +420,7 @@ def execute(fs, name, testconf, args):
     print(mdHeader(2, "Make JSON Data"))
     
     datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
     
     print(mdHeader(2, "Executing"))
     
@@ -427,18 +428,12 @@ def execute(fs, name, testconf, args):
 
     
     print(mdHeader(2, "Merging JSON Data"))
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=True)
+    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
 
 
 def test_folder(args):
     
     import scilab.expers.configuration as config
-    import scilab.expers.mechanical.fatigue.uts as exper
-    # import scilab.expers.mechanical.fatigue.cycles as exper
-    
-    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
-    args.parser_image_measurements = exper.parser_image_measurements
-    args.codehandlers = exper.getcodehandlers()
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
@@ -451,6 +446,22 @@ def test_folder(args):
     # print(pdp.resolve())
     
     fs = config.FileStructure(projdescpath=pdp, verify=True, project=args.parentdir)
+    
+    # Import Test Specific processors. This needs to be improved!
+    expertype = fs.projdesc["experiment_config"]["type"]
+
+    if expertype == "cycles":
+        import scilab.expers.mechanical.fatigue.cycles as exper
+    elif expertype == "uts":
+        import scilab.expers.mechanical.fatigue.uts as exper
+    else:
+        raise ValueError("Do not know how to process test type.", expertype)
+    
+    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
+    args.parser_image_measurements = exper.parser_image_measurements
+    args.codehandlers = exper.getcodehandlers()
+    
+    
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()
@@ -464,36 +475,35 @@ def test_folder(args):
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
             # continue
-        # if name not in ["jan12(gf11.5-llm)-wa-tr-l7-x1","jan14(gf10.6-rlm)-wa-tr-l7-x2"]:
+        # if name not in ["feb07(gf10.4-llm)-wa-lg-l10-x2"]:
             # continue
         
         try:
             execute(fs, name, testconf, args, )
-            summaries[name] = "Success", ""
+            summaries[name] = "Success", "", ""
         except Exception as err:
             logging.error(err)
-            summaries[name] = "Failed", str(err)
-            # raise err
+            summaries[name] = "Failed", str(err), "<a src='file://{}'>Folder</a>".format(testconf.folder.testdir.as_posix())
+            raise err
         
     print("Summaries:\n\n")
-    print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error", "Folder" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
     print()
 
 def main():
     # test_run()
     args = DataTree()
-    # args.forceRuns = DataTree(raw=False, norm=True)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "0"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
-    # args.excel = False
-    args.excel = True
+    args.options = DataTree()
+    args.options["output", "excel"] = False
+    args.options["output", "onlyVars"] = True
     # === Only Update Variables === 
-    # args.onlyVars = False
-    args.onlyVars = True
-    
-    
+    # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
+    # print("<a src='file:///Users/elcritch/proj/phd-research/exper%7Cfatigue-failure%7Ccycles%7Ctrial1/02_Tests/jan10%28gf10.9-llm%29-wa-lg-l10-x3/'>Test1</a>")
     test_folder(args)
     
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import shutil, re, sys, os, itertools, collections
 from pathlib import Path
 from functools import partial
 
-sys.path.insert(0, '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (uts, expr1)/05_Code/01_Libraries')
+# sys.path.insert(0, '/Users/elcritch/Cloud/gdrive/Research/Meniscus (Failure Project)/07_Experiments/fatigue failure (uts, expr1)/05_Code/01_Libraries')
 
 import scilab.tools.jsonutils as Json
 from scilab.tools.project import *

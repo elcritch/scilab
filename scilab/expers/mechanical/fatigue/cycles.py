@@ -8,6 +8,7 @@ import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.tools.helpers import *
 from scilab.tools.excel import *
+import scilab.datahandling.processingpreconditioning 
 
 def parser_data_sheet_excel(ws):
     
@@ -18,16 +19,17 @@ def parser_data_sheet_excel(ws):
     data['info'].update( dictFrom(rng('A1:B1')) )
     
     measurements = DataTree(withProperties='width depth area')
-    measurements["width"] = valueUnitsStd(ws['B6'].value, units="mm", stdev=ws['B8'].value)._asdict()
-    measurements["depth"] = valueUnitsStd(ws['C6'].value, units="mm", stdev=ws['C8'].value)._asdict()
-    measurements["area"]  = valueUnits(ws['E6'].value, units="mm")._asdict()
-    
-    measurements["unadjusted","width"] = valueUnitsStd(ws['B7'].value, units="mm", stdev=ws['B8'].value)._asdict()
-    measurements["unadjusted","depth"] = valueUnitsStd(ws['C7'].value, units="mm", stdev=ws['C8'].value)._asdict()
-    measurements["unadjusted","area"]  = valueUnits(ws['E7'].value, units="mm")._asdict()
     
     # Process all the values in these rows
     other = DataTree()
+    
+    other["width"] = valueUnitsStd(ws['B6'].value, units="mm", stdev=ws['B8'].value)._asdict()
+    other["depth"] = valueUnitsStd(ws['C6'].value, units="mm", stdev=ws['C8'].value)._asdict()
+    other["area"]  = valueUnits(ws['E6'].value, units="mm")._asdict()
+    
+    other["unadjusted","width"] = valueUnitsStd(ws['B7'].value, units="mm", stdev=ws['B8'].value)._asdict()
+    other["unadjusted","depth"] = valueUnitsStd(ws['C7'].value, units="mm", stdev=ws['C8'].value)._asdict()
+    other["unadjusted","area"]  = valueUnits(ws['E7'].value, units="mm")._asdict()
     
     ## continue reading the column down 
     end = process_definitions_column(ws, other, 'A',9,24, stop_key='UTS Stress', dbg=False, has_units=False)    
@@ -41,8 +43,9 @@ def parser_data_sheet_excel(ws):
     assert "est_stress_(tr)" in other.keys()
     assert "gauge_base" in other.keys()
     assert "estimated_amp" in other.keys()
+    assert "actual_sl" in other.keys()
     
-    valueUnitsOverride = [ ('cycles', 'Nº Cycles'), ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
+    valueUnitsOverride = [ ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
     for key, units in valueUnitsOverride:
         other[key] = valueUnits(value=other[key] if key in other else float('nan'), units=units)._asdict()
     
@@ -69,6 +72,15 @@ def parser_data_sheet_excel(ws):
     else:
         raise Exception("Excel file missing gauge_base! Possible keys:\t"+str([ str(k) for k in other.keys() ]) )
     
+    # handle cycles
+    cycles = other.pop("cycles")
+    debug(cycles)
+    cyclestop, cyclesbottom = str(cycles["value"]), str(cycles["units"])
+    other["cyclesRunOut"] = True if '+' in cyclestop or '+' in cyclesbottom else False    
+    other["cyclesTop"] = valueUnits(int(cyclestop.strip().strip('+')), units="Nº")._asdict()
+    other["cyclesBottom"] = valueUnits(int(cyclesbottom.strip().strip('+')), units="Nº")._asdict()
+    
+    # setup excel other
     data['excel','other'] = other
     data['measurements','datasheet'] = measurements
     
@@ -118,5 +130,9 @@ def parser_image_measurements(testconf, imgdata):
     
     return data
 
+def getcodehandlers():
+    
+    return DataTree(process_precondition=scilab.datahandling.processingpreconditioning.process_precondition)
+    
 
 

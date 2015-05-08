@@ -156,6 +156,8 @@ def test_folder():
     for name, test in sorted( testitems.items() )[:]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
+        if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
+            continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))

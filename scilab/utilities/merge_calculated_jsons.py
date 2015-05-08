@@ -41,7 +41,7 @@ def graphs2_handler(testinfo, testfolder, testdata, args, savePrevious=True):
 
     return handler(testinfo=testinfo, testfolder=testfolder, args=args, savePrevious=savePrevious)
 
-def handler(testinfo, testfolder, args, savePrevious=True):
+def handler(testinfo, testfolder, args, savePrevious=False):
     
     testname = testinfo.short
     testcalc = (testfolder.json / (testname + '.calculated.json'))
@@ -66,7 +66,6 @@ def handler(testinfo, testfolder, args, savePrevious=True):
     if savePrevious:
         Json.update_json(testcalc.parent.as_posix(), {handleForNow(): json_updated}, 
                 json_url=testcalc.with_suffix('.previous.json').name)
-        
     
     print("Updating: "+testname+" "+str([str(s) for s in json_updated.keys()]))
     Json.write_json(testcalc.parent.as_posix(), json_updated, 
