@@ -21,7 +21,7 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     boundingbox = test.details.measurements[imageName]["boundingbox"]
     rawboundingbox = test.details.measurements[imageName]["rawboundingbox"]
     middleidxs = test.details.measurements[imageName]["thirds"]["indexes"]["middle"]
-    measureValue = test.details.measurements["image"][measureName]
+    measureValue = test.details.measurements["specimen"][measureName]
     
     # debug(test.details)
     debug(scale, zoomfactor, middle, measureValue)

@@ -64,6 +64,8 @@ def fit_modulus(time, strain, stress, sl):
         
     fits = DataTree()
     fits.strain_linear = strain_linear.data._asdict()
+    fits.strain_linear["rsquared"] = strain_linear.rsquared
     fits.stress_linear = stress_linear.data._asdict()
+    fits.stress_linear["rsquared"] = stress_linear.rsquared
     
     return modulus, fits

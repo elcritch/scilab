@@ -56,7 +56,7 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     calcs.stress_amp_target = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_target
     calcs.stress_amp_actual = test.details.variables.m3_cycles.trends.norm.post.calcs02.stress_amp_actual
     calcs.stress_amp_percent = test.details.variables.m3_cycles.trends.norm.post.calcs03.stress_amp_percent
-    calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.datasheet.area.value
+    calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.specimen.area.value
     
     ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))

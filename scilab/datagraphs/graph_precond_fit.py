@@ -55,11 +55,17 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     fig.subplots_adjust(hspace=0.5, )
 
     # Precond Fitting 
-    modulus, fits = fit_modulus(time=cycletime, strain=data.strain[sl], stress=data.stress[sl], sl=sl_fit)
+    # modulus, fits = fit_modulus(time=cycletime, strain=data.strain[sl], stress=data.stress[sl], sl=sl_fit)
+    
+    fits = test.details.variables.m2_precond.tracking.norm.post.fitting.fits
+    poly = lambda fit: np.poly1d( [fit.slope, fit.intercept] ) 
+    stress_linear = poly(fits.stress_linear)
+    strain_linear = poly(fits.strain_linear)
+    modulus = test.details.variables.m2_precond.tracking.norm.post.fitting.modulus
     
     debug(modulus)
     
-    ax1.plot(cycletime[sl_fit], fits.stress_linear( cycletime[sl_fit]),
+    ax1.plot(cycletime[sl_fit], stress_linear( cycletime[sl_fit]),
             '--', label='{}: R²:{:.2f}'.format("Fit", fits.stress_linear.rsquared),
             lw=4.0,
             color='black',
@@ -67,7 +73,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
 
     textpoint = (timerange_cycle[1] - timerange_cycle[0])/2+ timerange_cycle[0]
     ax1.annotate('Tangent Modulus: {:.2f}'.format(modulus.data.tangent_modulus.value, ),
-                 xy=(textpoint,fits.stress_linear(textpoint)),
+                 xy=(textpoint,stress_linear(textpoint)),
                  xytext=(-10, 10),
                  va='top',
                  xycoords="data",
@@ -80,43 +86,10 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     
 
     # fig.suptitle("(test=902-6LG-402 | stage=norm | item=tracking | method=precond | v0")
-    fig.suptitle("Tangent Modulus Fitting".format(test.info.short, repr(zconfig))
-)
+    fig.suptitle("Tangent Modulus Fitting".format(test.info.short, repr(zconfig)))
 
     ax1.legend()
     ax2.legend()
 
     return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree(modulus=modulus))
 
-def fit_modulus(time, strain, stress, sl):
-    
-    dbg_strain = DataTree()
-    dbg_stress = DataTree()
-    
-    strain_linear = Fitting.LinearFitData.fit_leastsq( time[sl], strain[sl], dbg=dbg_strain)
-    stress_linear = Fitting.LinearFitData.fit_leastsq( time[sl], stress[sl], dbg=dbg_stress)
-    
-    debug(dbg_strain, dbg_stress)
-    debug(strain_linear, stress_linear)
-    
-    linear_modulus = stress_linear.data.slope / strain_linear.data.slope
-    
-    # =============
-    # = Save Data =
-    # =============
-    
-    # save dyn mod
-    modulus = DataTree()
-    
-    modulus.sl = sl.start, sl.stop, sl.step
-    
-    ## Expr Fits
-    modulus['data','tangent_modulus'] = DataTree(value=linear_modulus, units="MPa/∆")
-    modulus['data','strain_linear_slope'] = DataTree(units="∆",**strain_linear.data._asdict())
-    modulus['data','stress_linear_slope'] = DataTree(units="MPa",**stress_linear.data._asdict())
-        
-    fits = DataTree()
-    fits.strain_linear = strain_linear
-    fits.stress_linear = stress_linear
-    
-    return modulus, fits

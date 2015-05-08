@@ -156,8 +156,8 @@ def test_folder():
     for name, test in sorted( testitems.items() )[:]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
-        if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
-            continue
+        # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
+            # continue
         
         print("\n")
         display(HTML("<h2>{} | {}</h2>".format(test.info.short, name)))
@@ -183,17 +183,16 @@ def test_folder():
         
         try:
             run(test, args)
-            summaries[name] = "Success"
+            summaries[name] = "Success", "", ""
         except Exception as err:
-            summaries[name] = "Failed"
+            # summaries[name] = "Failed"
+            summaries[name] = "Failed", str(err), "<a src='file://{}'>Folder</a>".format(test.folder.testdir.as_posix())
             logging.exception(err)
             # raise err
     
     print("Summaries:\n\n")
-    print(HTML(tabulate( [ (k,v) for k,v in summaries.items()], [ "Test Name", "Status" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error", "Folder" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
     print()
-            
-            
     
 def main():
     
