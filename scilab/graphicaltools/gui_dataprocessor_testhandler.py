@@ -87,12 +87,12 @@ class ProjectContainer():
             
             print(repr(ti))
             
-            self.fs.makenewfolder(**ti._asdict())
+            tf = self.fs.makenewfolder(**ti._asdict())
             
             self.projectrefresh.emit()
             
             # TODO: emit testitem changed with new test name?
-            
+            self._parent.testitemchanged.emit(DataTree(folder=tf.main, test=ti))
             
         except Exception as err:
             logging.exception(err)
@@ -164,10 +164,13 @@ class TestHandler(QObject, ProjectContainer):
         self._parent = parent
 
     def setitem(self, item):
-        self.test = DataTree()
-        self.test.info = item.test
-        self.test.folder = self.fs.testfolder(testinfo=self.test.info, ensure_folders_exists=False)
-        print("Setting Test:", self.test)
+        
+        if not item:
+            self.test = DataTree()
+        else:
+            self.test = DataTree()
+            self.test.info = item.test
+            self.test.folder = self.fs.testfolder(testinfo=self.test.info, ensure_folders_exists=False)
 
     def getitem(self):
         

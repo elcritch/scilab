@@ -210,7 +210,7 @@ class FileStructure(DataTree):
 
         self.project = projdescpath.parent if not project else project
 
-        files = DataTree(projdesc.experiment_config.projectfolder.filestructure)
+        files = DataTree(projdesc.experiment_config["projectfolder"]["filestructure"])
         self._files = self.parsefolders(files, verify, parent=self.project)
         for name, file in self._files.items():
             self[name] = file
@@ -275,11 +275,14 @@ class FileStructure(DataTree):
         testenv = DataTree(folder=testdir, testinfo=testinfo)
 
         folder = TestFileStructure(testdir=testdir)
+        folder.path = testdir # set folder path
+        
         folder.update( self.parsefolders(tf.filestructure, verify, parent=testdir, env=testenv, makedirs=True) )
         
         # Handle Raw Data #
         for name, test in tf.raws.items():
             
+            debug(name, test)
             test = safefmt(test, raw=folder.raw, testinfo=testinfo)
             rawdir = Path(test)
             
@@ -294,11 +297,14 @@ class FileStructure(DataTree):
 
         folder.update( self.parsefolders(tf.files, verify=False, parent=testdir, env=testenv) )
         
+        folder.path = testdir # set folder path
+        
         if ensure_folders_exists:
-            
+        
+            # Copy template files
             for tgtname, srcname in tf.templates.items():
-                # debug(tgtname, srcname)
-                srcpath = safefmt(str(srcname), testinfo=testinfo, filestructure=self)
+                debug(tgtname, srcname)
+                srcpath = safefmt(str(srcname), testinfo=testinfo, projectfolder=self, testfolder=folder)
                 tgtpath = folder[tgtname]
                 # debug(srcpath, tgtpath),
                 
@@ -313,12 +319,6 @@ class FileStructure(DataTree):
         
         testfolder = self.testfolder(testinfo=testinfo, makenew=True, ensure_folders_exists=True, verify=False)
         
-        ## TODO: add post folder hooks, eg copy protocols into folder
-        
-        # TODO: implement copying template files... 
-        
-        ## Bam, done...     
-    
         return testfolder
 
     def testitemsd(self):

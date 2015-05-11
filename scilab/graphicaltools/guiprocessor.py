@@ -100,16 +100,19 @@ class ExperTestList(QListWidget):
 
         # Order Tests by last modification time
         self._testitems = collections.OrderedDict(
-                    sorted(
+                    reversed(sorted(
                         ( (test.short, DataTree(folder=folder, test=test)) for test, folder in testitemsd.items() ),
                         key=lambda f: f[1].folder.stat().st_mtime
-                    ))
+                    )))
 
         print("Setting testfolders:", len(self._testitems))
 
         for key, value in self._testitems.items():
             item = QListWidgetItem(self)
             item.setText(key)
+        
+        if len(self._testitems) > 0:
+            self.setCurrentRow(0)
 
     def updateTestItem(self, curr=None, prev=None):
         item = self.getitem(curr.text() if curr else None)
@@ -166,18 +169,22 @@ class TestProtocolView(QFrame):
         print("TestProtocolView", obj)
         test = self.parent.tester.getitem()
         
-        protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
-        
-        if not protocolUrl.exists():
-            logging.warn("Protocol doesn't exist for test: "+str(protocolUrl))
-            return 
+        if not test["folder",]:
+            self.protocolView.setHtml("<html></html>", QUrl())
             
-        with protocolUrl.open('rb') as protocolFile:            
-            protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
+        else:
+            protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
         
-            self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
+            if not protocolUrl.exists():
+                logging.warn("Protocol doesn't exist for test: "+str(protocolUrl))
+                return 
+            
+            with protocolUrl.open('rb') as protocolFile:            
+                protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
         
-        # self.testitemchanged.connect(lambda obj: setitem(obj) )
+                self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
+        
+            # self.testitemchanged.connect(lambda obj: setitem(obj) )
         
 
 class DataProcessorGuiMain(QMainWindow):
@@ -256,14 +263,17 @@ class DataProcessorGuiMain(QMainWindow):
         self.testPageWebView.init()
         
         def setitem(testobj):
-            
+            # set testfolder item
             self.tester.setitem(testobj)
-            testhtml, testurl = self.tester.getinfopanelhtml(testobj)
-            testqurl = QUrl("file://{}/".format(testurl.resolve()))
-            print("Test URL:", testqurl)
-            # testhtml = testhtml.replace("graphs/", str(testurl)+"/graphs/")
-            # print("TestHTML:", testhtml.replace('<', '≤'))
-            self.testPageWebView.setHtml(testhtml, testqurl)
+            
+            # set
+            if testobj:
+                testhtml, testurl = self.tester.getinfopanelhtml(testobj)
+                testqurl = QUrl("file://{}/".format(testurl.resolve()))
+                print("Test URL:", testqurl)
+                self.testPageWebView.setHtml(testhtml, testqurl)
+            else:
+                self.testPageWebView.setHtml("<html></html>", QUrl())
         
         self.testitemchanged.connect(lambda obj: setitem(obj) )
         
