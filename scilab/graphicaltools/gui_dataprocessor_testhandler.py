@@ -24,6 +24,7 @@ from scilab.expers.configuration import FileStructure
 # from scilab.expers.mechanical.fatigue.helpers import *
 import scilab.tools.jsonutils as Json
 from scilab.datahandling.datahandlers import *
+import scilab.graphicaltools.forms as forms
 
 import numpy as np
 
@@ -43,18 +44,62 @@ class ProjectContainer():
         self.testitemsd = None
         self.args       = None  
         self.projectdesc = None
+        self.createnewtest.connect(self.docreatenewtest)
     
+    def showErrorMessage(self, errmsg, ex=None):
+        errorfmt = "Invalid project:<br>Error `{errmsg}`"
+        if ex: 
+            errorfmt += "<br>Exception:<br><pre><code>{ex}</code></pre>"
+        errorMessageDialog = QErrorMessage(self._parent)
+        errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
+
     @Slot()
     def docreatenewtest(self):
         
-        # TODO: show input dialog... 
-        userinputstr = "Get user input here..."
-        testinfoinput = self.fs.testinfo.parse(userinputstr)
+        def getvalues():
+            return json.loads(self._parent.settings.value("dialog/createdialog", "{}"))
+        def setvalues(values):
+            self._parent.settings.setValue("dialog/createdialog", json.dumps(values))
         
-        self.fs.makenewfolder(**testinfoinput._asdict())
+        TestInfo = self.fs._testinfo
         
-        # TODO: refresh test list
-        # TODO: select new test
+        fieldnames = TestInfo._fields
+        regexes = TestInfo._regexfields
+        
+        priorvalues = getvalues()
+        fielddata = [ ("<b>%s</b> [<i>%s</i>]"%(name, regexes[name].pattern), priorvalues.get(name,"")) 
+                        for name in fieldnames ]
+        
+        datalist = forms.fedit(fielddata)
+        debug(datalist)
+        
+        if not fielddata:
+            return 
+        
+        datadict = DataTree({ k:v for k,v in zip(fieldnames, datalist) })
+        
+        setvalues(datadict)
+        
+        try:
+            debug(datadict)
+
+            ti = TestInfo(**TestInfo.createfields(valuedict=datadict))
+            
+            print(repr(ti))
+            
+            self.fs.makenewfolder(**ti._asdict())
+            
+            self.projectrefresh.emit()
+            
+            # TODO: emit testitem changed with new test name?
+            
+            
+        except Exception as err:
+            logging.exception(err)
+            self.showErrorMessage("Error parsing: ", 
+                                    ex=traceback.format_exc())
+            raise err
+                    
         
     @Slot(object)
     def setprojdir(self, testdir):

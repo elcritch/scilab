@@ -22,6 +22,7 @@ from pathlib import *
 import scilab
 from scilab.expers.configuration import FileStructure
 from scilab.graphicaltools.gui_dataprocessor_testhandler import *
+import scilab.graphicaltools.forms as forms
 
 
 def supported_image_extensions():
