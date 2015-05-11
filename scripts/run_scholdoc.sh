@@ -2,37 +2,49 @@
 
 FILE=$1
 PD=${SCHOLDOC:-$2}
-# CITEPROC=${SCHOLDOC_CITE:-$2}
 
-OUTPUT="${FILE:r}.html" 
-OUTPUT_DOC="${FILE:r}.docx" 
-FILEDIR="$(dirname ${FILE})" 
+SD_SCRIPT="$(dirname $0)/preview_scholdoc.sh"
 
-echo "" > /tmp/run_scholdoc.log 
-echo "PD: '$PD'"                              >> /tmp/run_scholdoc.log 
-echo "FILE: '$FILE'"                          >> /tmp/run_scholdoc.log 
-echo "OUTPUT: '$OUTPUT'"                      >> /tmp/run_scholdoc.log 
-echo "SCILAB: '$SCILAB'"                      >> /tmp/run_scholdoc.log 
-echo "SCILAB: <base href='file://${TM_FILEPATH// /%20}'>" >> /tmp/run_scholdoc.log 
 
-# cat /tmp/run_scholdoc.log | perl -pe 's/\n/<br>\n/'
-USERCSS=`perl -ne 'print "$1" if /^css-theme:\s*(.+\.css)\s*$/' < ${FILE}`
-BIB=`perl -ne 'print "$1" if /^bibliography:\s*(.+?)\s*$/' < ${FILE}`
+STEM="${FILE:r}"
+BASE="$(basename $FILE)"
+HTML="${STEM}.html"
+PDF="${STEM}.pdf"
+DEFMARGINS="--margin-top 2cm --margin-left 2cm --margin-right 2cm --margin-bottom 2cm "
+DOCMARGINS=`perl -ne 'print "$1" if /^css-print-margins:\s*(.+)\s*$/' < ${FILE}`
+_MARGINS=[${DOCMARGINS:-"$DEFMARGINS"}]
+# MARGINS=(${(@s/ /)MARGINS})
+MARGINS=${(@s/ /)_MARGINS}
 
-echo "USERCSS: '$USERCSS'" >> /tmp/run_scholdoc.log 
+echo "" > /tmp/process_scholdoc.log 
+echo "STEM: '$STEM'"                      >> /tmp/process_scholdoc.log 
+echo "BASE: '$BASE'"                      >> /tmp/process_scholdoc.log 
+echo "HTML: '$HTML'"                      >> /tmp/process_scholdoc.log 
+echo "PDF:  '$PDF'"                       >> /tmp/process_scholdoc.log 
+echo "\$0:  '$0'"                         >> /tmp/process_scholdoc.log 
+echo "SD_SCRIPT: '$SD_SCRIPT'"            >> /tmp/process_scholdoc.log 
+echo "MARGINS: '$MARGINS'"                >> /tmp/process_scholdoc.log 
 
-CSSTHEME=${USERCSS:-scholmd-heuristically-latest.min.css}
-CSS="$SCILAB/scripts/css/${CSSTHEME}"
-# CSS="$SCILAB/css/scholdoc-style.css"
-CSS_REF="file://${CSS// /%20}"
+zsh $SD_SCRIPT "$1" "$2" 1> /dev/null 2>> /tmp/process_scholdoc.log  
 
-# cat - > /tmp/run_pandoc.input.txt
-echo "CSS_REF: $CSS_REF" >> /tmp/run_scholdoc.log 
+echo '<h1>Scholdoc</h1>'
 
-$PD \
-	--css="$CSS_REF" \
-	-w docx -o "$OUTPUT_DOC" \
-	-w html5 -s -S -o $OUTPUT < "$FILE"
-	# --citeproc --bibliography="${FILEDIR}/${BIB}" \
+echo '<h2>ENV:</h2><pre>'
+cat /tmp/process_scholdoc.log | perl -pe 's/\n/<br>/'
+echo '</pre>'
 
-# cat $OUTPUT
+
+echo '<h2>wkhtmltopdf:</h2><pre>'
+wkhtmltopdf --print-media-type \
+				--page-size letter \
+				--header-right '[page]/[toPage]' \
+				$MARGINS \
+				--header-spacing 2 \
+				"${HTML}" "${PDF}" \
+					| perl -pe 's/\n/<br>/' 2>&1 
+
+			# --header-left "${BASE}" \
+			# --header-line \
+echo '</pre>'
+
+

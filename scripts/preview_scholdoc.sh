@@ -31,6 +31,8 @@ echo "CSS_REF: $CSS_REF" >> /tmp/run_scholdoc.log
 
 $PD \
 	--css="$CSS_REF" \
+	-r markdown+yaml_metadata_block+mmd_title_block+definition_lists+footnotes+table_captions+grid_tables+simple_tables \
+	--section-divs --mathjax \
 	-w docx -o "$OUTPUT_DOC" \
 	-w html5 -s -S -o $OUTPUT < "$FILE"
 	# --citeproc --bibliography="${FILEDIR}/${BIB}" \
