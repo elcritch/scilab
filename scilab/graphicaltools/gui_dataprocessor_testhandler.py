@@ -90,10 +90,7 @@ class ProjectContainer():
         
         try:
             self.projectdir = projectdir
-            self.fs = config.FileStructure(
-                        projdescpath=projdescpath,
-                        verify=True,
-                        project=projectdir)
+            self.fs = config.FileStructure(projdescpath=projdescpath,verify=True)
         
             self.test_dir = self.fs.tests.resolve()
             self.testitemsd = self.fs.testitemsd()
