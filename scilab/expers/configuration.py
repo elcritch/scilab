@@ -202,7 +202,7 @@ class FileStructure(DataTree):
                 print('Missing:\n\n    File "{key}", line 1, in {projdescpath}\n\n'.format(projdescpath=projdescpath, key=("experiment_config",i)), file=sys.stdout)
                 raise ValueError("Missing config: ", key, projdescpath)
         
-        self._testtnfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
+        self._testinfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
         
         names = self.projdesc.experiment_config.name.split('|')
         self.experiment_name = names[0]
@@ -214,6 +214,10 @@ class FileStructure(DataTree):
         self._files = self.parsefolders(files, verify, parent=self.project)
         for name, file in self._files.items():
             self[name] = file
+    
+    @property
+    def testinfo(self):
+        return self._testinfo
     
     def parsefolders(self, files, verify, parent, env=DataTree(), makedirs=False):
         
@@ -304,7 +308,7 @@ class FileStructure(DataTree):
     def makenewfolder(self, **kwargs):
         """ make a new test folder and populate it """        
         props = DataTree(date=time.strftime("%b%d"), run='').set(**kwargs)        
-        testinfo = self._testtnfo(**props)
+        testinfo = self._testinfo(**props)
         
         testfolder = self.testfolder(testinfo=testinfo, makenew=True, ensure_folders_exists=True, verify=False)
         
@@ -330,7 +334,7 @@ class FileStructure(DataTree):
 
     def infoOrNone(self, item):
         try:
-            ti = self._testtnfo.parse(str(item))
+            ti = self._testinfo.parse(str(item))
             if hasattr(ti, 'errors') and ti.errors:
                 return None
             return ti

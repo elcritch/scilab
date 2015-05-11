@@ -43,18 +43,40 @@ class ProjectContainer():
         self.testitemsd = None
         self.args       = None  
         self.projectdesc = None
+        self.createnewtest.connect(self.docreatenewtest)
     
+    def showErrorMessage(self, errmsg, ex=None):
+        errorfmt = "Error:<br>\nError `{errmsg}`<br>"
+        if ex: 
+            errorfmt += "Exception:<br><pre><code>{ex}</code></pre>"
+        errorMessageDialog = QErrorMessage(self._parent)
+        errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
+        
     @Slot()
     def docreatenewtest(self):
         
-        # TODO: show input dialog... 
-        userinputstr = "Get user input here..."
-        testinfoinput = self.fs.testinfo.parse(userinputstr)
+        userinputstr, ok = QInputDialog.getText(self._parent, "Create Test", "Enter test name:")
+        debug(userinputstr, ok)
         
-        self.fs.makenewfolder(**testinfoinput._asdict())
-        
-        # TODO: refresh test list
-        # TODO: select new test
+        try:
+            if ok:
+                testinfoinput = self.fs.testinfo.parse(userinputstr)
+            
+            print(repr(testinfoinput))
+            
+            self.fs.makenewfolder(**testinfoinput._asdict())
+            
+            self.projectrefresh.emit()
+            
+            # TODO: emit testitem changed with new test name?
+            
+            
+        except Exception as err:
+            logging.exception(err)
+            self.showErrorMessage("Error parsing: %s"%repr(userinputstr), 
+                                    ex=traceback.format_exc())
+            raise err
+                    
         
     @Slot(object)
     def setprojdir(self, testdir):
