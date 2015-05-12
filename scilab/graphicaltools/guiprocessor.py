@@ -231,6 +231,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.dataProcessorOutput = DataProcessorWebView()
         self.dataProcessorRun = QPushButton("Execute")
+        self.dataProcessorRun.clicked.connect(lambda: self.tester.processtest.emit())
         
         h12	= QHBoxLayout()
         h12.addStretch(stretch=100)

@@ -37,6 +37,7 @@ class ProjectContainer():
     projectdirchanged = Signal(str)
     projectrefresh = Signal()
     createnewtest = Signal()
+    processtest = Signal()
     
     def __init__(self):
         self.fs         = None
@@ -45,6 +46,7 @@ class ProjectContainer():
         self.args       = None  
         self.projectdesc = None
         self.createnewtest.connect(self.docreatenewtest)
+        self.processtest.connect(self.doprocesstest)
     
     def showErrorMessage(self, errmsg, ex=None):
         errorfmt = "Invalid project:<br>Error `{errmsg}`"
@@ -53,6 +55,11 @@ class ProjectContainer():
         errorMessageDialog = QErrorMessage(self._parent)
         errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
 
+    @Slot()
+    def doprocesstest(self):
+        print("processtest!!")
+        debug(self.test)
+        
     @Slot()
     def docreatenewtest(self):
         
