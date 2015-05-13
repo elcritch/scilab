@@ -6,6 +6,7 @@ import numpy as np
 import scipy.io as sio
 from pandas import ExcelWriter
 
+import scilab
 import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
 from scilab.expers.configuration import *
@@ -440,8 +441,6 @@ def execute(fs, name, testconf, args):
     processingreports.process_test(testconf=testconf, args=args)
 
 
-
-
 def test_folder(args):
     
     import scilab.expers.configuration as config
@@ -481,7 +480,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:1]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
@@ -505,14 +504,15 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
+    args.forceRuns = DataTree(raw=True, norm=True)
     args.version = "12"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
     args.options = DataTree()
     args.options["output", "excel"] = False
-    args.options["output", "onlyVars"] = True
+    args.options["output", "onlyVars"] = False
+    args.options["output", "generatepdfs"] = False
     # === Only Update Variables === 
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper%7Cfatigue-failure%7Ccycles%7Ctrial1/02_Tests/jan10%28gf10.9-llm%29-wa-lg-l10-x3/'>Test1</a>")

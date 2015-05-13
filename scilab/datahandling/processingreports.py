@@ -7,6 +7,7 @@ import xmltodict
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+import scilab
 
 from scilab.tools.project import *
 import numpy as np
@@ -67,6 +68,7 @@ def makeTestDocument(test, args):
     fields = test.data.tablefields
     ddetails = test.data.summarydetails
     fdetails = test.data.flatdetails
+    graphNames = test.data.graphnames
     
     testdir = test.folder.main
     infoStr = str(test.info)
@@ -104,12 +106,13 @@ def makeTestDocument(test, args):
                         for img in test.folder.images.glob("processed/*.cropped.png") 
                     ])
         
-    graphNames = [
-        ('UTS', "*norm*graph=uts*.png"),
-        ('Precond Fit', "graph*norm*graph=precond_fit*.png"),
-        ('Overview Precond', "graph*norm*method=*precond*graph=overview*.png"),
-        ('Overview Preload', "graph*raw*method=*preload*graph=overview*.png"),
-    ]
+    # graphNames = [
+    #     ('UTS', "*norm*graph=uts*.png"),
+    #     ('Precond Fit', "graph*norm*graph=precond_fit*.png"),
+    #     ('Overview Precond', "graph*norm*method=*precond*graph=overview*.png"),
+    #     ('Overview Preload', "graph*raw*method=*preload*graph=overview*.png"),
+    # ]
+    debug(graphNames)
     graphFiles = [ (k,next(test.folder.graphs.glob(v), test.folder.graphs/v)) for k,v in graphNames ]
     
     graphsHtml = "\n".join([ 
@@ -118,7 +121,7 @@ def makeTestDocument(test, args):
                 for n, img in graphFiles ])
 
     specimenMeasurementsHtml = "\n".join([ 
-                    "<img src='{}' width='{}%'></img><br>".format(img.relative_to(testdir), 50 )
+                    "<img src='{}' width='{}%'></img><br>".format(img.relative_to(testdir), 80 )
                         for img in test.folder.graphs.glob("*graph=imagemeasurement*") 
                     ])
 
@@ -146,7 +149,14 @@ def makeTestDocument(test, args):
     
     tables.update(**{ k:v for k,v in locals().items() if 'Table' in k or 'Html' in k or 'Str' in k })
     
-    testTemplate = test.reportconf["TestTemplate"]["#text"]
+    print("\n\nTestTemplate:\n\n")
+    debug(test.reportconf["TestTemplate"])
+    
+    
+    testTemplate = test.reportconf["TestTemplate"]
+    testTemplate = testTemplate["#text"] if not isinstance(testTemplate, str) else testTemplate
+    testTemplate = testTemplate.strip() 
+    
     print('\n')
     print(testTemplate)
     
@@ -210,7 +220,15 @@ def processReportConfig(testconf, args):
         
         debug(accessors)
         tablefields[name] = accessors
+    
+    graphnames = []
+    
+    for graph in reportconf["GraphTable"]["Graph"]:
+        graphname = ( graph["@name"], graph["@match"] )
+        graphnames.append(graphname)
         
+    testconf.data.graphnames = graphnames
+    
     # for line in fieldNames.strip().split("\n"):
     #     name, table, accessor = [ s.strip() for s in line.split('|') ]
     #     fields[table][name] = accessor
@@ -218,11 +236,22 @@ def processReportConfig(testconf, args):
     # fields['Measurements'] = [ "measurements" ]
     # fields['Excel'] = [ "excel" ]
     # fields['Variables'] = [ "variables" ]
+    testconf.data.graphnames = graphnames
+    testconf.data.tablefields = tablefields
     
     return tablefields
 
 
 def generatepdfs(file):
+
+    scilabparent = Path(scilab.__file__).resolve().parent.parent
+    mdprocessor = subprocess.check_output("which scholdoc", shell=True).decode('utf8').strip()
+    scripthtml = scilabparent / "scripts" / "preview_scholdoc.sh"
+    scriptpdf = scilabparent / "scripts" / "run_scholdoc.sh"
+
+    scripthtml.resolve(), scriptpdf.resolve()
+    debug(mdprocessor, scriptpdf, scripthtml)
+
     pandocjob = "{script} '{file}.md' {pd}".format(script=scriptpdf, file=file, pd=mdprocessor )
 
     try:
@@ -235,21 +264,26 @@ def generatepdfs(file):
 
 def process_test(testconf, args):
     
+    if args.options['output','dataprocessor','skipreports']:
+        print("Not running reports.")
+        return
         
     testdetails = Json.load_json_from(testconf.folder.details)
     
     testdetails = mapd(testdetails, valuef=itemHandler)
     testdetails = mapd(testdetails, valuef=formatHandler)
 
-    testconf.data.tablefields = processReportConfig(testconf, args)
+    processReportConfig(testconf, args)
     
     testconf.data.summarydetails = testdetails
     testconf.data.flatdetails = DataTree(flatten(testdetails))
     
     mdfile = processTestDocument(testconf, args)
     
-    if args["output", "generatepdfs"]:
+    if args.options["output", "generatepdfs"]:
         generatepdfs(mdfile)
+    else:
+        print("Not generating pdfs. ")
     
     # print("Job:", subprocess.check_call(job, shell=True), flush=True )
     

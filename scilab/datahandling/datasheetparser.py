@@ -61,7 +61,8 @@ def handler(testconf, excelfile, args):
         data['name'] = testconf.info.name
         data['id'] = testconf.info.short
         data['info'] = testconf.info._asdict()
-        
+
+    assert excelfile.exists()
 
     ## Update with Excel Values    
     data = parse_data_from_worksheet(

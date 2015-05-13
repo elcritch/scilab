@@ -21,6 +21,7 @@ import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 
 import numpy as np
 import matplotlib.pyplot as plt
+import scilab.datahandling.processingreports as processingreports
 
 import seaborn as sns
 
@@ -94,6 +95,9 @@ def run_config(test, args, config, configfile):
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
 
+    print(mdHeader(2, "Generating Report and summary data"))
+    processingreports.process_test(testconf=test, args=args)
+
 
 def run(test, args):
     # debug(test, args)
@@ -112,8 +116,8 @@ def test_folder():
     import scilab.expers.configuration as config
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
@@ -130,6 +134,13 @@ def test_folder():
     testitems = { k.name: DataTree(info=k, folder=v, data=DataTree() ) for k,v in testitemsd.items()}
 
     args = DataTree()
+    args.version = "12"
+    args.options = DataTree()
+    args.options["output", "generatepdfs"] = True
+    
+    # args.testname = name
+    # args.test = test
+    # args.fs = fs
     
     for name, test in sorted( testitems.items() )[:]:
         # if name not in ["nov24(gf9.2-lmm)-wf-lg-l4-x2"]:
@@ -149,12 +160,8 @@ def test_folder():
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
         debug(folder.data.relative_to(parentdir))
         
-        args.version = "0"
-        args.testname = name
-        args.test = test
-        args.fs = fs
-        
         test.folder = folder
+        test.projectfolder = fs
         test.details = Json.load_json_from(folder.details)
         
         run(test, args)
