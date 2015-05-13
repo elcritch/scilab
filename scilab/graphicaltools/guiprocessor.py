@@ -129,14 +129,17 @@ class ExperTestList(QListWidget):
 
 import importlib
 
-class DataProcessorWebView(BasicWebView):
+class DataProcessorWebView(QTextEdit):
     
     def __init__(self):
         super(DataProcessorWebView, self).__init__()
     
     def init(self):
         
-        self.setContent("<html><h1>Text:</h1></html>", "text/html", QUrl("./"))
+        pass
+        
+        
+        # self.setContent("<html><h1>Text:</h1></html>", "text/html", QUrl("./"))
         
     
 class TestPageWebView(BasicWebView):

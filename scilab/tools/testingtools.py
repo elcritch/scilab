@@ -17,9 +17,55 @@ class TeeIO:
         self.fd2 and self.fd2.flush()
         
     def close(self):
-        pass
+        if self.fd1 != sys.stdout and self.fd1 != sys.stderr :
+            self.fd1.close()
+        if self.fd2 != sys.stdout and self.fd2 != sys.stderr :
+            self.fd2.close()
 
-
+class TeeStdIO:
+    
+    def __init__(self, stdname, tee):
+        
+        std = getattr(sys, stdname)
+        teeIO = TeeIO(std, tee)
+        
+        self.stdname = stdname
+        self.std = std
+        self.tee = tee
+        self.teeIO = teeIO
+        
+        setattr(sys, stdname, self)        
+        
+    def close(self):
+        
+        setattr(sys, stdname, self.std)
+        
+        self.tee.close()
+    
+    
+class StdErrTeeIO():
+    
+    def __init__(self):
+        
+        self.stdoutstr, self.stderrstr = io.StringIO(), io.StringIO()
+        self.stdout, self.stderr = sys.stdout, sys.stderr
+        
+        self.teeout = TeeIO(self.stdoutstr, )
+        self.teeerr = TeeIO(self.stderrstr, )
+        
+    def close(self):
+        
+        sys.stdout = self.stdout
+        sys.stderr = self.stderr
+        
+        self.stdoutstr.close()
+        self.stderrstr.close()
+        
+        self.teeout.close()
+        self.teeerr.close()
+        
+        
+    
 
 def test_in(tests):
     def test_decorator(func):

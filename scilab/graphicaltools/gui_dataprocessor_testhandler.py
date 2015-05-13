@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, logging, traceback
+import sys, collections, logging, traceback, io
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -13,6 +13,8 @@ Signal = pyqtSignal
 Slot = pyqtSlot
 
 from scilab.tools.project import *
+from scilab.tools import testingtools
+
 from pathlib import *
 # from fn import _ as __
 # import formlayout
@@ -25,11 +27,32 @@ from scilab.expers.configuration import FileStructure
 import scilab.tools.jsonutils as Json
 from scilab.datahandling.datahandlers import *
 import scilab.graphicaltools.forms as forms
+import scilab.datahandling.dataprocessor as dataprocessor
 
 import numpy as np
 
 import scilab.expers.configuration as config
 from scilab.expers.configuration import BasicTestInfo
+
+def run_process(processargs):
+    
+    print("### Processing ")
+    test, fs, args = processargs
+    
+    debug(list(test.keys()), fs, args)
+
+    if not fs or not test or not args:
+        debug(fs, test, args)
+        logging.warning("Cannot execute test! Empty arguments ")
+        return
+
+    if not 'data' in test:
+        test.data = DataTree()
+        
+    dataprocessor.execute(fs=fs, name=test.info.name, testconf=test, args=args )
+
+    print("Done")
+
 
 
 class ProjectContainer():
@@ -45,6 +68,8 @@ class ProjectContainer():
         self.testitemsd = None
         self.args       = None  
         self.projectdesc = None
+        self.test = DataTree()
+
         self.createnewtest.connect(self.docreatenewtest)
         self.processtest.connect(self.doprocesstest)
     
@@ -55,10 +80,19 @@ class ProjectContainer():
         errorMessageDialog = QErrorMessage(self._parent)
         errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
 
+    
+    @Slot(str)
+    def doprocessorupdate(self, line):
+        print("Update!")
+
     @Slot()
     def doprocesstest(self):
+        
         print("processtest!!")
-        debug(self.test)
+        self.ctimer = QTimer()
+        processargs = self.test, self.fs, self.args
+        
+        run_process(processargs)        
         
     @Slot()
     def docreatenewtest(self):
@@ -148,6 +182,32 @@ class ProjectContainer():
             self.testitemsd = self.fs.testitemsd()
             self.args = DataTree()
 
+            expertype = self.fs.projdesc["experiment_config"]["type"]
+
+            if expertype == "cycles":
+                import scilab.expers.mechanical.fatigue.cycles as exper
+            elif expertype == "uts":
+                import scilab.expers.mechanical.fatigue.uts as exper
+            else:
+                raise ValueError("Do not know how to process test type.", expertype)
+
+            args = DataTree()
+            args.forceRuns = DataTree(raw=False, norm=True)
+            args.version = "0"
+            # args["force", "imagecropping"] = True
+            # args["dbg","image_measurement"] = True
+            # === Excel === 
+            args.options = DataTree()
+            args.options["output", "excel"] = False
+            args.options["output", "onlyVars"] = True
+            
+            args.parser_data_sheet_excel = exper.parser_data_sheet_excel
+            args.parser_image_measurements = exper.parser_image_measurements
+            args.codehandlers = exper.getcodehandlers()
+
+            self.args = args
+            print("Setting args: ", self.args)
+            
             # = Emit projectdirchanged =
             print("Setting test directory:", self.test_dir)
             self.projectdirchanged.emit(str(projectdir))
