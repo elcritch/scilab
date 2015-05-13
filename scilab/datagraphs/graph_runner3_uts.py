@@ -55,8 +55,7 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
         return
     
     # plt.show(block=True)
-    
-    test.folder.save_calculated_json(test=test, name='graphs', data=graphdata.calcs)
+    # test.folder.save_calculated_json(test=test, name='graphs', data=graphdata.calcs)
     
     figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], version=args.version)
     print(tag(b="Figure: "+figname))
@@ -88,9 +87,9 @@ def run_config(test, args, config, configfile):
     sns.set_style("whitegrid")
     
     handle_grapher(graph_imagemeasurement, test, matdata, args, zconfig)
-    # handle_grapher(graph_overview, test, matdata, args, zconfig)
-    # handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
-    # handle_grapher(graph_uts, test, matdata, args, zconfig)
+    handle_grapher(graph_overview, test, matdata, args, zconfig)
+    handle_grapher(graph_precond_fit, test, matdata, args, zconfig)
+    handle_grapher(graph_uts, test, matdata, args, zconfig)
 
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
@@ -111,17 +110,16 @@ def run(test, args):
 def test_folder():
     
     import scilab.expers.configuration as config
-    import scilab.expers.mechanical.fatigue.uts as exper_uts
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
     print(pdp.resolve())
     
-    fs = config.FileStructure(projdescpath=pdp,testinfo=exper_uts.TestInfo, verify=True)
+    fs = config.FileStructure(projdescpath=pdp, verify=True)
     # Test test images for now
     test_dir = fs.tests.resolve()
     testitemsd = fs.testitemsd()

@@ -11,7 +11,7 @@ import scilab.tools.fitting as Fitting
 
 def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_args):
 
-    if not (zconfig["stage"] =='norm' and "uts" in zconfig["method"] and "tracking" in zconfig["item"])):
+    if not (zconfig["stage"] =='norm' and "uts" in zconfig["method"] and "tracking" in zconfig["item"]):
         logging.warning("Graph doesn't match graph type: "+repr(zconfig))
         return DataTree()
     
@@ -39,7 +39,7 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     ax1.set_ylabel(labeler(yl))
     
     load_offset = test.details.variables.precond.tracking.norm.pre.load_balance
-    loadbalance = -load_offset.value/test.details.measurements.image.area.value
+    loadbalance = -load_offset.value/test.details.measurements.specimen.area.value
     ax1.hlines(loadbalance, x[0],x[-1], linestyles='dashed')
         
     uts_label = "UTS: (%.2f, %.2f) [%s,%s]"%(ymax.value, x[ymax.idx], yl.units, xl.units, )

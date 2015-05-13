@@ -200,7 +200,7 @@ class FileStructure(DataTree):
             key = ("experiment_config",i)
             if not projdesc[key]:
                 print('Missing:\n\n    File "{key}", line 1, in {projdescpath}\n\n'.format(projdescpath=projdescpath, key=("experiment_config",i)), file=sys.stdout)
-                raise ValueError("Missing config: ", key, projdescpath)
+                raise ValueError("Missing key in config: `{}` from: `{}`".format(key, projdescpath))
         
         self._testinfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
         

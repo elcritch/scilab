@@ -105,14 +105,17 @@ def normalize_columns(data, norm_config, filenames, state):
         else:
             normeddata = None
         
+        exec_variables = state.get('variables',DataTree())
+        props = exec_variables[state.methodname][state.methoditem.name][state.processorname]
+        
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)
-            constant_factor = executeexpr(constantexpr, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            constant_factor = executeexpr(constantexpr, details=state.details, data=data, props=props, variables=exec_variables)
             debug(constant_factor)
             normeddata = normeddata * constant_factor
         if col['conversion','func']:
             key, constantexpr = getpropertypair(col.conversion)
-            normeddata = executeexpr(constantexpr, x=normeddata, details=state.details, data=data, variables=state.get('variables',DataTree()))
+            normeddata = executeexpr(constantexpr, x=normeddata, details=state.details, data=data, props=props, variables=exec_variables)
             
         
         return normeddata
@@ -337,6 +340,7 @@ def process_methods(testfolder, state, args):
         except Exception as err:
             print("type:",str(type(err.args[-1])).replace('<','≤'))
             if isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
+                logging.warning(str(err))
                 continue
             else:
                 raise err
@@ -437,8 +441,8 @@ def test_folder(args):
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
-    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
@@ -484,7 +488,7 @@ def test_folder(args):
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed", str(err), "<a src='file://{}'>Folder</a>".format(testconf.folder.testdir.as_posix())
-            # raise err
+            raise err
         
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error", "Folder" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
@@ -500,7 +504,7 @@ def main():
     # === Excel === 
     args.options = DataTree()
     args.options["output", "excel"] = False
-    args.options["output", "onlyVars"] = True
+    args.options["output", "onlyVars"] = False
     # === Only Update Variables === 
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper%7Cfatigue-failure%7Ccycles%7Ctrial1/02_Tests/jan10%28gf10.9-llm%29-wa-lg-l10-x3/'>Test1</a>")
@@ -509,20 +513,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-def test_run():
-    
-    samplefiles = Path(__file__).parent.resolve()/'..'/'..'/'test/instron-test-files'
-    samplefiles = samplefiles.resolve()
-    debug(samplefiles)
-    
-    ## create fake folder structure 
-    testfolder = DataTree()
-    testfolder['data'] = samplefiles / 'data' 
-    testfolder['details'] = samplefiles / 'data' / 'instron-testconf.details.json'
-    testfolder['datacalc'] = samplefiles / 'data' / 'processed' 
-    testfolder['raw','csv','instron_test','tracking'] = samplefiles / 'instron-test-file.steps.tracking.csv' 
-    testfolder['raw','csv','instron_test','trends'] = samplefiles / 'instron-test-file.steps.trends.csv' 
-    
-    args = DataTree()
-    run(testfolder, args)
 

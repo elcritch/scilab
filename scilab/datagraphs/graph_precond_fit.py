@@ -57,11 +57,12 @@ def graph(test, matdata, args, step_idx='idx_2', zconfig=DataTree(), **graph_arg
     # Precond Fitting 
     # modulus, fits = fit_modulus(time=cycletime, strain=data.strain[sl], stress=data.stress[sl], sl=sl_fit)
     
-    fits = test.details.variables.m2_precond.tracking.norm.post.fitting.fits
+    precondname = next( k for k in test.details.variables.keys() if 'precond' in k )
+    fits = test.details.variables[precondname].tracking.norm.post.fitting.fits
     poly = lambda fit: np.poly1d( [fit.slope, fit.intercept] ) 
     stress_linear = poly(fits.stress_linear)
     strain_linear = poly(fits.strain_linear)
-    modulus = test.details.variables.m2_precond.tracking.norm.post.fitting.modulus
+    modulus = test.details.variables[precondname].tracking.norm.post.fitting.modulus
     
     debug(modulus)
     
