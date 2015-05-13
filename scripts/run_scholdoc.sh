@@ -9,8 +9,9 @@ BASE="$(basename $FILE)"
 HTML="${STEM}.html"
 PDF="${STEM}.pdf"
 SCRIPT_NAME="$(basename $0)"
-
+SCILAB=${SCILAB:-$HOME/proj/code/scilab/}
 LOG="/tmp/script-${SCRIPT_NAME}.log"
+
 
 echo "LOG: $LOG"
 
@@ -22,10 +23,10 @@ echo "SCILAB: '$SCILAB'"                      | tee $LOG
 
 if [ ! -e $FILE  ]; then
   echo "Error no input file in args: " $*
-  exit 127
+  exit 126
 fi
 
-if [ -z $SCILAB  ]; then
+if [ ! -e $SCILAB  ]; then
   echo "Error no SCILAB directory: $HTML"
   exit 127
 fi
