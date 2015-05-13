@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, logging, traceback, io, multiprocessing 
+import sys, collections, logging, traceback, io, multiprocessing, copy
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -105,25 +105,32 @@ class ProjectContainer():
         errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
 
     
-    @Slot(str)
-    def doprocessorupdate(self, line):
-        print("Update!")
+    @Slot()
+    def doprocessorupdate(self):
+        print("#### Queue Update:")
+        try:
+            print("quque:", self.test.queue.get())
+        except Exception as err:
+            print("Empty queue!"+str(err))
 
     @Slot()
     def doprocesstest(self):
         
         print("processtest!!")
-        self.ctimer = QTimer()
         testinfodict = { str(k): str(v) for k,v in self.test.info._asdict().items() }
         debug(testinfodict)
-        debug(self.fs)
+        # debug(self.fs)
 
-        import copy
         shallowfs = copy.copy(self.fs)
         shallowfs._testinfo = None
 
-        processargs = testinfodict, shallowfs, self.args
-        # processargs = testinfodict, None, self.args
+        self.test.queue = multiprocessing.Queue()
+        self.test.timer = QTimer(self._parent)
+        self.test.timer.timeout.connect(self.doprocessorupdate)
+        
+        self.test.timer.start(2*1000)
+        
+        processargs = testinfodict, shallowfs, self.args # , self.test.queue
         
         self.pool.map_async(_process, [processargs])
         
