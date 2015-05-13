@@ -36,6 +36,8 @@ from scilab.expers.configuration import BasicTestInfo
 
 def _process(processargs):
     
+    
+    
     print("### Processing ")
     testinfodict, fs, args = processargs
     
@@ -103,15 +105,14 @@ class ProjectContainer():
             errorfmt += "<br>Exception:<br><pre><code>{ex}</code></pre>"
         errorMessageDialog = QErrorMessage(self._parent)
         errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
-
     
     @Slot()
     def doprocessorupdate(self):
         print("#### Queue Update:")
         try:
-            print("quque:", self.test.queue.get())
+            print("queue:", self.test.queue.get_nowait())
         except Exception as err:
-            print("Empty queue!"+str(err))
+            pass
 
     @Slot()
     def doprocesstest(self):

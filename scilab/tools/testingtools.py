@@ -22,6 +22,8 @@ class TeeIO:
         if self.fd2 != sys.stdout and self.fd2 != sys.stderr :
             self.fd2.close()
 
+
+
 class TeeStdIO:
     
     def __init__(self, stdname, tee):
@@ -41,25 +43,25 @@ class TeeStdIO:
         setattr(sys, stdname, self.std)
         
         self.tee.close()
+
     
     
 class StdErrTeeIO():
     
-    def __init__(self):
-        
-        self.stdoutstr, self.stderrstr = io.StringIO(), io.StringIO()
+    def __init__(self, outtee=io.StringIO(), errtee=io.StringIO()):        
+        self.outtee, self.errtee = outtee, errtee
         self.stdout, self.stderr = sys.stdout, sys.stderr
         
-        self.teeout = TeeIO(self.stdoutstr, )
-        self.teeerr = TeeIO(self.stderrstr, )
+        self.teeout = TeeIO(self.outtee, )
+        self.teeerr = TeeIO(self.errtee, )
         
     def close(self):
         
         sys.stdout = self.stdout
         sys.stderr = self.stderr
         
-        self.stdoutstr.close()
-        self.stderrstr.close()
+        self.outtee.close()
+        self.errtee.close()
         
         self.teeout.close()
         self.teeerr.close()
