@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, pathlib, re, logging
+import os, sys, pathlib, re, logging, shutil
 import pandas as pd
 import numpy as np
 import scipy.io as sio
@@ -15,12 +15,13 @@ from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
 import scilab.datahandling.datasheetparser as datasheetparser  
 import scilab.datahandling.processimagemeasurement as processimagemeasurement
+import scilab.datahandling.processingreports as processingreports
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
 import numpy as np
 
-import shutil
+import xmltodict
 from tabulate import tabulate
 
 # @debugger
@@ -407,6 +408,7 @@ def execute(fs, name, testconf, args):
     args.report = sys.stdout
     
     testconf.folder = folder
+    testconf.projectfolder = fs
     
     # Setup Arguments Environment
     state = DataTree()
@@ -434,6 +436,11 @@ def execute(fs, name, testconf, args):
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
 
+    print(mdHeader(2, "Generating Report and summary data"))
+    processingreports.process_test(testconf=testconf, args=args)
+
+
+
 
 def test_folder(args):
     
@@ -442,8 +449,8 @@ def test_folder(args):
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
@@ -474,7 +481,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:1]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
@@ -485,11 +492,12 @@ def test_folder(args):
         try:
             execute(fs, name, testconf, args, )
             summaries[name] = "Success", "", ""
+            
         except Exception as err:
             logging.error(err)
             summaries[name] = "Failed", str(err), "<a src='file://{}'>Folder</a>".format(testconf.folder.testdir.as_posix())
             raise err
-        
+    
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error", "Folder" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
     print()
@@ -497,14 +505,14 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=True)
-    args.version = "0"
+    args.forceRuns = DataTree(raw=False, norm=False)
+    args.version = "12"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
     args.options = DataTree()
     args.options["output", "excel"] = False
-    args.options["output", "onlyVars"] = False
+    args.options["output", "onlyVars"] = True
     # === Only Update Variables === 
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper%7Cfatigue-failure%7Ccycles%7Ctrial1/02_Tests/jan10%28gf10.9-llm%29-wa-lg-l10-x3/'>Test1</a>")

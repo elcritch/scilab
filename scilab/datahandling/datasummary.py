@@ -135,7 +135,7 @@ def test_folder(args):
             logging.error(err)
             summaries[name] = "Failed", str(err), "<a src='file://{}'>Folder</a>".format(testconf.folder.testdir.as_posix())
             raise err
-        
+    
     print("Summaries:\n\n")
     print(HTML(tabulate( [ (k,)+v for k,v in summaries.items()], [ "Test Name", "Status", "Error", "Folder" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
     print()

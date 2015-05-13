@@ -59,8 +59,7 @@ def shapeof(v):
         return ("string", "value", [])
     else:
         return ("", "", [])
-        
-        
+
 
 # Helpers
 class DataTree(dict):
