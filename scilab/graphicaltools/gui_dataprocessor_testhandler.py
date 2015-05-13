@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, logging, traceback, io
+import sys, collections, logging, traceback, io, multiprocessing 
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -34,12 +34,36 @@ import numpy as np
 import scilab.expers.configuration as config
 from scilab.expers.configuration import BasicTestInfo
 
-def run_process(processargs):
+def _process(processargs):
     
     print("### Processing ")
-    test, fs, args = processargs
+    testinfodict, fs, args = processargs
+    
+    # fs = config.FileStructure(projdescpath=projdescpath,verify=True)
+    TestInfo = generatetestinfoclass(**fs.projdesc["experiment_config"]["testinfo"])
+    testinfo = TestInfo(**testinfodict)
+    debug(testinfo)
+    
+    test = DataTree()
+    test.data = DataTree()
+    test.info = testinfo
+    test.folder = fs.testfolder(testinfo=test.info, ensure_folders_exists=False)
     
     debug(list(test.keys()), fs, args)
+
+    expertype = fs.projdesc["experiment_config"]["type"]
+
+    if expertype == "cycles":
+        import scilab.expers.mechanical.fatigue.cycles as exper
+    elif expertype == "uts":
+        import scilab.expers.mechanical.fatigue.uts as exper
+    else:
+        raise ValueError("Do not know how to process test type.", expertype)
+    
+    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
+    args.parser_image_measurements = exper.parser_image_measurements
+    args.codehandlers = exper.getcodehandlers()
+
 
     if not fs or not test or not args:
         debug(fs, test, args)
@@ -53,8 +77,6 @@ def run_process(processargs):
 
     print("Done")
 
-
-
 class ProjectContainer():
     
     projectdirchanged = Signal(str)
@@ -62,14 +84,16 @@ class ProjectContainer():
     createnewtest = Signal()
     processtest = Signal()
     
-    def __init__(self):
+    def __init__(self, poolsize=4):
+        
         self.fs         = None
         self.test_dir   = None
         self.testitemsd = None
         self.args       = None  
         self.projectdesc = None
         self.test = DataTree()
-
+        self.pool = multiprocessing.Pool(processes=poolsize)
+        
         self.createnewtest.connect(self.docreatenewtest)
         self.processtest.connect(self.doprocesstest)
     
@@ -90,9 +114,18 @@ class ProjectContainer():
         
         print("processtest!!")
         self.ctimer = QTimer()
-        processargs = self.test, self.fs, self.args
+        testinfodict = { str(k): str(v) for k,v in self.test.info._asdict().items() }
+        debug(testinfodict)
+        debug(self.fs)
+
+        import copy
+        shallowfs = copy.copy(self.fs)
+        shallowfs._testinfo = None
+
+        processargs = testinfodict, shallowfs, self.args
+        # processargs = testinfodict, None, self.args
         
-        run_process(processargs)        
+        self.pool.map_async(_process, [processargs])
         
     @Slot()
     def docreatenewtest(self):
@@ -182,14 +215,6 @@ class ProjectContainer():
             self.testitemsd = self.fs.testitemsd()
             self.args = DataTree()
 
-            expertype = self.fs.projdesc["experiment_config"]["type"]
-
-            if expertype == "cycles":
-                import scilab.expers.mechanical.fatigue.cycles as exper
-            elif expertype == "uts":
-                import scilab.expers.mechanical.fatigue.uts as exper
-            else:
-                raise ValueError("Do not know how to process test type.", expertype)
 
             args = DataTree()
             args.forceRuns = DataTree(raw=False, norm=True)
@@ -201,10 +226,6 @@ class ProjectContainer():
             args.options["output", "excel"] = False
             args.options["output", "onlyVars"] = True
             
-            args.parser_data_sheet_excel = exper.parser_data_sheet_excel
-            args.parser_image_measurements = exper.parser_image_measurements
-            args.codehandlers = exper.getcodehandlers()
-
             self.args = args
             print("Setting args: ", self.args)
             
