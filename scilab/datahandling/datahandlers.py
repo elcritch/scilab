@@ -150,14 +150,21 @@ def handle_builtin_actions(prop, env):
     try:
         key, value = getpropertypair(prop)
         # debug(key, value,)
+        
         if key == '_lookup_':
-            return builtin_action_lookup(value, **env)
+            result = builtin_action_lookup(value, **env)
         elif key == '_csv_':
-            return builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
+            result = builtin_action_csv(getproperty(value, errorcheck=False, action=True, env=env), **env)
         elif key == '_exec_':
-            return builtin_action_exec(value, **env)
+            result = builtin_action_exec(value, **env)
         else:
             raise KeyError("Unknown builtin: `{}`".format(key))
+        
+        if isproperty(result) and getpropertypair(result)[0].startswith('_'):
+            return handle_builtin_actions(result, env=env)
+        else:
+            return result
+        
     except Exception as err:
         # debughere()
         raise err

@@ -132,6 +132,13 @@ def parser_image_measurements(testconf, imgdata):
 
 def getcodehandlers():
     
+    def process_utspred(tangent_modulus, details, projectdesc):
+        
+        
+        projdesc.experiment_config.config.calibration.utsprediction.all[details.info.orientation]
+        
+        
+    
     return DataTree(process_precondition=scilab.datahandling.processingpreconditioning.process_precondition)
     
 

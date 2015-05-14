@@ -18,6 +18,7 @@ from scilab.tools.instroncsv import *
 from scilab.datahandling.datahandlers import *
 import scilab.datahandling.columnhandlers as columnhandlers  
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
+import scilab.datahandling.processingreports as processingreports
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -126,6 +127,9 @@ def run(test, args):
             raise err
             # continue
 
+    print(mdHeader(2, "Generating Report and summary data"))
+    processingreports.process_test(testconf=test, args=args)
+
 
 def test_folder():
     
@@ -133,6 +137,13 @@ def test_folder():
     import scilab.expers.mechanical.fatigue.cycles as exper
     
     args = DataTree()
+    args.version = "14"
+    args.options = DataTree()
+    args.options["output", "generatepdfs"] = True
+    
+    # args.testname = name
+    # args.test = test
+    # args.fs = fs
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
     args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
@@ -153,7 +164,7 @@ def test_folder():
     
     summaries = OrderedDict()
     
-    for name, test in sorted( testitems.items() )[:]:
+    for name, test in sorted( testitems.items() )[:2]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
@@ -173,12 +184,8 @@ def test_folder():
         display(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='html' )))
         debug(folder.data.relative_to(args.parentdir))
         
-        args.version = "0"
-        args.testname = name
-        args.test = test
-        args.fs = fs
-        
         test.folder = folder
+        test.projectfolder = fs
         test.details = Json.load_json_from(folder.details)
         
         try:

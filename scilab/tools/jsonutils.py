@@ -178,7 +178,7 @@ def dump_json(json_data):
     return json.dumps(json_data, indent=4, sort_keys=True, cls=CustomJsonEncoder)    
     
 @debugger
-def write_json_to(json_path, json_data, dbg=None, **kwargs):
+def write_json_to(json_path, json_data, indent=4, dbg=None, **kwargs):
 
     json_path = Path(str(json_path))
 
@@ -193,7 +193,7 @@ def write_json_to(json_path, json_data, dbg=None, **kwargs):
 
         # with open( tempFile, 'w' ) as json_file:
         # with tempFile as json_file:
-        json.dump(json_data, tempFile, indent=4, sort_keys=True, cls=CustomJsonEncoder)
+        json.dump(json_data, tempFile, indent=indent, sort_keys=True, cls=CustomJsonEncoder)
 
             # update json file
             # debug(tempFile.name)

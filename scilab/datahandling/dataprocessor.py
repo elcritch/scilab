@@ -143,10 +143,12 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     
     variables_input = state['methoditem','variables', name, kind]
     
+    # debug(state)
+    
     if not variables_input: 
         variables = DataTree()
     else:
-        env = DataTree(details=state.details, codehandlers=state.args.codehandlers, **data )
+        env = DataTree(projdesc=state.projdesc, details=state.details, codehandlers=state.args.codehandlers, **data )
         variables = getproperty(variables_input, action=True, env=env)
 
     state.variables = variables
@@ -447,9 +449,9 @@ def test_folder(args):
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
@@ -480,7 +482,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:]:
+    for name, testconf in sorted( testitems.items() )[:2]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
@@ -504,8 +506,8 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=True, norm=True)
-    args.version = "12"
+    args.forceRuns = DataTree(raw=False, norm=True)
+    args.version = "14"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 

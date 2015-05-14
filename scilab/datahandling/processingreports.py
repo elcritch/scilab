@@ -112,6 +112,7 @@ def makeTestDocument(test, args):
     #     ('Overview Precond', "graph*norm*method=*precond*graph=overview*.png"),
     #     ('Overview Preload', "graph*raw*method=*preload*graph=overview*.png"),
     # ]
+    
     debug(graphNames)
     graphFiles = [ (k,next(test.folder.graphs.glob(v), test.folder.graphs/v)) for k,v in graphNames ]
     
@@ -122,7 +123,7 @@ def makeTestDocument(test, args):
 
     specimenMeasurementsHtml = "\n".join([ 
                     "<img src='{}' width='{}%'></img><br>".format(img.relative_to(testdir), 80 )
-                        for img in test.folder.graphs.glob("*graph=imagemeasurement*") 
+                        for img in test.folder.graphs.glob("*graph=imagemeasurement*v{version}*".format(version=args.version)) 
                     ])
 
     fileTable = tabulate.tabulate( sorted([ 
@@ -224,7 +225,7 @@ def processReportConfig(testconf, args):
     graphnames = []
     
     for graph in reportconf["GraphTable"]["Graph"]:
-        graphname = ( graph["@name"], graph["@match"] )
+        graphname = ( graph["@name"], graph["@match"].format(version=args.version) )
         graphnames.append(graphname)
         
     testconf.data.graphnames = graphnames
@@ -268,15 +269,22 @@ def process_test(testconf, args):
         print("Not running reports.")
         return
         
-    testdetails = Json.load_json_from(testconf.folder.details)
+    origtestdetails = Json.load_json_from(testconf.folder.details)
     
-    testdetails = mapd(testdetails, valuef=itemHandler)
+    testdetails = mapd(origtestdetails, valuef=itemHandler)
     testdetails = mapd(testdetails, valuef=formatHandler)
 
     processReportConfig(testconf, args)
     
     testconf.data.summarydetails = testdetails
     testconf.data.flatdetails = DataTree(flatten(testdetails))
+    
+    jsonlfilename = "data (type=flat summary | kind=json | short={short} | v{version}).jsonl"
+    jsonlfilename = jsonlfilename.format(short=testconf.info.short, version=args.version)
+    jsonlfilename = testconf.folder.main / jsonlfilename
+    
+    # with jsonlFilename.open('w') as jsonlfile:    
+    Json.write_json_to(jsonlfilename, flatten(origtestdetails), indent=None)
     
     mdfile = processTestDocument(testconf, args)
     

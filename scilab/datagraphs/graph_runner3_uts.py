@@ -95,8 +95,6 @@ def run_config(test, args, config, configfile):
     print(mdHeader(2, "Merging JSON Data"))
     merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
 
-    print(mdHeader(2, "Generating Report and summary data"))
-    processingreports.process_test(testconf=test, args=args)
 
 
 def run(test, args):
@@ -110,6 +108,9 @@ def run(test, args):
         print("Config:",config)
         run_config(test, args, config, configfile)
 
+    print(mdHeader(2, "Generating Report and summary data"))
+    processingreports.process_test(testconf=test, args=args)
+
 
 def test_folder():
     
@@ -117,7 +118,7 @@ def test_folder():
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
-    parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
     
     pdp = parentdir / 'projdesc.json' 
     print(pdp)
