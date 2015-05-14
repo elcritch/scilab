@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 import argparse, re, os, glob, sys, collections, inspect, json
-import itertools, inspect, logging, pathlib 
+import itertools, inspect, logging, pathlib , urllib
 
 Path = pathlib.Path
 os = os
@@ -167,6 +167,13 @@ def debugger_summary(idx, val, prefix='', depth=0, fmt="<h1>Debug:<b>{idx}</b>:<
     msg = fmt.format(pre=prefix*depth, idx=idx, val=str(type(val)).replace('<','≤').replace('>','≥'))
     
     return msg + ifmt.format(debugger_str(val, tablefmt=tablefmt, ignores=ignores))
+
+def debugfile(file, debug=False):
+    try:
+        # print("<a src='file://{file}'>{file.name}</a>".format(file=Path(str(file))))
+        print("file://{file}".format(file=urllib.parse.quote(str(file))))
+    except Exception as err:
+        print(str(file))
 
 def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """

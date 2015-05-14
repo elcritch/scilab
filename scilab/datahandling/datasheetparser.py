@@ -25,7 +25,8 @@ def parse_data_from_worksheet(parser_data_sheet_excel, testconf, args, **kwargs)
     try:
         excelfile = testconf.folder.datasheet 
         excelfile = excelfile.resolve()
-        debug(excelfile)
+        debugfile(excelfile)
+        
         
         wb = load_workbook(excelfile.absolute().as_posix(), data_only=True)
     except (Exception) as err:
@@ -34,7 +35,7 @@ def parse_data_from_worksheet(parser_data_sheet_excel, testconf, args, **kwargs)
         
     ## Process Excel Sheets
     ws = wb.worksheets[0]
-    return parser_data_sheet_excel(ws)    
+    return parser_data_sheet_excel(ws, testconf=testconf)
 
 
 

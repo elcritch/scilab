@@ -10,7 +10,7 @@ from scilab.tools.helpers import *
 from scilab.tools.excel import *
 import scilab.datahandling.processingpreconditioning 
 
-def parser_data_sheet_excel(ws):
+def parser_data_sheet_excel(ws, testconf):
     
     rng = rangerForRow(ws)
 
@@ -30,6 +30,21 @@ def parser_data_sheet_excel(ws):
     other["unadjusted","width"] = valueUnitsStd(ws['B7'].value, units="mm", stdev=ws['B8'].value)._asdict()
     other["unadjusted","depth"] = valueUnitsStd(ws['C7'].value, units="mm", stdev=ws['C8'].value)._asdict()
     other["unadjusted","area"]  = valueUnits(ws['E7'].value, units="mm")._asdict()
+    
+    # -- tr / lg correlation curves --
+    testcorr = lambda *data: all(data)
+    
+    for idx in range(17,20):
+        corr_lg = DataTree(linearFit(ws['E%d'%idx].value, ws['G%d'%idx].value)._asdict())
+        corr_tr = DataTree(linearFit(ws['E%d'%(idx+2)].value, ws['G%d'%(idx+2)].value)._asdict())
+        
+        if corr_tr["slope",] and corr_lg["slope",]:
+            break
+    else:
+        if not (corr_tr["slope",] and corr_lg["slope",]):
+            raise ValueError("utscorrelation not found in datasheet")
+    
+    other["utspredcorrelation"] = {"lg":corr_lg, "tr":corr_tr}[testconf.info.orientation]
     
     ## continue reading the column down 
     end = process_definitions_column(ws, other, 'A',9,24, stop_key='UTS Stress', dbg=False, has_units=False)    

@@ -137,7 +137,7 @@ def test_folder():
     import scilab.expers.mechanical.fatigue.cycles as exper
     
     args = DataTree()
-    args.version = "14"
+    args.version = "12"
     args.options = DataTree()
     args.options["output", "generatepdfs"] = True
     

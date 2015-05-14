@@ -58,12 +58,16 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     calcs.stress_amp_percent = test.details.variables.m3_cycles.trends.norm.post.calcs03.stress_amp_percent
     calcs.load_balance = test.details["variables"]['m3_cycles']['tracking']['norm']['pre']['load_balance']['value'] / test.details.measurements.specimen.area.value
     
+    # === ===
+    
+    max_stress_limit = np.max(xmax)
+    
     ## Setup plot
     fig, axes = plt.subplots(ncols=2, figsize=(14,6))
     (ax1,ax2) = axes
     
     ## First Plot ##
-    ax1.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+    ax1.set_ylim((-0.10*max_stress_limit, 1.2*max_stress_limit))
     
     ax1_title = "%s vs %s"%(xmaxl.label, tl.label)
     ax1.plot(t, xmax, label=labeler(xmaxl))
@@ -73,19 +77,19 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax1.set_ylabel(labeler(xmaxl))
     
     ax12 = ax1.twinx()
-    ax12.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+    ax12.set_ylim((-0.10*max_stress_limit, 1.2*max_stress_limit))
     
     
     # stress_max = .stress_max.mean
     
     avg_label='Avg. {:3.1f}±{:.2f} {} ({:.0f}%)'.format(calcs.actual_stress.value, calcs.actual_stress.stdev, calcs.actual_stress.units, calcs.actual_perc.value)
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.target_stress.value, calcs.stress_level.value)
-    pred_label='PredMax. {:3.1f} (SL{})'.format(calcs.pred_max_stress.value, calcs.stress_level.value)
+    # pred_label='PredMax. {:3.1f} (SL{})'.format(max_stress_limit, calcs.stress_level.value)
     
     ax12.hlines(calcs.load_balance, *ax1.get_xbound(), linestyles='dotted', label='Offset', color='black')
     ax12.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
     ax12.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
-    ax12.hlines(calcs.pred_max_stress.value, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
+    # ax12.hlines(max_stress_limit, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
     
     ax1.legend(loc=0, fancybox=True, framealpha=0.0, )
     ax12.legend(loc=3, fancybox=True, framealpha=0.0, )
@@ -99,7 +103,7 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax2.set_xlabel(labeler(tl))
     ax2.set_ylabel(labeler(xampl))
 
-    ax2.set_ylim((-0.10*calcs.pred_max_stress.value, 1.2*calcs.pred_max_stress.value))
+    ax2.set_ylim((-0.10*max_stress_limit, 1.2*max_stress_limit))
 
     avg_label='Avg. {:3.1f}±{:.2f} {} ({:.0f}%)'.format(calcs.stress_amp_actual.value, calcs.stress_amp_actual.stdev, calcs.stress_amp_actual.units, calcs.stress_amp_percent.value)
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.stress_amp_target.value, calcs.stress_level.value)

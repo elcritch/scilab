@@ -482,7 +482,7 @@ def test_folder(args):
     
     summaries = OrderedDict()
     
-    for name, testconf in sorted( testitems.items() )[:2]:
+    for name, testconf in sorted( testitems.items() )[:]:
         # if name != "jan13(gf10.2-rlm)-wa-tr-l6-x3":
         # if 'tr' not in name or name < "nov24(gf9.2-llm)-wa-tr-l5-x2":
         # if name < "jan14":
@@ -507,7 +507,7 @@ def main():
     # test_run()
     args = DataTree()
     args.forceRuns = DataTree(raw=False, norm=True)
-    args.version = "14"
+    args.version = "12"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 

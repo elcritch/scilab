@@ -29,6 +29,7 @@ valueIndexUnits=namedtuple("valueIndexUnits", ["value","idx", "units"])
 valueUnitsStd=namedtuple("valueUnitsStd", ["value","units","stdev"])
 valueUnits=namedtuple("valueUnits", ["value","units"])
 linearFit=namedtuple("linearFit", ["slope","intercept"])
+linearR2Fit=namedtuple("linearFit", ["slope", "intercept", "r2"])
 
 Shapes = collections.OrderedDict(
     valueIndex=["value","idx"],
