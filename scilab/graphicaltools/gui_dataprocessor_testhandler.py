@@ -133,6 +133,9 @@ class ProjectContainer():
     
     @Slot()
     def doprocessorupdate(self):
+        if not self.test or 'queues' not in self.test:
+            return
+        
         stdout, stderr = self.test.queues[0].getvalue(wait=False), self.test.queues[1].getvalue(wait=False)
         print(stdout, flush=True, end='', file=sys.stdout)
         print(stderr, flush=True, end='', file=sys.stderr)
@@ -256,7 +259,7 @@ class ProjectContainer():
 
 
             args = DataTree()
-            args.forceRuns = DataTree(raw=False, norm=True)
+            args.forceRuns = DataTree(raw=False, norm=False)
             args.version = "0"
             # args["force", "imagecropping"] = True
             # args["dbg","image_measurement"] = True
@@ -264,6 +267,8 @@ class ProjectContainer():
             args.options = DataTree()
             args.options["output", "excel"] = False
             args.options["output", "onlyVars"] = True
+            args.options["output", "html", "auto"] = True
+            args.options["output", "generatepdfs"] = False
             
             self.args = args
             print("Setting args: ", self.args)
