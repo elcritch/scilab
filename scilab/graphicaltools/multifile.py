@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import sys, multiprocessing
+import sys, multiprocessing, time
 import queue
 from collections import defaultdict
 from os import getpid
@@ -32,36 +32,47 @@ class MultiProcessFile(object):
         #    http://docs.python.org/library/multiprocessing.html#all-platforms
         self.__master = getpid()
         self.__queue = multiprocessing.Manager().Queue()
-        self.__buffer = StringIO()
+        # self.__buffer = StringIO()
         self.softspace = 0
 
-    def buffer(self):
+    def buffer(self, wait=False):
         if getpid() != self.__master:
+            # print("[MultiProcessFile::buffer::%s] Returning!"%(getpid()), file=sys.stderr)
             return
 
-        cache = defaultdict(str)
+        
+        # cache = defaultdict(str)
+        strbuffer = StringIO()
+        
         while True:
             try:
-                pid, data = self.__queue.get_nowait()
+                pid, data = self.__queue.get(wait)
+                # cache[pid] += data
+                strbuffer.write(data)
+                # print("[MultiProcessFile::buffer::%s -> `%s` ] "%(getpid(), data), file=sys.stderr)
             except queue.Empty:
-                break
-            
-            cache[pid] += data
+                return strbuffer
         
-        for pid in sorted(cache):
-            self.__buffer.write( '[[thread:%s]] %r\n' % (pid, cache[pid]) )
-            
+        # for pid in sorted(cache):
+        #     # self.__buffer.write( '[[thread:%s]] %r\n' % (pid, cache[pid]) )
+        #     self.__buffer.write(cache[pid])
+        
+        
     def write(self, data):
+        # print("[MultiProcessFile::write::%s] "%(getpid()), data, file=sys.stderr)
         self.__queue.put((multiprocessing.current_process()._identity, data))
+    
+    def getvalue(self, wait=False):
+        # print("[MultiProcessFile::read::%s]"%(getpid()), file=sys.stderr)
+        data = self.buffer(wait=wait)
+        # data = self.__buffer.getvalue()
+        # self.__buffer = StringIO()
+        return data.getvalue()
         
     def __iter__(self):
         "getattr doesn't work for iter()"
-        self.buffer()
-        return self.__buffer
-
-    def getvalue(self):
-        self.buffer()
-        return self.__buffer.getvalue()
+        data = self.buffer()
+        return data.__iter__()
 
     def flush(self):
         pass
@@ -72,13 +83,11 @@ if __name__ == '__main__':
     
     def printer(args):
         msg, stdout = args
-         
         sys.stdout = stdout
-        
-        print("My msg %d "%multiprocessing.current_process()._identity, "::", msg, "\n")
-        
-
-
+        print("My msg %d "%multiprocessing.current_process()._identity, "::", msg)        
+        time.sleep(1)
+        print("My msg %d "%multiprocessing.current_process()._identity, "::", msg)        
+    
     print('Starting')
     import sys
     stdoutqueue = MultiProcessFile()
@@ -88,8 +97,6 @@ if __name__ == '__main__':
     
     pool.map_async(printer, [ (i, stdoutqueue) for i in range(20) ])
     
-    pool.join()
-    
     # sys.stdout = sys.__stdout__
     # sys.stderr = sys.__stderr__
 
@@ -98,4 +105,10 @@ if __name__ == '__main__':
     print()
     stdoutqueue.buffer()
     print("buffer", "`%s`"%stdoutqueue.getvalue())
+    
+    pool.close()
+    pool.join()
+    
+    print("after:buffer", "`%s`"%stdoutqueue.getvalue())
+    
     

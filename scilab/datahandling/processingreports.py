@@ -14,6 +14,7 @@ import numpy as np
 import scilab.tools.fitting as Fitting
 import scilab.tools.jsonutils as Json
 import scilab.datahandling.datahandlers as datahandlers
+import mistune
 
 
 import seaborn as sns
@@ -75,7 +76,7 @@ def makeTestDocument(test, args):
     
     # make tables
     tables = collections.OrderedDict(
-        infosTable=tabulate.tabulate( [test.info], headers=test.info._fields )
+        infosTable=tabulate.tabulate( [test.info], headers=test.info._fields, tablefmt ='pipe' )
     )
     
     _done = set()
@@ -91,13 +92,13 @@ def makeTestDocument(test, args):
             # summarykeys.add( ('Test',)+ tuple( i[0] for i in data )+('Preload',) )
             # summarydata.append( [ i[1] for i in data ])
             # summarydata[-1].insert(0,test.info.short)
-            tab = tabulate.tabulate(data, headers=["Name", "Value"] )
+            tab = tabulate.tabulate(data, headers=["Name", "Value"], tablefmt ='pipe' )
         elif isinstance(tableconfig, list):
             values = OrderedDict()
             [ values.update( flatten(ddetails[key], parent_key=key) ) for key in tableconfig ]
             data = [ (" ".join(k.split('.')[:-1]), k.split('.')[-1], v) 
                             for k,v in flatten(values).items() if not done(k) ]
-            tab = tabulate.tabulate(data, headers=["Group", "Field", "Value"] )
+            tab = tabulate.tabulate(data, headers=["Group", "Field", "Value"], tablefmt ='pipe' )
         
         tables[name] = "#### {}\n\n".format(name) + str(tab)
     
@@ -173,18 +174,22 @@ def processTestDocument(test, args):
     reportFilename = "report (Test Summary | short={short} | v{version})"
     reportFilename = reportFilename.format(short=test.info.short, version = "12")
     reportPathname = (test.folder.path / reportFilename).with_suffix(".md")
+    reportHtmlPathname = (test.folder.path / reportFilename).with_suffix(".html")
     debug(reportFilename, reportPathname)
     
     with open(str(reportPathname),'w') as report:
         report.write(reportStr)
-    
-    with open(str(reportPathname),'w') as report:
-        report.write(reportStr)
-    
-        
-    job = "{file}".format(file=(test.folder.main / reportFilename))
 
-    return job
+    if args.options["output", "html", "auto"]:
+        reportHtmlStr = mistune.markdown(reportStr)
+        
+        with open(str(reportHtmlPathname),'w') as report:
+            report.write(reportHtmlStr)
+        
+        
+    mdfile = "{file}".format(file=(test.folder.main / reportFilename))
+
+    return mdfile, reportStr
 
 def load_xml(pathurl):
     
@@ -260,7 +265,6 @@ def generatepdfs(file):
         print(subprocess.check_call (pandocjob, shell=True) )
     except Exception as err:
         raise err
-    
 
 
 def process_test(testconf, args):
@@ -286,7 +290,8 @@ def process_test(testconf, args):
     # with jsonlFilename.open('w') as jsonlfile:    
     Json.write_json_to(jsonlfilename, flatten(origtestdetails), indent=None)
     
-    mdfile = processTestDocument(testconf, args)
+    mdfile, reportStr = processTestDocument(testconf, args)
+
     
     if args.options["output", "generatepdfs"]:
         generatepdfs(mdfile)

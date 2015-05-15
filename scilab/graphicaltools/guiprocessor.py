@@ -129,10 +129,10 @@ class ExperTestList(QListWidget):
 
 import importlib
 
-class DataProcessorWebView(QTextEdit):
+class DataProcessorView(QTextEdit):
     
     def __init__(self):
-        super(DataProcessorWebView, self).__init__()
+        super(DataProcessorView, self).__init__()
     
     def init(self):
         
@@ -232,7 +232,8 @@ class DataProcessorGuiMain(QMainWindow):
         
         widget = QWidget()
         
-        self.dataProcessorOutput = DataProcessorWebView()
+        self.dataProcessorOutput = DataProcessorView()
+        
         self.dataProcessorRun = QPushButton("Execute")
         self.dataProcessorRun.clicked.connect(lambda: self.tester.processtest.emit())
         
@@ -251,6 +252,8 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.dataProcessorOutput.init()
         self.testitemchanged.connect(lambda x: print("Item changed!", type(x), x))
+        
+        self.tester.processtestupdate.connect(self.dataProcessorOutput.append)
         
         return widget
     
