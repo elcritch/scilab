@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, logging, traceback, io, multiprocessing, copy
+import sys, collections, logging, traceback, io, multiprocessing, copy, time
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -25,6 +25,7 @@ from scilab.expers.configuration import FileStructure
 # from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
 # from scilab.expers.mechanical.fatigue.helpers import *
 import scilab.tools.jsonutils as Json
+from scilab.graphicaltools.multifile import *
 from scilab.datahandling.datahandlers import *
 import scilab.graphicaltools.forms as forms
 import scilab.datahandling.dataprocessor as dataprocessor
@@ -34,12 +35,25 @@ import numpy as np
 import scilab.expers.configuration as config
 from scilab.expers.configuration import BasicTestInfo
 
-def _process(processargs):
+def _process_test(processargs):
     
+    testinfodict, fs, args, queues = processargs
     
+    sys.stdout, a = queues
+    
+    # print("processing!!!", file=stdoutprev)
+    for i in range(60):
+        print("{execute! %d}"%i)
+        time.sleep(.1)
+
+    
+def __process(processargs):
     
     print("### Processing ")
-    testinfodict, fs, args = processargs
+    testinfodict, fs, args, queues = processargs
+    sys.stdout, sys.stderr = queues
+    
+    print("### Processing (stdout) ")
     
     # fs = config.FileStructure(projdescpath=projdescpath,verify=True)
     TestInfo = generatetestinfoclass(**fs.projdesc["experiment_config"]["testinfo"])
@@ -79,12 +93,23 @@ def _process(processargs):
 
     print("Done")
 
+def _process(processargs):
+    try:
+        __process(processargs)
+    except Exception as err:
+        print("[Error]", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
+        raise err
+    finally:
+        print("[Finished]")
+
 class ProjectContainer():
     
     projectdirchanged = Signal(str)
     projectrefresh = Signal()
     createnewtest = Signal()
     processtest = Signal()
+    processtestupdate = Signal(str)
     
     def __init__(self, poolsize=4):
         
@@ -108,11 +133,14 @@ class ProjectContainer():
     
     @Slot()
     def doprocessorupdate(self):
-        print("#### Queue Update:")
-        try:
-            print("queue:", self.test.queue.get_nowait())
-        except Exception as err:
-            pass
+        stdout, stderr = self.test.queues[0].getvalue(wait=False), self.test.queues[1].getvalue(wait=False)
+        print(stdout, flush=True, end='', file=sys.stdout)
+        print(stderr, flush=True, end='', file=sys.stderr)
+        
+        if len(stdout) > 0:
+            self.processtestupdate.emit(stdout.rstrip())
+        if len(stderr) > 0:
+            self.processtestupdate.emit(stderr.rstrip())
 
     @Slot()
     def doprocesstest(self):
@@ -129,10 +157,13 @@ class ProjectContainer():
         self.test.timer = QTimer(self._parent)
         self.test.timer.timeout.connect(self.doprocessorupdate)
         
-        self.test.timer.start(2*1000)
+        self.test.timer.start(1000)
+        self.test.queues = MultiProcessFile(), MultiProcessFile()
         
-        processargs = testinfodict, shallowfs, self.args # , self.test.queue
+        print("starting queue: ", self.test.queues[0])
+        processargs = testinfodict, shallowfs, self.args, self.test.queues
         
+        # self.pool.map_async(_process_test, [processargs])
         self.pool.map_async(_process, [processargs])
         
     @Slot()
