@@ -227,12 +227,12 @@ def load_project_description(testfolder):
 def getfileheaders(name, test, headers, version, suffix='txt'):
     hdrs = flatten(header,ignore='filetype').items() if isinstance(headers, dict) else headers
     
-    hdrs = ''.join([ " {}={} |".format(*i) 
+    hdrs = ''.join([ " {}={} ;".format(*i) 
                     for i in hdrs ])
     
     debug(hdrs)
     
-    filename = "{name} (test={short} | {header} v{ver}).{suffix}".format(
+    filename = "{name} (test={short} ; {header} v{ver}).{suffix}".format(
             name=name, short=test.info.short, header=hdrs, ver=version,
             suffix=suffix,
             )
@@ -241,9 +241,9 @@ def getfileheaders(name, test, headers, version, suffix='txt'):
     
 
 def getfilenames(test, testfolder, stage, header, version, matlab=True, excel=True, config=False, numpy=False, pickle=False, json=False):
-    hdrs = ''.join([ " {}={} |".format(*i) 
+    hdrs = ''.join([ " {}={} ;".format(*i) 
                     for i in flatten(header,ignore='filetype').items() ])
-    filename = testfolder.data / 'data (test={short} | stage={stage} |{header} v{ver}).txt'.format(
+    filename = testfolder.data / 'data (test={short} ; stage={stage} ;{header} v{ver}).txt'.format(
                     short=test.info.short, stage=stage, header=hdrs, ver=version)
     
     filenames = DataTree()

@@ -237,8 +237,12 @@ class DataProcessorGuiMain(QMainWindow):
         self.dataProcessorRun = QPushButton("Execute")
         self.dataProcessorRun.clicked.connect(lambda: self.tester.processtest.emit())
         
+        self.dataProcessorImportRaw = QPushButton("Import Raw Files")
+        self.dataProcessorImportRaw.clicked.connect(lambda: self.tester.processtestimport.emit())
+        
         h12	= QHBoxLayout()
         h12.addStretch(stretch=100)
+        h12.addWidget(self.dataProcessorImportRaw)
         h12.addWidget(self.dataProcessorRun)
         
         q12 = QWidget()
@@ -252,8 +256,10 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.dataProcessorOutput.init()
         self.testitemchanged.connect(lambda x: print("Item changed!", type(x), x))
+        self.testitemchanged.connect(lambda: self.tester.processtestclear.emit())
         
         self.tester.processtestupdate.connect(self.dataProcessorOutput.append)
+        self.tester.processtestclear.connect(self.dataProcessorOutput.clear)
         
         return widget
     
@@ -290,7 +296,7 @@ class DataProcessorGuiMain(QMainWindow):
     def initUI(self):
 
         self.tester = TestHandler(self)
-            
+        
         self.tabTestPanel = self.initTestPageWebView()
         self.tabDataProcessor = self.initDataProcessorWidget()
         

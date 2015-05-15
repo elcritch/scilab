@@ -127,12 +127,12 @@ def makeTestDocument(test, args):
                         for img in test.folder.graphs.glob("*graph=imagemeasurement*v{version}*".format(version=args.version)) 
                     ])
 
-    fileTable = tabulate.tabulate( sorted([ 
-                    (k,v.relative_to(testdir) , 
-                     "&#10003;" if v.exists() else "<em>&#10008;</em>", 
-                     filetime(v)) 
-                        for k,v in flatten(test.folder).items() 
-                    ]), [ "Name", "Folder", "Exists", "Modified Time" ], tablefmt ='pipe' )
+    #fileTable = tabulate.tabulate( sorted([ 
+    #                (k,v.relative_to(testdir) , 
+    #                 "&#10003;" if v.exists() else "<em>&#10008;</em>", 
+    #                 filetime(v)) 
+    #                    for k,v in flatten(test.folder).items() 
+    #                ]), [ "Name", "Folder", "Exists", "Modified Time" ], tablefmt ='pipe' )
     
     dataFilesTable = ""
     
@@ -171,19 +171,19 @@ def processTestDocument(test, args):
     
     reportStr = makeTestDocument(test, args)
     
-    reportFilename = "report (Test Summary | short={short} | v{version})"
+    reportFilename = "report (Test Summary ; short={short} ; v{version})"
     reportFilename = reportFilename.format(short=test.info.short, version = "12")
     reportPathname = (test.folder.path / reportFilename).with_suffix(".md")
     reportHtmlPathname = (test.folder.path / reportFilename).with_suffix(".html")
     debug(reportFilename, reportPathname)
     
-    with open(str(reportPathname),'w') as report:
+    with open(str(reportPathname),'w', encoding='utf-8') as report:
         report.write(reportStr)
 
     if args.options["output", "html", "auto"]:
         reportHtmlStr = mistune.markdown(reportStr)
         
-        with open(str(reportHtmlPathname),'w') as report:
+        with open(str(reportHtmlPathname),'w', encoding='utf-8') as report:
             report.write(reportHtmlStr)
         
         
@@ -283,7 +283,7 @@ def process_test(testconf, args):
     testconf.data.summarydetails = testdetails
     testconf.data.flatdetails = DataTree(flatten(testdetails))
     
-    jsonlfilename = "data (type=flat summary | kind=json | short={short} | v{version}).jsonl"
+    jsonlfilename = "data (type=flat summary ; kind=json ; short={short} ; v{version}).jsonl"
     jsonlfilename = jsonlfilename.format(short=testconf.info.short, version=args.version)
     jsonlfilename = testconf.folder.main / jsonlfilename
     

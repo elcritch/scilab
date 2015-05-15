@@ -8,32 +8,22 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtNetwork import QNetworkRequest
+from pathlib import *
 
 Signal = pyqtSignal
 Slot = pyqtSlot
 
+import scilab.tools.jsonutils as Json
+import scilab.graphicaltools.forms as forms
 from scilab.tools.project import *
 from scilab.tools import testingtools
-
-from pathlib import *
-# from fn import _ as __
-# import formlayout
-# import boltons.tbutils
-
-import scilab
-from scilab.expers.configuration import FileStructure
-# from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
-# from scilab.expers.mechanical.fatigue.helpers import *
-import scilab.tools.jsonutils as Json
 from scilab.graphicaltools.multifile import *
 from scilab.datahandling.datahandlers import *
-import scilab.graphicaltools.forms as forms
-import scilab.datahandling.dataprocessor as dataprocessor
-
-import numpy as np
+from scilab.graphicaltools.guitestprocessor import guitestprocess
+import scilab.graphicaltools.guiimportraws as guiimportraws
 
 import scilab.expers.configuration as config
-from scilab.expers.configuration import BasicTestInfo
+import imp
 
 def _process_test(processargs):
     
@@ -47,55 +37,11 @@ def _process_test(processargs):
         time.sleep(.1)
 
     
-def __process(processargs):
-    
-    print("### Processing ")
-    testinfodict, fs, args, queues = processargs
-    sys.stdout, sys.stderr = queues
-    
-    print("### Processing (stdout) ")
-    
-    # fs = config.FileStructure(projdescpath=projdescpath,verify=True)
-    TestInfo = generatetestinfoclass(**fs.projdesc["experiment_config"]["testinfo"])
-    testinfo = TestInfo(**testinfodict)
-    debug(testinfo)
-    
-    test = DataTree()
-    test.data = DataTree()
-    test.info = testinfo
-    test.folder = fs.testfolder(testinfo=test.info, ensure_folders_exists=False)
-    
-    debug(list(test.keys()), fs, args)
-
-    expertype = fs.projdesc["experiment_config"]["type"]
-
-    if expertype == "cycles":
-        import scilab.expers.mechanical.fatigue.cycles as exper
-    elif expertype == "uts":
-        import scilab.expers.mechanical.fatigue.uts as exper
-    else:
-        raise ValueError("Do not know how to process test type.", expertype)
-    
-    args.parser_data_sheet_excel = exper.parser_data_sheet_excel
-    args.parser_image_measurements = exper.parser_image_measurements
-    args.codehandlers = exper.getcodehandlers()
-
-
-    if not fs or not test or not args:
-        debug(fs, test, args)
-        logging.warning("Cannot execute test! Empty arguments ")
-        return
-
-    if not 'data' in test:
-        test.data = DataTree()
-        
-    dataprocessor.execute(fs=fs, name=test.info.name, testconf=test, args=args )
-
-    print("Done")
 
 def _process(processargs):
     try:
-        __process(processargs)
+        processargs, queues = processargs[:-1], processargs[-1]
+        guitestprocess(processargs, queues=queues)
     except Exception as err:
         print("[Error]", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
@@ -103,6 +49,8 @@ def _process(processargs):
     finally:
         print("[Finished]")
 
+    
+    
 class ProjectContainer():
     
     projectdirchanged = Signal(str)
@@ -110,19 +58,22 @@ class ProjectContainer():
     createnewtest = Signal()
     processtest = Signal()
     processtestupdate = Signal(str)
+    processtestclear = Signal()
+    processtestimport = Signal()
     
     def __init__(self, poolsize=4):
         
         self.fs         = None
         self.test_dir   = None
         self.testitemsd = None
-        self.args       = None  
+        self.args       = None
         self.projectdesc = None
         self.test = DataTree()
         self.pool = multiprocessing.Pool(processes=poolsize)
         
         self.createnewtest.connect(self.docreatenewtest)
         self.processtest.connect(self.doprocesstest)
+        self.processtestimport.connect(self.doprocesstestimport)
     
     def showErrorMessage(self, errmsg, ex=None):
         errorfmt = "Invalid project:<br>Error `{errmsg}`"
@@ -132,13 +83,22 @@ class ProjectContainer():
         errorMessageDialog.showMessage(errorfmt.format(errmsg=errmsg, ex=str(ex)))
     
     @Slot()
+    def doprocesstestimport(self):
+        
+        print("[Importing Test Files]")
+        
+        imp.reload(guiimportraws)
+        
+        guiimportraws.importrawsdialog(self.test, projectfolder=self.fs, parent=self)
+        
+    @Slot()
     def doprocessorupdate(self):
         if not self.test or 'queues' not in self.test:
             return
         
         stdout, stderr = self.test.queues[0].getvalue(wait=False), self.test.queues[1].getvalue(wait=False)
-        print(stdout, flush=True, end='', file=sys.stdout)
-        print(stderr, flush=True, end='', file=sys.stderr)
+        #print(stdout, flush=True, end='', file=sys.stdout)
+        #print(stderr, flush=True, end='', file=sys.stderr)
         
         if len(stdout) > 0:
             self.processtestupdate.emit(stdout.rstrip())
@@ -147,8 +107,9 @@ class ProjectContainer():
 
     @Slot()
     def doprocesstest(self):
+        self.processtestclear.emit()
         
-        print("processtest!!")
+        print("Processtest!")
         testinfodict = { str(k): str(v) for k,v in self.test.info._asdict().items() }
         debug(testinfodict)
         # debug(self.fs)
@@ -160,7 +121,7 @@ class ProjectContainer():
         self.test.timer = QTimer(self._parent)
         self.test.timer.timeout.connect(self.doprocessorupdate)
         
-        self.test.timer.start(1000)
+        self.test.timer.start(.200)
         self.test.queues = MultiProcessFile(), MultiProcessFile()
         
         print("starting queue: ", self.test.queues[0])
@@ -259,14 +220,15 @@ class ProjectContainer():
 
 
             args = DataTree()
-            args.forceRuns = DataTree(raw=False, norm=False)
+            args.forceRuns = DataTree(raw=True, norm=True)
+            #args.forceRuns = DataTree(raw=False, norm=False)
             args.version = "0"
             # args["force", "imagecropping"] = True
             # args["dbg","image_measurement"] = True
             # === Excel === 
             args.options = DataTree()
             args.options["output", "excel"] = False
-            args.options["output", "onlyVars"] = True
+            args.options["output", "onlyVars"] = False
             args.options["output", "html", "auto"] = True
             args.options["output", "generatepdfs"] = False
             

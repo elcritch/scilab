@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 formlayout
 ==========
@@ -64,9 +66,10 @@ assert _modname in ('pyqt5')
 if os.environ['QT_API'] == 'pyqt5':
     try:
         import PyQt5  # analysis:ignore
-    except ImportError:
+    except ImportError as err:
         # Switching to PySide
-        os.environ['QT_API'] = _modname = 'pyside'
+        # os.environ['QT_API'] = _modname = 'pyside'
+        raise err
 
 if os.environ['QT_API'] == 'pyqt5':
     try:

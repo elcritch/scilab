@@ -398,13 +398,13 @@ def execute(fs, name, testconf, args):
     except Exception as err:
         logging.warn("Unable to link processed dir: "+str(err))
     
-    data = [ (k,v.relative_to(fs.project), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
-                for k,v in flatten(folder).items() if v ]
-    data = sorted(data)
+    #data = [ (k,v.relative_to(fs.project), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
+    #            for k,v in flatten(folder).items() if v ]
+    #data = sorted(data)
 
-    print()
-    print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
-    debug(folder.data.relative_to(fs.project))
+    #print()
+    #print(HTML(tabulate( data, [ "Name", "Folder", "Exists" ], tablefmt ='pipe' ), whitespace="pre-wrap"))
+    #debug(folder.data.relative_to(fs.project))
     
     args.testname = name
     args.testconf = testconf
