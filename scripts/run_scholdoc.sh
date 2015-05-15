@@ -3,9 +3,11 @@
 FILE=$1
 PD=${scholdoc:-$2}
 # CITEPROC=${SCHOLDOC_CITE:-$2}
+DOPDF=${0:-$3}
 
 STEM="${FILE:r}"
 BASE="$(basename $FILE)"
+DIRN="$(dirname $FILE)"
 HTML="${STEM}.html"
 PDF="${STEM}.pdf"
 SCRIPT_NAME="$(basename $0)"
@@ -48,22 +50,32 @@ echo "CSS_INCL_FILE: $CSS_INCL_FILE" | tee $LOG
 
 cat "$CSS" | perl -pe 'BEGIN{print "<style type=\"text/css\">"};END{print "</style>"}' > $CSS_INCL_FILE
 
+
+echo DIRN: $DIRN
+cd "$DIRN"
+echo PWD: $(pwd)
+
 $PD \
 	-r markdown+yaml_metadata_block+mmd_title_block+definition_lists+footnotes+table_captions+grid_tables+simple_tables \
 	-H $CSS_INCL_FILE \
+	--self-contained \
+	--mathml \
 	--section-divs --mathjax -w html5 -s -S "${FILE}" > "${HTML}"
 
 PD_STATUS=$?
 
 if [ $PD_STATUS -eq 0 ]
 then
-  echo "Successfully created processed md file: $HTML <br>"
+  echo "Successfully created processed md file: <br>"
 else
-  echo "Error processing md file: $HTML"
+  echo "Error processing md file: `$HTML`"
   exit $PD_STATUS
 fi
 
-
+if [ ! -z $DOPDF ]; then
+   echo "No pdf. Exiting<br>"
+	exit $[$PD_STATUS + 0]
+fi;
 
 
 echo '<h2>ENV:</h2><pre>'
@@ -82,7 +94,7 @@ wkhtmltopdf  \
 				 --margin-top 2cm --margin-bottom 2cm \
 	          --header-spacing 3 \
 	          "${HTML}" "${PDF}" \
-            2>&1 | perl -pe 's/\n/\n<br>/' 
+            2>&1 | perl -pe 's/\n/\n<br>/'
 
                        # --header-left "${BASE}" \
                        # --header-line \

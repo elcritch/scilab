@@ -164,7 +164,7 @@ def test_folder():
     
     summaries = OrderedDict()
     
-    for name, test in sorted( testitems.items() )[:2]:
+    for name, test in sorted( testitems.items() )[1::2]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:

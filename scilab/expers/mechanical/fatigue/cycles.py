@@ -34,17 +34,33 @@ def parser_data_sheet_excel(ws, testconf):
     # -- tr / lg correlation curves --
     testcorr = lambda *data: all(data)
     
-    for idx in range(17,20):
-        corr_lg = DataTree(linearFit(ws['E%d'%idx].value, ws['G%d'%idx].value)._asdict())
-        corr_tr = DataTree(linearFit(ws['E%d'%(idx+2)].value, ws['G%d'%(idx+2)].value)._asdict())
+    def findcorrs():
+        corrs = DataTree(lg=None, tr=None)
+        for (colA,colB) in [('D','F'), ('E','G')]:
+            for idx in range(16,20):
+                corrs["lg"] = DataTree(linearFit(ws['%s%d'%(colA,idx)].value, ws['%s%d'%(colB,idx)].value)._asdict())
+                corrs["tr"] = DataTree(linearFit(ws['%s%d'%(colA,idx+2)].value, ws['%s%d'%(colB,idx+2)].value)._asdict())
         
-        if corr_tr["slope",] and corr_lg["slope",]:
-            break
-    else:
-        if not (corr_tr["slope",] and corr_lg["slope",]):
-            raise ValueError("utscorrelation not found in datasheet")
+                try:
+                    corrs["lg",]["slope"] = float(corrs["lg",]["slope"])
+                    corrs["lg",]["intercept"] = float(corrs["lg",]["intercept"])
+                    corrs["tr",]["slope"] = float(corrs["tr",]["slope"])
+                    corrs["tr",]["intercept"] = float(corrs["tr",]["intercept"])
+                except: 
+                    continue
+                           
+                debug(colA, colB, corrs)
+                if all([corrs["lg",]["slope"], corrs["lg",]["slope"], corrs["tr",]["intercept"], corrs["tr",]["intercept"]]):
+                    return corrs
+                
+    corrs = findcorrs()
     
-    other["utspredcorrelation"] = {"lg":corr_lg, "tr":corr_tr}[testconf.info.orientation]
+    print("final:")
+    debug(corrs)
+    if not all( isinstance(corrs[idx],float) for idx in [ ["lg","slope"], ["lg","slope"], ["tr","intercept"], ["tr","intercept"]]):
+        raise ValueError("utscorrelation not found in datasheet")
+    
+    other["utspredcorrelation"] = corrs[testconf.info.orientation]
     
     ## continue reading the column down 
     end = process_definitions_column(ws, other, 'A',9,24, stop_key='UTS Stress', dbg=False, has_units=False)    
