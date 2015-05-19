@@ -151,9 +151,8 @@ def makeTestDocument(test, args):
     
     tables.update(**{ k:v for k,v in locals().items() if 'Table' in k or 'Html' in k or 'Str' in k })
     
-    print("\n\nTestTemplate:\n\n")
-    debug(test.reportconf["TestTemplate"])
-    
+    # print("\n\nTestTemplate:\n\n")
+    # debug(test.reportconf["TestTemplate"])
     
     testTemplate = test.reportconf["TestTemplate"]
     testTemplate = testTemplate["#text"] if not isinstance(testTemplate, str) else testTemplate
