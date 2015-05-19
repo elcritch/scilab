@@ -103,7 +103,7 @@ class ProjectContainer():
         if len(stdout) > 0:
             self.processtestupdate.emit(stdout.rstrip())
         if len(stderr) > 0:
-            self.processtestupdate.emit(stderr.rstrip())
+            self.processtestupdate.emit("<b>{}</b>".format(stderr.rstrip()) )
 
     @Slot()
     def doprocesstest(self):

@@ -182,7 +182,9 @@ def process(testfolder, data, processor, state):
             debug(missing)
             return missing
     
-        forceRuns = state.args.get('forceRuns',DataTree())
+        # forceRuns = state.args.get('forceRuns',DataTree())
+        forceRuns = state.args.options["dataprocessor", "forcerun"] 
+        
         debug(forceRuns)
         
         # varfilename = "{methodname}.{methoditem.name}.calculated".format(**state)
@@ -196,7 +198,8 @@ def process(testfolder, data, processor, state):
         output = DataTree()
         output['raw','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="raw", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel",])
+            version=state.args.options["dataprocessor", "version"], 
+            header=header, matlab=True, excel=state.args.options["output","excel",])
     
         
         print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
@@ -220,7 +223,8 @@ def process(testfolder, data, processor, state):
 
         output['norm','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="norm", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel"])
+            version=state.args.options["dataprocessor", "version"], 
+            header=header, matlab=True, excel=state.args.options["output","excel"])
         
         print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['norm',], missingFiles(output.norm.files.names)))
@@ -502,11 +506,15 @@ def main():
     # test_run()
     args = DataTree()
     args.forceRuns = DataTree(raw=False, norm=False)
-    args.version = "12"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
     args.options = DataTree()
+    args.options["dataprocessor", "forcerun", "raw"] = False
+    args.options["dataprocessor", "forcerun", "excel"] = False
+    args.options["dataprocessor", "version"] = "12"
+    args.options["graphicsrunner", "version"] = "12"
+    
     args.options["output", "excel"] = False
     args.options["output", "onlyVars"] = True
     args.options["output", "generatepdfs"] = False
