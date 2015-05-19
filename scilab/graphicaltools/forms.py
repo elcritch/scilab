@@ -454,7 +454,7 @@ class FormComboWidget(QWidget):
         
         self.stackwidget = QStackedWidget(self)
         layout.addWidget(self.stackwidget)
-        self.combobox.currentIndexChanged[int].connect(self.stackwidget,setCurrentIndex)
+        self.combobox.currentIndexChanged[int].connect(self.stackwidget.setCurrentIndex)
         
         self.widgetlist = []
         for data, title, comment in datalist:

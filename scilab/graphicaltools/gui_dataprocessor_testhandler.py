@@ -70,6 +70,7 @@ class ProjectContainer():
         self.projectdesc = None
         self.test = DataTree()
         self.pool = multiprocessing.Pool(processes=poolsize)
+        self._argoptions = None
         
         self.createnewtest.connect(self.docreatenewtest)
         self.processtest.connect(self.doprocesstest)
@@ -177,6 +178,52 @@ class ProjectContainer():
                                     ex=traceback.format_exc())
             raise err
                     
+    def getargs(self):
+        
+        def defaultoptions():
+            options = DataTree()
+            options["dataprocessor", "forcerun", "raw"] = False
+            options["dataprocessor", "forcerun", "excel"] = False
+            options["dataprocessor", "version"] = "12"
+            options["graphicsrunner", "version"] = "12"
+
+            options["output", "excel"] = False
+            options["output", "onlyVars"] = True
+            options["output", "generatepdfs"] = False
+            options["output", "html", "auto"] = True
+            
+            return options
+
+        options = self._argoptions if self._argoptions else defaultoptions()
+        
+        # Convert options to forms data format (lists of data, postfixed with name of tab)
+        datalist = [ ( [ (k,v) for k,v in sorted(flatten(v, ).items()) ], k, "Options for %s"%str(k) ) 
+                        for k,v in sorted(options.items()) ]
+        
+        print(datalist)
+        
+        for i,j in enumerate(datalist):
+            print("i:%s: `%s`"%(i, j))
+        
+        updatedargs = forms.fedit(datalist)
+        debug(updatedargs)
+        
+        # join data down into groups
+        for dgroup, ugroup in zip(datalist, updatedargs):
+            dgroup_name, dgroup_comment = dgroup[1:]
+            for (dkey, ditem), uitem in zip(dgroup[0], ugroup):
+                print("{dgroup_name}.{dkey}.{ditem} -> {dgroup_name}.{dkey}.{uitem} ".format(**locals()))
+                key = (dgroup_name,) + tuple(dkey.split("."))
+                debug(key)
+                options[key[:-1]][key[-1]] = uitem
+        
+        debug(options)
+        
+        args = DataTree()
+        args.options = options
+        
+        return args
+                        
         
     @Slot(object)
     def setprojdir(self, testdir):
@@ -219,18 +266,7 @@ class ProjectContainer():
             self.args = DataTree()
 
 
-            args = DataTree()
-            args.forceRuns = DataTree(raw=True, norm=True)
-            #args.forceRuns = DataTree(raw=False, norm=False)
-            args.version = "0"
-            # args["force", "imagecropping"] = True
-            # args["dbg","image_measurement"] = True
-            # === Excel === 
-            args.options = DataTree()
-            args.options["output", "excel"] = False
-            args.options["output", "onlyVars"] = False
-            args.options["output", "html", "auto"] = True
-            args.options["output", "generatepdfs"] = False
+            args = self.getargs()
             
             self.args = args
             print("Setting args: ", self.args)
@@ -344,3 +380,31 @@ class TestHandler(QObject, ProjectContainer):
         return
 
 
+def main():
+
+    class FakeTestHandler(QObject, ProjectContainer):
+    
+        def __init__(self, parent):        
+            super(FakeTestHandler, self).__init__(parent=parent)
+            super(ProjectContainer, self).__init__()
+            self._parent = parent
+    
+    app = QApplication(sys.argv)
+    pc = FakeTestHandler(app)
+    pc.getargs()
+    sys.exit(app.exec_())    
+    
+    
+if __name__ == '__main__':
+
+
+    # from scilab.expers.mechanical.fatigue.cycles import FileStructure
+    # from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
+        # button = QToolButton(self)
+        # button.setPopupMode(QToolButton.MenuButtonPopup)
+        # button.setMenu(QMenu(button))
+        # action = QWidgetAction(button)
+        # action.setDefaultWidget(combobox)
+        # button.menu().addAction(action)
+
+    main()
