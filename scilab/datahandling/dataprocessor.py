@@ -21,7 +21,7 @@ import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
 import scilab.datagraphs.graph_runner3_cycles as cycles_graph_runner
-# import scilab.datagraphs.graph_runner3_uts as uts_graph_runner
+import scilab.datagraphs.graph_runner3_uts as uts_graph_runner
 
 import numpy as np
 
@@ -208,6 +208,7 @@ def process(testfolder, data, processor, state):
             version=state.args.options["dataprocessor", "version"], 
             header=header, matlab=True, excel=state.args.options["output","excel",])
     
+        rawdata = None
         
         print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['raw',], missingFiles(output.raw.files.names)))
@@ -218,10 +219,20 @@ def process(testfolder, data, processor, state):
                 columnmapping = process_raw_columns(data, raw_config, state)
                 indexes = default_index + raw_config.get('_slicecolumns_', [])
                 save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
-            else:
-                print("Skipping saving `raw` columns. Only updating variable json. ")
+                
+            if state.args.options["dataprocessor","output","rawcalcs"]:            
+                rawdata = load_columns(output.raw.files.names, "matlab")
+            
+                ## save variables
+                data = DataTree(raw=rawdata)
+                data.raw = DataTree(**columnmapping_vars(columnmapping))
+                process_variables(testfolder, state, raw_config.name, "post", data)
+                      
+            # else:
+            #     print("Skipping saving `raw` columns. Only updating variable json. ")
         else:
             print("Skipping processing `raw` stage.")
+
 
         # =====================
         # = Process Norm Data =
@@ -240,7 +251,8 @@ def process(testfolder, data, processor, state):
             
             normstate = state.set(processorname=normalized_config.name)
             
-            rawdata = load_columns(output.raw.files.names, "matlab")
+            if not rawdata:
+                rawdata = load_columns(output.raw.files.names, "matlab")
             
             data = DataTree(raw=rawdata)
             
@@ -463,10 +475,10 @@ def execute(fs, name, testconf, args):
         expertype = fs.projdesc["experiment_config"]["type"]
         if expertype == "cycles":
             print(mdHeader(3, "Cycles Graphs"))
-            cycles_graph_runner.run(test=testconf, args)
+            cycles_graph_runner.run(test=testconf, args=args)
         else:
             print(mdHeader(3, "UTS Graphs"))
-            # uts_graph_runner.run(test=testconf, args)
+            uts_graph_runner.run(test=testconf, args=args)
 
     if args.options["dataprocessor", "exec", "generateReports"]:
         print(mdHeader(2, "Generating Report and summary data"))
@@ -534,22 +546,31 @@ def main():
 
     # === Excel === 
     args.options = DataTree()
-    args.options["dataprocessor", "forcerun", "raw"] = False
+    args.options["dataprocessor", "forcerun", "raw"] = True
     args.options["dataprocessor", "forcerun", "excel"] = False
-    args.options["dataprocessor", "version"] = "12"
-    args.options["graphicsrunner", "version"] = "12"
-    
+    args.options["dataprocessor", "version"] = "0"
+    args.options["dataprocessor", "optional_errors"]
+    args.options["graphicsrunner", "version"] = "0"
+    args.options["dataprocessor", "suppress_optional_errors"] = False        
     args.options["output", "excel"] = False
     args.options["output", "onlyVars"] = False
     args.options["output", "generatepdfs"] = False
     args.options["output", "html", "auto"] = True
+    args.options["output","rawcalcs"] = True
+    
+    args.options["dataprocessor", "exec", "imageMeasurement"]  = False
+    args.options["dataprocessor", "exec", "datasheetparser"]   = False
+    args.options["dataprocessor", "exec", "processMethods"]    = True
+    args.options["dataprocessor", "exec", "mergeJsonCalcPost"] = True
+    args.options["dataprocessor", "exec", "generateReports"]   = True
+    args.options["dataprocessor", "exec", "graphs"]            = False
     
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "fatigue-failure|uts|expr1"
     # parentdir = Path(os.path.expanduser("~/proj/expers/")) / "exper|fatigue-failure|cycles|trial1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper;fatigue-failure;cycles;trial2"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper;fatigue-failure;cycles;trial2/01_Raw/tri-modal calibration tests"
 
     # === Only Update Variables === 
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
