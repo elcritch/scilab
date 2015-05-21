@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, json
-
+import sys, collections, json, tabulate
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -117,7 +116,7 @@ class ExperTestList(QListWidget):
     def updateTestItem(self, curr=None, prev=None):
         item = self.getitem(curr.text() if curr else None)
         self.current_item = item
-        self.parent.testitemchanged.emit(item)
+        self.parent.starttestitemchanged.emit(item)
     
     def getitem(self, text):
         return self._testitems.get(text, None)
@@ -133,6 +132,9 @@ class DataProcessorView(QTextEdit):
     
     def __init__(self):
         super(DataProcessorView, self).__init__()
+        
+        self.setReadOnly(True)
+        
     
     def init(self):
         
@@ -192,6 +194,7 @@ class TestProtocolView(QFrame):
 
 class DataProcessorGuiMain(QMainWindow):
 
+    starttestitemchanged = Signal(object)
     testitemchanged = Signal(object)
 
     def __init__(self):
@@ -234,6 +237,9 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.dataProcessorOutput = DataProcessorView()
         
+        self.dataOptions = QPushButton("Options")
+        self.dataOptions.clicked.connect(self.tester.getargs)
+        
         self.dataProcessorRun = QPushButton("Execute")
         self.dataProcessorRun.clicked.connect(lambda: self.tester.processtest.emit())
         
@@ -242,6 +248,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         h12	= QHBoxLayout()
         h12.addStretch(stretch=100)
+        h12.addWidget(self.dataOptions)
         h12.addWidget(self.dataProcessorImportRaw)
         h12.addWidget(self.dataProcessorRun)
         
@@ -258,7 +265,12 @@ class DataProcessorGuiMain(QMainWindow):
         self.testitemchanged.connect(lambda x: print("Item changed!", type(x), x))
         self.testitemchanged.connect(lambda: self.tester.processtestclear.emit())
         
-        self.tester.processtestupdate.connect(self.dataProcessorOutput.append)
+        def initDataProcessorWidget_append(html):
+            html = html.replace("\n", "<br>\n")
+            self.dataProcessorOutput.moveCursor(QTextCursor.End)
+            self.dataProcessorOutput.insertHtml(html)
+        
+        self.tester.processtestupdate.connect(initDataProcessorWidget_append)
         self.tester.processtestclear.connect(self.dataProcessorOutput.clear)
         
         return widget
@@ -269,7 +281,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.testPageWebView = TestPageWebView()
 
-        v1	= QVBoxLayout()
+        v1    = QVBoxLayout()
         v1.addWidget(self.testPageWebView)        
         widget.setLayout(v1)
         
@@ -292,17 +304,60 @@ class DataProcessorGuiMain(QMainWindow):
         
         return widget
         
+    def initTestDataWebView(self):
+        
+        widget = QWidget()
+        webView = TestPageWebView()
+        
+        v1 = QVBoxLayout()
+        v1.addWidget(webView)        
+        widget.setLayout(v1)
+        
+        webView.init()
+        
+        def setitem(testobj):
+
+            if testobj:
+                test = self.tester.getitem()
+                # debug(test.folder.details)
+                
+                tables = []                
+                details = Json.load_json_from(test.folder.details, defaultHandler=True)
+                debug(list(details.keys()))
+                for key in details.keys():
+                    if not isinstance(details[key], collections.Mapping):
+                        tables.append("<h1>{}</h1><br>\n{}".format(key, str(details[key])))
+                    else:
+                        fdetails = sorted([ (k,v) for k,v in flatten(details[key]).items() ])
+                        fdtable = tabulate.tabulate(fdetails, headers=["Key", "Value"], tablefmt="html")
+                    
+                        tables.append("<h2>{}</h2><br>\n\n{}".format(key, str(fdtable)))
+                
+                webView.setHtml("# JSON Calculations:\n\n{fdtable}".format(fdtable="<br>\n<br>\n".join(tables)))
+            else:
+                webView.setHtml("<html></html>", QUrl())
+        
+        self.testitemchanged.connect(lambda obj: setitem(obj) )
+        
+        self.testDataWebView = webView
+        
+        return widget
+    
+    @Slot(object)
+    def updateTestItem(self, item):
+        self.tester.setitem(item)
+        self.testitemchanged.emit(item)
         
     def initUI(self):
 
         self.tester = TestHandler(self)
         
-        self.tabTestPanel = self.initTestPageWebView()
-        self.tabDataProcessor = self.initDataProcessorWidget()
+        self.starttestitemchanged.connect(self.updateTestItem)
         
         self.testPanelTabs = QTabWidget(self)
-        self.testPanelTabs.addTab(self.tabTestPanel, "Test Panel")
-        self.testPanelTabs.addTab(self.tabDataProcessor, "Data Processor")
+        self.testPanelTabs.addTab(self.initDataProcessorWidget(), "Data Processor")
+        self.testPanelTabs.addTab(self.initTestPageWebView(), "Test Sample Panel")
+        self.testPanelTabs.addTab(self.initTestDataWebView(), "Test Sample Data")
         
         self.testInfoPanel = self.infoTestInfoPanel()
         self.testProtocolView = TestProtocolView(self)

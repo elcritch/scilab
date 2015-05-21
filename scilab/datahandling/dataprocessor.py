@@ -182,7 +182,9 @@ def process(testfolder, data, processor, state):
             debug(missing)
             return missing
     
-        forceRuns = state.args.get('forceRuns',DataTree())
+        # forceRuns = state.args.get('forceRuns',DataTree())
+        forceRuns = state.args.options["dataprocessor", "forcerun"] 
+        
         debug(forceRuns)
         
         # varfilename = "{methodname}.{methoditem.name}.calculated".format(**state)
@@ -196,7 +198,8 @@ def process(testfolder, data, processor, state):
         output = DataTree()
         output['raw','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="raw", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel",])
+            version=state.args.options["dataprocessor", "version"], 
+            header=header, matlab=True, excel=state.args.options["output","excel",])
     
         
         print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
@@ -220,7 +223,8 @@ def process(testfolder, data, processor, state):
 
         output['norm','files'] = getfilenames(
             test=state.args.testconf, testfolder=testfolder, stage="norm", 
-            version=state.args.version, header=header, matlab=True, excel=state.args.options["output","excel"])
+            version=state.args.options["dataprocessor", "version"], 
+            header=header, matlab=True, excel=state.args.options["output","excel"])
         
         print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['norm',], missingFiles(output.norm.files.names)))
@@ -343,7 +347,8 @@ def process_methods(testfolder, state, args):
             process_method(methodname, method, testfolder, projdesc, state=substate)
         except Exception as err:
             print("type:",str(type(err.args[-1])).replace('<','≤'))
-            if isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
+            if args.options["dataprocessor", "optional_errors"] and \
+                    isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
                 logging.warning(str(err))
                 continue
             else:
@@ -418,6 +423,8 @@ def execute(fs, name, testconf, args):
     state.args = args
     state.filestructure = fs
     state.position = []
+    
+    debug(args.options)
     
     # update json details
     if args.options["dataprocessor", "exec", "imageMeasurement"]:
@@ -507,12 +514,14 @@ def test_folder(args):
 def main():
     # test_run()
     args = DataTree()
-    args.forceRuns = DataTree(raw=False, norm=False)
-    args.version = "0"
-    # args["force", "imagecropping"] = True
-    # args["dbg","image_measurement"] = True
+
     # === Excel === 
     args.options = DataTree()
+    args.options["dataprocessor", "forcerun", "raw"] = False
+    args.options["dataprocessor", "forcerun", "excel"] = False
+    args.options["dataprocessor", "version"] = "12"
+    args.options["graphicsrunner", "version"] = "12"
+    
     args.options["output", "excel"] = False
     args.options["output", "onlyVars"] = False
     args.options["output", "generatepdfs"] = False

@@ -70,6 +70,7 @@ class ProjectContainer():
         self.projectdesc = None
         self.test = DataTree()
         self.pool = multiprocessing.Pool(processes=poolsize)
+        # self._argoptions = None
         
         self.createnewtest.connect(self.docreatenewtest)
         self.processtest.connect(self.doprocesstest)
@@ -103,7 +104,7 @@ class ProjectContainer():
         if len(stdout) > 0:
             self.processtestupdate.emit(stdout.rstrip())
         if len(stderr) > 0:
-            self.processtestupdate.emit(stderr.rstrip())
+            self.processtestupdate.emit("<b>{}</b>".format(stderr.rstrip()) )
 
     @Slot()
     def doprocessgraphs(self):
@@ -153,7 +154,7 @@ class ProjectContainer():
                         for name in fieldnames ]
         
         datalist = forms.fedit(fielddata)
-        debug(datalist)
+        # debug(datalist)
         
         if not fielddata:
             return 
@@ -163,7 +164,7 @@ class ProjectContainer():
         setvalues(datadict)
         
         try:
-            debug(datadict)
+            # debug(datadict)
 
             ti = TestInfo(**TestInfo.createfields(valuedict=datadict))
             
@@ -182,6 +183,93 @@ class ProjectContainer():
                                     ex=traceback.format_exc())
             raise err
                     
+    def defaultoptions(self):
+        
+        def getvalues():
+            return Json.load_json_from_str(self._parent.settings.value("dialog/optionsdialog", "{}"), datatree=True)
+        def setvalues(values):
+            self._parent.settings.setValue("dialog/optionsdialog", json.dumps(values))
+
+        
+        print("## Loading Options ")
+        options = DataTree()
+        options["dataprocessor", "forcerun", "raw"] = False
+        options["dataprocessor", "forcerun", "excel"] = False
+        options["dataprocessor", "version"] = "0"
+        options["dataprocessor", "optional_errors"]
+        
+        options["graphicsrunner", "version"] = "0"
+        options["dataprocessor", "suppress_optional_errors"] = False
+        
+        options["output", "excel"] = False
+        options["output", "onlyVars"] = True
+        options["output", "generatepdfs"] = False
+        options["output", "html", "auto"] = True
+    
+        options["dataprocessor", "exec", "imageMeasurement"]  = True
+        options["dataprocessor", "exec", "datasheetparser"]   = True
+        options["dataprocessor", "exec", "processMethods"]    = True
+        options["dataprocessor", "exec", "mergeJsonCalcPost"] = True
+        options["dataprocessor", "exec", "generateReports"]   = True
+        
+        savedoptions = getvalues()
+        
+        # updated from saved options
+        for key, value in flatten(savedoptions, astuple=True).items():
+            # debug(key, value)
+            parent, stem = key[:-1], key[-1]
+            options[parent][stem] = value
+        
+        # debug(options)
+        
+        setvalues(options)
+        
+        return options
+    
+    @Slot()
+    def getargs(self):
+        
+        options = self.defaultoptions()
+        
+        # Convert options to forms data format (lists of data, postfixed with name of tab)
+        datalist = [ ( [ (k,v) for k,v in sorted(flatten(v, ).items()) ], k, "Options for %s"%str(k) ) 
+                        for k,v in sorted(options.items()) ]
+        
+        print(datalist)
+        
+        for i,j in enumerate(datalist):
+            print("i:%s: `%s`"%(i, j))
+        
+        updatedargs = forms.fedit(datalist)
+        
+        if not updatedargs:
+            return 
+        
+        # debug(updatedargs)
+        
+        # join data down into groups
+        for dgroup, ugroup in zip(datalist, updatedargs):
+            dgroup_name, dgroup_comment = dgroup[1:]
+            for (dkey, ditem), uitem in zip(dgroup[0], ugroup):
+                # print("{dgroup_name}.{dkey}.{ditem} -> {dgroup_name}.{dkey}.{uitem} ".format(**locals()))
+                key = (dgroup_name,) + tuple(dkey.split("."))
+                # debug(key)
+                options[key[:-1]][key[-1]] = uitem
+        
+        # debug(options)
+        
+        def setvalues(values):
+            self._parent.settings.setValue("dialog/optionsdialog", json.dumps(values))
+        
+        setvalues(options)
+        
+        args = DataTree()
+        args.options = options
+        
+        self.args = args
+        
+        return args
+                        
         
     @Slot(object)
     def setprojdir(self, testdir):
@@ -223,26 +311,9 @@ class ProjectContainer():
             self.testitemsd = self.fs.testitemsd()
             self.args = DataTree()
 
-
-            args = DataTree()
-            args.forceRuns = DataTree(raw=False, norm=False)
-            #args.forceRuns = DataTree(raw=False, norm=False)
-            args.version = "0"
-            # args["force", "imagecropping"] = True
-            # args["dbg","image_measurement"] = True
-            # === Excel === 
-            args.options = DataTree()
-            args.options["output", "excel"] = False
-            args.options["output", "onlyVars"] = False
-            args.options["output", "html", "auto"] = True
-            args.options["output", "generatepdfs"] = False            
-            args.options["dataprocessor", "exec", "imageMeasurement"]  = True
-            args.options["dataprocessor", "exec", "datasheetparser"]   = True
-            args.options["dataprocessor", "exec", "processMethods"]    = True
-            args.options["dataprocessor", "exec", "mergeJsonCalcPost"] = True
-            args.options["dataprocessor", "exec", "generateReports"]   = True
+            self.args = DataTree()
+            self.args.options = self.defaultoptions()
             
-            self.args = args
             print("Setting args: ", self.args)
             
             # = Emit projectdirchanged =
@@ -354,3 +425,32 @@ class TestHandler(QObject, ProjectContainer):
         return
 
 
+def main():
+
+    class FakeTestHandler(QObject, ProjectContainer):
+    
+        def __init__(self, parent):        
+            super(FakeTestHandler, self).__init__(parent=parent)
+            super(ProjectContainer, self).__init__()
+            self._parent = parent
+    
+    app = QApplication(sys.argv)
+    pc = FakeTestHandler(app)
+    pc.getargs()
+    sys.exit(app.exec_())    
+    
+    
+if __name__ == '__main__':
+
+
+    # from scilab.expers.mechanical.fatigue.cycles import FileStructure
+    # from scilab.expers.mechanical.fatigue.cycles import TestInfo as TestInfo
+        # button = QToolButton(self)
+        # button.setPopupMode(QToolButton.MenuButtonPopup)
+        # button.setMenu(QMenu(button))
+        # action = QWidgetAction(button)
+        # action.setDefaultWidget(combobox)
+        # button.menu().addAction(action)
+
+    # main()
+    pass

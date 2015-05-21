@@ -124,7 +124,7 @@ def makeTestDocument(test, args):
 
     specimenMeasurementsHtml = "\n".join([ 
                     "<img src='{}' width='{}%'></img><br>".format(img.relative_to(testdir), 80 )
-                        for img in test.folder.graphs.glob("*graph=imagemeasurement*v{version}*".format(version=args.version)) 
+                        for img in test.folder.graphs.glob("*graph=imagemeasurement*v{version}*".format(version=args.options["dataprocessor"]["version"])) 
                     ])
 
     #fileTable = tabulate.tabulate( sorted([ 
@@ -151,9 +151,8 @@ def makeTestDocument(test, args):
     
     tables.update(**{ k:v for k,v in locals().items() if 'Table' in k or 'Html' in k or 'Str' in k })
     
-    print("\n\nTestTemplate:\n\n")
-    debug(test.reportconf["TestTemplate"])
-    
+    # print("\n\nTestTemplate:\n\n")
+    # debug(test.reportconf["TestTemplate"])
     
     testTemplate = test.reportconf["TestTemplate"]
     testTemplate = testTemplate["#text"] if not isinstance(testTemplate, str) else testTemplate
@@ -172,7 +171,7 @@ def processTestDocument(test, args):
     reportStr = makeTestDocument(test, args)
     
     reportFilename = "report (Test Summary ; short={short} ; v{version})"
-    reportFilename = reportFilename.format(short=test.info.short, version = "12")
+    reportFilename = reportFilename.format(short=test.info.short, version=args.options["dataprocessor"]["version"])
     reportPathname = (test.folder.path / reportFilename).with_suffix(".md")
     reportHtmlPathname = (test.folder.path / reportFilename).with_suffix(".html")
     debug(reportFilename, reportPathname)
@@ -219,10 +218,10 @@ def processReportConfig(testconf, args):
         debug(table)
         
         if "@custom" in table:
-            accessors = collections.OrderedDict( (f["@name"], f["@field"]) for f in table["Field"] )
+            accessors = collections.OrderedDict( (f["@name"], f["@field"]) for f in table.get("Field", []) )
         else:
-            debug(table["Fields"])
-            accessors = list( f["@field"] for f in [table["Fields"],] )
+            # debug(table["Fields"])
+            accessors = list( f["@field"] for f in [table.get("Fields", ""),] if f)
         
         debug(accessors)
         tablefields[name] = accessors
@@ -230,7 +229,7 @@ def processReportConfig(testconf, args):
     graphnames = []
     
     for graph in reportconf["GraphTable"]["Graph"]:
-        graphname = ( graph["@name"], graph["@match"].format(version=args.version) )
+        graphname = ( graph["@name"], graph["@match"].format(version=args.options["graphicsrunner"]["version"]) )
         graphnames.append(graphname)
         
     testconf.data.graphnames = graphnames
@@ -284,7 +283,7 @@ def process_test(testconf, args):
     testconf.data.flatdetails = DataTree(flatten(testdetails))
     
     jsonlfilename = "data (type=flat summary ; kind=json ; short={short} ; v{version}).jsonl"
-    jsonlfilename = jsonlfilename.format(short=testconf.info.short, version=args.version)
+    jsonlfilename = jsonlfilename.format(short=testconf.info.short, version=args.options["dataprocessor"]["version"])
     jsonlfilename = testconf.folder.main / jsonlfilename
     
     # with jsonlFilename.open('w') as jsonlfile:    

@@ -257,7 +257,7 @@ def debug(*args, end='\n',fmt='{} ',sep='->', file=None):
                 print(fmt.format(n.strip())+sep, fmt_v_str(v), end=end, file=file)
         
     except Exception as err:
-        raise err
+        # raise err
         print('debug(...error...)')
 
 
