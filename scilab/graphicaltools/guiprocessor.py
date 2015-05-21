@@ -321,9 +321,14 @@ class DataProcessorGuiMain(QMainWindow):
                 test = self.tester.getitem()
                 # debug(test.folder.details)
                 
-                tables = []                
+                tables = []
+                debug(test.folder.details) 
                 details = Json.load_json_from(test.folder.details, defaultHandler=True)
-                debug(list(details.keys()))
+                
+                if not details:
+                    webView.setHtml("<html></html>", QUrl())
+                    return
+                
                 for key in details.keys():
                     if not isinstance(details[key], collections.Mapping):
                         tables.append("<h1>{}</h1><br>\n{}".format(key, str(details[key])))
@@ -337,7 +342,13 @@ class DataProcessorGuiMain(QMainWindow):
             else:
                 webView.setHtml("<html></html>", QUrl())
         
-        self.testitemchanged.connect(lambda obj: setitem(obj) )
+        def safe_setitem(testobj):
+            try:
+                setitem(testobj)
+            except Exception as err:
+                logging.error(err)
+        
+        self.testitemchanged.connect(lambda obj: safe_setitem(obj) )
         
         self.testDataWebView = webView
         

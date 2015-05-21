@@ -202,7 +202,7 @@ class ProjectContainer():
         options["dataprocessor", "suppress_optional_errors"] = False
         
         options["output", "excel"] = False
-        options["output", "onlyVars"] = True
+        options["output", "onlyVars"] = False
         options["output", "generatepdfs"] = False
         options["output", "html", "auto"] = True
     
@@ -211,6 +211,7 @@ class ProjectContainer():
         options["dataprocessor", "exec", "processMethods"]    = True
         options["dataprocessor", "exec", "mergeJsonCalcPost"] = True
         options["dataprocessor", "exec", "generateReports"]   = True
+        options["dataprocessor", "exec", "graphs"]            = False
         
         savedoptions = getvalues()
         

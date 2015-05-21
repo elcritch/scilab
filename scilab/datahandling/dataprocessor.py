@@ -20,6 +20,9 @@ import scilab.datahandling.processingreports as processingreports
 import scilab.utilities.merge_calculated_jsons as merge_calculated_jsons
 import scilab.expers.mechanical.fatigue.run_image_measure as run_image_measure
 
+import scilab.datagraphs.graph_runner3_cycles as cycles_graph_runner
+# import scilab.datagraphs.graph_runner3_uts as uts_graph_runner
+
 import numpy as np
 
 import xmltodict
@@ -454,6 +457,16 @@ def execute(fs, name, testconf, args):
     if args.options["dataprocessor", "exec", "mergeJsonCalcPost"]:
         print(mdHeader(2, "Merging JSON Data"))
         merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
+
+    if args.options["dataprocessor", "exec", "graphs"]:
+        print(mdHeader(2, "Running Graphs"))
+        expertype = fs.projdesc["experiment_config"]["type"]
+        if expertype == "cycles":
+            print(mdHeader(3, "Cycles Graphs"))
+            cycles_graph_runner.run(test=testconf, args)
+        else:
+            print(mdHeader(3, "UTS Graphs"))
+            # uts_graph_runner.run(test=testconf, args)
 
     if args.options["dataprocessor", "exec", "generateReports"]:
         print(mdHeader(2, "Generating Report and summary data"))

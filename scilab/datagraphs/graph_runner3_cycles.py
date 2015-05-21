@@ -127,8 +127,8 @@ def run(test, args):
             raise err
             # continue
 
-    print(mdHeader(2, "Generating Report and summary data"))
-    processingreports.process_test(testconf=test, args=args)
+    # print(mdHeader(2, "Generating Report and summary data"))
+    # processingreports.process_test(testconf=test, args=args)
 
 
 def test_folder():
@@ -206,5 +206,5 @@ def main():
     
     test_folder()
     
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
