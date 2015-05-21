@@ -173,7 +173,11 @@ def process_variables(testfolder, state, name, kind:"pre|post", data):
     
 def process(testfolder, data, processor, state):    
     try:
-        raw_config, normalized_config = processor
+        configs = { p["name"]: p for p in processor }
+        raw_config = configs.get("raw", None)
+        normalized_config = configs.get("norm", None)
+
+        
         default_index = [{"column":'step',"type":"int"},]
         save_config = DataTree(projdesc=json.dumps(state.projdesc))
         header=OrderedDict(method=state.methodname, item=state.methoditem.name)
@@ -205,7 +209,7 @@ def process(testfolder, data, processor, state):
         print("Checking Raw files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['raw',], missingFiles(output.raw.files.names)))
         
-        if forceRuns['raw',] or missingFiles(output.raw.files.names):
+        if raw_config and (forceRuns['raw',] or missingFiles(output.raw.files.names)):
             if not state.args.options["output","onlyVars",]:
                 missingFiles(output.raw.files.names)
                 columnmapping = process_raw_columns(data, raw_config, state)
@@ -214,7 +218,7 @@ def process(testfolder, data, processor, state):
             else:
                 print("Skipping saving `raw` columns. Only updating variable json. ")
         else:
-            print("Skipping processing `raw` stage. Files exists: `{}`".format(output.raw.files.names))
+            print("Skipping processing `raw` stage.")
 
         # =====================
         # = Process Norm Data =
@@ -229,7 +233,7 @@ def process(testfolder, data, processor, state):
         print("Checking Norm files: forceRuns:`{}`, missing output:`{}`".format(
                 forceRuns['norm',], missingFiles(output.norm.files.names)))
         
-        if forceRuns['norm',] or missingFiles(output.norm.files.names):
+        if normalized_config and (forceRuns['norm',] or missingFiles(output.norm.files.names)):
             
             normstate = state.set(processorname=normalized_config.name)
             
@@ -254,7 +258,7 @@ def process(testfolder, data, processor, state):
             else:
                 print("Skipping saving `norm` columns. Only updating variable json. ")
         else:
-            print("Skipping processing `norm` stage. File exists: `{}`".format(output.norm.files.names))
+            print("Skipping processing `norm` stage. ")
             
             
             

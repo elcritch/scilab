@@ -273,7 +273,7 @@ def datacombinations(test, args,
 
         files = getfilenames(
             test=test, testfolder=test.folder, stage=stage, 
-            version=args.version, header=header, matlab=True, excel=False)
+            version=args.options["dataprocessor"]["version"], header=header, matlab=True, excel=False)
     
         # debug(files.names.matlab)
         # debug(files.names.matlab.exists())
