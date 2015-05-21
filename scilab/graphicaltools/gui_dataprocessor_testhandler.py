@@ -106,6 +106,11 @@ class ProjectContainer():
             self.processtestupdate.emit(stderr.rstrip())
 
     @Slot()
+    def doprocessgraphs(self):
+        
+        pass
+
+    @Slot()
     def doprocesstest(self):
         self.processtestclear.emit()
         
@@ -220,7 +225,7 @@ class ProjectContainer():
 
 
             args = DataTree()
-            args.forceRuns = DataTree(raw=True, norm=True)
+            args.forceRuns = DataTree(raw=False, norm=False)
             #args.forceRuns = DataTree(raw=False, norm=False)
             args.version = "0"
             # args["force", "imagecropping"] = True
@@ -230,7 +235,12 @@ class ProjectContainer():
             args.options["output", "excel"] = False
             args.options["output", "onlyVars"] = False
             args.options["output", "html", "auto"] = True
-            args.options["output", "generatepdfs"] = False
+            args.options["output", "generatepdfs"] = False            
+            args.options["dataprocessor", "exec", "imageMeasurement"]  = True
+            args.options["dataprocessor", "exec", "datasheetparser"]   = True
+            args.options["dataprocessor", "exec", "processMethods"]    = True
+            args.options["dataprocessor", "exec", "mergeJsonCalcPost"] = True
+            args.options["dataprocessor", "exec", "generateReports"]   = True
             
             self.args = args
             print("Setting args: ", self.args)

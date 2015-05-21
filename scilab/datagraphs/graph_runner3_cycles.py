@@ -137,7 +137,7 @@ def test_folder():
     import scilab.expers.mechanical.fatigue.cycles as exper
     
     args = DataTree()
-    args.version = "12"
+    args.version = "0"
     args.options = DataTree()
     args.options["output", "generatepdfs"] = True
     
@@ -146,7 +146,8 @@ def test_folder():
     # args.fs = fs
     
     # parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "fatigue-failure|uts|expr1"
-    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper;fatigue-failure;cycles;trial2"
     
     pdp = args.parentdir / 'projdesc.json' 
     print(pdp)
@@ -164,7 +165,7 @@ def test_folder():
     
     summaries = OrderedDict()
     
-    for name, test in sorted( testitems.items() )[1::2]:
+    for name, test in sorted( testitems.items() )[:]:
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:
             # continue
         # if name not in ["jan11(gf11.5-llm)-wa-lg-l6-x1"]:

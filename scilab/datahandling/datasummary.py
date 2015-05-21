@@ -30,7 +30,7 @@ def resolve(url):
 
 def process(testconf, state, args):
 
-    
+    pass
 
 # ====================
 # = Script Execution =

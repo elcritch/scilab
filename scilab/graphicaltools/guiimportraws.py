@@ -31,9 +31,9 @@ def importrawsdialog(test, **kwargs):
     print("[Import Raws]")
     testraws = test.folder["raws"]
     projectraws = kwargs["projectfolder"]["raws"]
-    debug(list(test.keys()))
-    debug(testraws)
-    debug(kwargs)
+    #debug(list(test.keys()))
+    #debug(testraws)
+    #debug(kwargs)
     
     testrawsnames = [ k for k in sorted(testraws.keys()) ]
     projectrawsnames = [ k for k in sorted(projectraws.keys()) ]
@@ -52,10 +52,10 @@ def importrawsdialog(test, **kwargs):
                         str(inputchoices["projectraws"]["value"]))
         
         
-        debug(testrawdir, projrawdir)
+        #debug(testrawdir, projrawdir)
 
         tgt_testrawtgt, src_projrawdir = Path(testrawdir), Path(projrawdir).resolve()
-        debug(str(tgt_testrawtgt), str(src_projrawdir))
+        #debug(str(tgt_testrawtgt), str(src_projrawdir))
         
         if not tgt_testrawtgt or not src_projrawdir:
             return 
@@ -66,7 +66,7 @@ def importrawsdialog(test, **kwargs):
                               # apply=apply_dialog,
                               )
         
-        debug(results)
+        #debug(results)
         
         if not results:
             return
@@ -90,7 +90,7 @@ def importrawsdialog(test, **kwargs):
     
     def apply_dialog(data):
         print("[[apply_dialog]]")
-        debug(data)
+        #debug(data)
         
         projectrawsidx, testrawsidx = data
         
@@ -98,7 +98,7 @@ def importrawsdialog(test, **kwargs):
         inputchoices['testraws'] = DataTree(key=testrawsnames[testrawsidx], value=testraws[testrawsnames[testrawsidx]])
         inputchoices['projectraws'] = DataTree(key=projectrawsnames[projectrawsidx], value=projectraws[projectrawsnames[projectrawsidx]])
         
-        debug(inputchoices)
+        #debug(inputchoices)
         
         showFileDialog(inputchoices, **kwargs)
         

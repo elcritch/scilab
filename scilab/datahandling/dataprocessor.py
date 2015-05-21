@@ -420,27 +420,33 @@ def execute(fs, name, testconf, args):
     state.position = []
     
     # update json details
-    print(mdHeader(2, "Run Image Measurement"))
+    if args.options["dataprocessor", "exec", "imageMeasurement"]:
+        print(mdHeader(2, "Run Image Measurement"))
     
-    imageconfstate = state.set(image_measurement=fs.projdesc["experiment_config","config","calibration","image_measurement"])
-    processimagemeasurement.process_test(testconf, state=imageconfstate, args=args)
-    # run_image_measure.process_test(testconf.info, testconf.folder)
+        imageconfstate = state.set(image_measurement=fs.projdesc["experiment_config","config","calibration","image_measurement"])
+        processimagemeasurement.process_test(testconf, state=imageconfstate, args=args)
+        # run_image_measure.process_test(testconf.info, testconf.folder)
     
-    print(mdHeader(2, "Make JSON Data"))
+    if args.options["dataprocessor", "exec", "datasheetparser"]:
+        print(mdHeader(2, "Make JSON Data"))
     
-    datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
+        datasheetparser.handler(testconf=testconf, excelfile=folder.datasheet, args=args)
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
     
-    print(mdHeader(2, "Executing"))
+    if args.options["dataprocessor", "exec", "processMethods"]:
     
-    process_methods(folder, state, args)
+        print(mdHeader(2, "Executing"))
+    
+        process_methods(folder, state, args)
 
     
-    print(mdHeader(2, "Merging JSON Data"))
-    merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
+    if args.options["dataprocessor", "exec", "mergeJsonCalcPost"]:
+        print(mdHeader(2, "Merging JSON Data"))
+        merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
 
-    print(mdHeader(2, "Generating Report and summary data"))
-    processingreports.process_test(testconf=testconf, args=args)
+    if args.options["dataprocessor", "exec", "generateReports"]:
+        print(mdHeader(2, "Generating Report and summary data"))
+        processingreports.process_test(testconf=testconf, args=args)
 
 
 def test_folder(args):
@@ -502,13 +508,13 @@ def main():
     # test_run()
     args = DataTree()
     args.forceRuns = DataTree(raw=False, norm=False)
-    args.version = "12"
+    args.version = "0"
     # args["force", "imagecropping"] = True
     # args["dbg","image_measurement"] = True
     # === Excel === 
     args.options = DataTree()
     args.options["output", "excel"] = False
-    args.options["output", "onlyVars"] = True
+    args.options["output", "onlyVars"] = False
     args.options["output", "generatepdfs"] = False
     args.options["output", "html", "auto"] = True
     
@@ -517,6 +523,7 @@ def main():
     args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|cycles|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial1"
     # args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper|fatigue-failure|uts|trial3"
+    args.parentdir = Path(os.path.expanduser("~/proj/phd-research/")) / "exper;fatigue-failure;cycles;trial2"
 
     # === Only Update Variables === 
     # print("<a src='file:///Users/elcritch/proj/phd-research/exper|fatigue-failure|cycles|trial1/02_Tests/jan10(gf10.9-llm)-wa-lg-l10-x3/'>Test1</a>")
