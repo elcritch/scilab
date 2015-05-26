@@ -58,7 +58,9 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     # plt.show(block=True)
     # test.folder.save_calculated_json(test=test, name='graphs', data=graphdata.calcs)
     
-    figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], version=args.version)
+    figname = getfileheaders("graph", test, suffix="png", 
+                                    headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], 
+                                    version=args.options["graphicsrunner"]["version"])
     print(tag(b="Figure: "+figname))
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
@@ -76,12 +78,17 @@ import scilab.datagraphs.graph_uts as graph_uts
 def run_config(test, args, config, configfile):
     
     print(tag(h2="Running Config: {}".format(config)))
-    # filepath = datafiles[config]
-    debug(configfile)
-    matdata = load_columns_matlab(configfile)
     
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
+    
+    if zconfig["method"] in args.options["testconfs"].get("skip_methods",""):
+        print("**Skipping Method**: `{}` ".format(zconfig))
+        return
+    
+    # filepath = datafiles[config]
+    debug(configfile)
+    matdata = load_columns_matlab(configfile)
     
     # sns.set_style("whitegrid")
     sns.set_style("ticks")

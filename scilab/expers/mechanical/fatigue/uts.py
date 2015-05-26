@@ -14,7 +14,7 @@ from scilab.tools.excel import *
 import scilab.datahandling.processingpreconditioning 
 
 
-def parser_data_sheet_excel(ws):
+def parser_data_sheet_excel(ws, **kwargs):
     
     rng = rangerForRow(ws)
 

@@ -206,6 +206,7 @@ class ProjectContainer():
         options["output", "generatepdfs"] = False
         options["output", "html", "auto"] = True
     
+        options["testconfs", "skip_methods"] = ""
         options["dataprocessor", "exec", "imageMeasurement"]  = True
         options["dataprocessor", "exec", "datasheetparser"]   = True
         options["dataprocessor", "exec", "processMethods"]    = True

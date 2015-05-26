@@ -13,6 +13,10 @@ from PyQt5.QtNetwork import QNetworkRequest
 Signal = pyqtSignal
 Slot = pyqtSlot
 
+import matplotlib
+matplotlib.use('Agg')
+
+
 from scilab.tools.project import *
 from pathlib import *
 # from fn import _ as __
@@ -313,6 +317,10 @@ class DataProcessorGuiMain(QMainWindow):
         v1.addWidget(webView)        
         widget.setLayout(v1)
         
+        ttfont = QFont("Monospace")
+        ttfont.setStyleHint(QFont.TypeWriter)
+        ttfont.setPointSize(8)
+        webView.setFont(ttfont)
         webView.init()
         
         def setitem(testobj):
@@ -338,7 +346,14 @@ class DataProcessorGuiMain(QMainWindow):
                     
                         tables.append("<h2>{}</h2><br>\n\n{}".format(key, str(fdtable)))
                 
-                webView.setHtml("# JSON Calculations:\n\n{fdtable}".format(fdtable="<br>\n<br>\n".join(tables)))
+                webView.setHtml("\n".join([ l.strip() for l in """
+                <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
+                # JSON Calculations:
+                
+                {fdtable}
+                
+                </div>
+                """.split("\n") ] ).format(fdtable="<br>\n<br>\n".join(tables)))
             else:
                 webView.setHtml("<html></html>", QUrl())
         
