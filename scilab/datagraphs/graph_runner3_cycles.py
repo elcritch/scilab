@@ -108,12 +108,13 @@ def run_config(test, args, config, configfile):
     # print(mdHeader(2, "Merging JSON Data"))
     # merge_calculated_jsons.handler(testinfo=test.info, testfolder=test.folder, args=args, savePrevious=True)
 
-def run(test, args):
+def run(test, args, stages=['norm', 'raw'], methods=["m1_preload", "m2_precond", "m3_cycles"]):
     # debug(test, args)
     # print(debugger_summary("run", locals()))
     # datafiles = DataTree()
-    datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
-    datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
+    # datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
+    datafiles = datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["tracking"], )
+    datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
     
     config = ("raw", "uts", "tracking")
     

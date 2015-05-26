@@ -220,12 +220,15 @@ def process(testfolder, data, processor, state):
                 indexes = default_index + raw_config.get('_slicecolumns_', [])
                 save_columns(columnmapping=columnmapping, indexes=indexes, configuration=save_config, filenames=output.raw.files)
                 
-            if state.args.options["dataprocessor","output","rawcalcs"]:            
+            if state.args.options["output","rawcalcs"]:           
+                
+                print(mdHeader(4, "Running Raw variables"))
+                 
                 rawdata = load_columns(output.raw.files.names, "matlab")
             
                 ## save variables
                 data = DataTree(raw=rawdata)
-                data.raw = DataTree(**columnmapping_vars(columnmapping))
+                # data.raw = DataTree(**columnmapping_vars(columnmapping))
                 process_variables(testfolder, state, raw_config.name, "post", data)
                       
             # else:
@@ -553,7 +556,7 @@ def main():
     args.options["graphicsrunner", "version"] = "0"
     args.options["dataprocessor", "suppress_optional_errors"] = False        
     args.options["output", "excel"] = False
-    args.options["output", "onlyVars"] = False
+    args.options["output", "onlyVars"] = True
     args.options["output", "generatepdfs"] = False
     args.options["output", "html", "auto"] = True
     args.options["output","rawcalcs"] = True
