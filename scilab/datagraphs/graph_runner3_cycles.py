@@ -67,7 +67,9 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     # debug(jsondata)
     # test.folder.save_calculated_json(test=test, name='graphs', data=jsondata)
     
-    figname = getfileheaders("graph", test, suffix="png", headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], version=args.version)
+    figname = getfileheaders("graph", test, suffix="png", 
+                                headers=list(zconfig.items())+[('graph',graphname[len('graph_'):])], 
+                                version=args.options["graphicsrunner"]["version"])
     print(tag(b="Figure: "+figname))
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
@@ -117,7 +119,7 @@ def run(test, args, stages=['norm', 'raw'], methods=["m1_preload", "m2_precond",
     datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
     
     config = ("raw", "uts", "tracking")
-    
+
     for config, configfile in flatten(datafiles,astuple=True).items():
         try:
             print("Config:",config)

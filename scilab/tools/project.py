@@ -80,7 +80,7 @@ def debughere(msg=None, ignores=[]):
     stack = list(reversed(inspect.stack()))
     f_locals = [ s[0].f_locals for s in stack ]
     f_names = ' -> '.join( "{}:{}".format(s[3],s[0].f_lineno) for s in stack )
-    print(debugger_summary(f_names, f_locals[-2], ignores=ignores))
+    print(debugger_summary(f_names, f_locals[-2], ignores=ignores).encode('utf-8'))
 
     if msg:
         raise Exception(msg)
@@ -106,8 +106,8 @@ def safefmt(strval, *args, **kwargs):
     if reterr:
         funcs = '.'.join( f[3] for f in reversed(inspect.stack()) )
         args_d = { i:a for i,a in enumerate(args) }
-        args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]))
-        kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]))
+        args_d and print(debugger_summary(funcs, args_d, ignores=['filestructure.projdesc',]).encode('utf-8'))
+        kwargs and print(debugger_summary(funcs, kwargs, ignores=['filestructure.projdesc',]).encode('utf-8'))
         # kwargs_json = json.dumps(kwargs, cls=CustomDebugJsonEncoder)
         
         # print(" <em>Script:</em> ")
@@ -130,7 +130,7 @@ def safefmt(strval, *args, **kwargs):
         # </script>
         # """.format(name="kwargs", json=kwargs_json).replace("\n",""))
         
-        raise Exception("Error formatting string: {}".format(strval), reterr)
+        raise Exception("Error formatting string: {}".format(strval).encode('utf-8'), reterr)
     
     return retval
     
@@ -179,7 +179,7 @@ def debugger(func, debug=False):
     """ Use to annotate functions for debugging purposes. """
     
     def display(msg, *args, flush=True, file=sys.stderr, end='', sep=' ', **kwargs):
-        print(msg.format(*args, **kwargs).strip(), flush=True, file=sys.stderr, end=end, sep=sep)
+        print(msg.format(*args, **kwargs).strip().encode('utf-8'), flush=True, file=sys.stderr, end=end, sep=sep)
         # with open('/tmp/1','a') as fl1: fl1.write(msg.format(*args, **kwargs)+end)
         
     # np.set_printoptions(threshold=10)

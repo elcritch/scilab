@@ -6,6 +6,9 @@ import numpy as np
 import scipy.io as sio
 from pandas import ExcelWriter
 
+import matplotlib
+matplotlib.use('Agg')
+
 import scilab
 import scilab.tools.jsonutils as Json
 from scilab.tools.project import *
@@ -359,15 +362,22 @@ def process_methods(testfolder, state, args):
     projdesc = state.filestructure.projdesc
     state.projdesc = projdesc
     
+    skip_methods = args.options["testconfs"].get("skip_methods","")
+    
     for methodprop in projdesc.methods:
         try:
             methodname, method = getpropertypair(methodprop)
-        
             print(mdHeader(2, "Data Method: `{}` ".format(methodname)))
+        
+            if "methodname" in locals() and methodname in skip_methods:
+                print("**Skipping Method**: `{}` ".format(methodname))
+                continue
+
             substate = state.set(methodname=methodname, method=method)
             push(substate, 'methodname',methodname)
             process_method(methodname, method, testfolder, projdesc, state=substate)
         except Exception as err:
+            
             print("type:",str(type(err.args[-1])).replace('<','≤'))
             if args.options["dataprocessor", "optional_errors"] and \
                     isinstance(err.args[-1],(tuple,list)) and 'optional' in err.args[-1]:
@@ -423,7 +433,7 @@ def execute(fs, name, testconf, args):
             debug("../"+str(folder.testdir.relative_to(fs.project)), str(processed_link))
             os.symlink("../"+str(folder.testdir.relative_to(fs.project)), str(processed_link), target_is_directory=True )
     except Exception as err:
-        logging.warn("Unable to link processed dir: "+str(err))
+        print("Unable to link processed dir: "+str(err))
     
     #data = [ (k,v.relative_to(fs.project), "&#10003;" if v.exists() else "<em>&#10008;</em>" ) 
     #            for k,v in flatten(folder).items() if v ]
@@ -474,6 +484,7 @@ def execute(fs, name, testconf, args):
         merge_calculated_jsons.handler(testinfo=testconf.info, testfolder=testconf.folder, args=args, savePrevious=False)
 
     if args.options["dataprocessor", "exec", "graphs"]:
+        testconf.details = Json.load_json_from(testconf.folder.details)
         print(mdHeader(2, "Running Graphs"))
         expertype = fs.projdesc["experiment_config"]["type"]
         if expertype == "cycles":
@@ -485,6 +496,8 @@ def execute(fs, name, testconf, args):
 
     if args.options["dataprocessor", "exec", "generateReports"]:
         print(mdHeader(2, "Generating Report and summary data"))
+        testconf.details = Json.load_json_from(testconf.folder.details)
+
         processingreports.process_test(testconf=testconf, args=args)
 
 

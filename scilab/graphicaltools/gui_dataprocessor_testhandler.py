@@ -207,6 +207,7 @@ class ProjectContainer():
         options["output", "html", "auto"] = True
         options["output","rawcalcs"] = True
     
+        options["testconfs", "skip_methods"] = ""
         options["dataprocessor", "exec", "imageMeasurement"]  = True
         options["dataprocessor", "exec", "datasheetparser"]   = True
         options["dataprocessor", "exec", "processMethods"]    = True
