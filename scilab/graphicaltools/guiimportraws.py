@@ -31,25 +31,43 @@ def importrawsdialog(test, **kwargs):
     print("[Import Raws]")
     testraws = test.folder["raws"]
     projectraws = kwargs["projectfolder"]["raws"]
+    
+    testfiles = { k:v for k,v in kwargs["projectfolder"]["projdesc"]["experiment_config"]["testfolder"]["filestructure"].items() if "images" in k }
+    testimages = kwargs["projectfolder"]["projdesc"]["experiment_config"]["testfolder"]["files"]
+    
     #debug(list(test.keys()))
     #debug(testraws)
     #debug(kwargs)
     
-    testrawsnames = [ k for k in sorted(testraws.keys()) ]
-    projectrawsnames = [ k for k in sorted(projectraws.keys()) ]
+    getnames = lambda d: [ k for k in sorted(d.keys()) ]
+    testrawsnames = getnames(testraws) + getnames( testimages )
+    projectrawsnames = getnames(projectraws) + getnames( testfiles )
+    
+    testraws.update(testimages)
+    projectraws.update(testfiles)
     
     rawsdatainput = [ 
         ('Project Raws', [0]+projectrawsnames  ),
-        ('Test Raw', [0]+testrawsnames ) 
+        ('Test Raw', [0]+testrawsnames ),
+        ('File?', False)
     ]
     
     def showFileDialog(inputchoices, parent, **kwargs):
         
         testrawdir = inputchoices["testraws"]["value"]
-        projrawdir = QFileDialog.getExistingDirectory(
-                        parent._parent, 
-                        'Choose Raws Folder [%s]'%(inputchoices["projectraws"]["key"]),
-                        str(inputchoices["projectraws"]["value"]))
+        isfile = inputchoices["File?"]
+        
+        
+        if isfile:
+            projrawdir = QFileDialog.getOpenFileName(
+                            parent._parent, 
+                            'Choose Raws File [%s]'%(inputchoices["projectraws"]["key"]),
+                            str())
+        else:
+            projrawdir = QFileDialog.getExistingDirectory(
+                            parent._parent, 
+                            'Choose Raws Folder [%s]'%(inputchoices["projectraws"]["key"]),
+                            str(inputchoices["projectraws"]["value"]))
         
         
         #debug(testrawdir, projrawdir)
@@ -60,25 +78,45 @@ def importrawsdialog(test, **kwargs):
         if not tgt_testrawtgt or not src_projrawdir:
             return 
         
-        results = forms.fedit([ ('Input', [0, 'No', 'Yes']) ], 
+        results = forms.fedit([ ('Input', [0, 'Yes', 'No']) ], 
                               title="Copy Raw Files",
-                              comment="Copying:\nFrom: `{src}`\nTo: `{tgt}`".format(src=str(src_projrawdir), tgt=str(tgt_testrawtgt)),
+                              comment="""
+                              <h4>Copying:</h4>
+                              <table>
+                                  <tr><td><b>From Directory:</b></td><td><small>{srcb}</small></td></tr> \n
+                                  <tr><td><b>From Name:</b></td><td>{srcn}</td></tr> \n
+                                  <tr><td><b>To Directory:</b></td><td><small>{tgtb}</small></td></tr> \n
+                                  <tr><td><b>To Name:</b></td><td>{tgtn}</td></tr> \n
+                                  """.format(
+                                  srcb=str(src_projrawdir.parent), tgtb=str(tgt_testrawtgt.parent),
+                                  srcn=str(src_projrawdir.name), tgtn=str(tgt_testrawtgt.name)
+                              ),
                               # apply=apply_dialog,
                               )
         
         #debug(results)
         
         if not results:
+            
+            forms.fedit([], comment="Caneled import. ")
+            
             return
         
         
         try:
-            if tgt_testrawtgt.exists():
-                print("Deleting")
-                shutil.rmtree(str(tgt_testrawtgt))
+            # if tgt_testrawtgt.exists():
+            #     print("Deleting")
+            #     shutil.rmtree(str(tgt_testrawtgt))
             
-            print("Copying", dict(src=str(src_projrawdir), dst=str(tgt_testrawtgt)))
-            shutil.copytree(src=str(src_projrawdir), dst=str(tgt_testrawtgt), ignore_dangling_symlinks=True)
+            # shutil.copytree(src=str(src_projrawdir), dst=str(tgt_testrawtgt), ignore_dangling_symlinks=True)
+            src_projrawdir_files = list(src_projrawdir.glob("*")) if src_projrawdir.is_dir() else [ src_projrawdir ]
+            
+            for src_file in src_projrawdir_files:
+                print("Copying {src} -> {dst} ".format(src=str(src_projrawdir), dst=str(tgt_testrawtgt).encode('utf-8')))
+                shutil.copy(src=str(src_file), dst=str(tgt_testrawtgt))
+            
+            forms.fedit([ ], comment="Done importing! Files copied:<br>\n <table>{files}</table>".format(
+                    files= '\n'.join( "<tr><td>{}</td></tr>".format(f) for f in src_projrawdir_files )))
             
         except Exception as err:
             ex = traceback.format_exc()
@@ -92,13 +130,14 @@ def importrawsdialog(test, **kwargs):
         print("[[apply_dialog]]")
         #debug(data)
         
-        projectrawsidx, testrawsidx = data
+        projectrawsidx, testrawsidx, isfile = data
         
         inputchoices = DataTree( )
         inputchoices['testraws'] = DataTree(key=testrawsnames[testrawsidx], value=testraws[testrawsnames[testrawsidx]])
         inputchoices['projectraws'] = DataTree(key=projectrawsnames[projectrawsidx], value=projectraws[projectrawsnames[projectrawsidx]])
+        inputchoices['File?'] = isfile
         
-        #debug(inputchoices)
+        debug(inputchoices)
         
         showFileDialog(inputchoices, **kwargs)
         

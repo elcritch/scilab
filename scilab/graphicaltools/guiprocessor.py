@@ -27,7 +27,9 @@ from scilab.expers.configuration import FileStructure
 from scilab.graphicaltools.gui_dataprocessor_testhandler import *
 import scilab.graphicaltools.forms as forms
 
-
+def formatHtmlBlock(html_raw):
+    return "\n".join([ l.strip() for l in html_raw.split("\n") ] )
+                    
 def supported_image_extensions():
     ''' Get the image file extensions that can be read. '''
     formats = QImageReader().supportedImageFormats()
@@ -270,9 +272,14 @@ class DataProcessorGuiMain(QMainWindow):
         self.testitemchanged.connect(lambda: self.tester.processtestclear.emit())
         
         def initDataProcessorWidget_append(html):
-            html = html.replace("\n", "<br>\n")
+            htmlFmt = """
+            <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
+            {}
+            </div>
+            """
+            
             self.dataProcessorOutput.moveCursor(QTextCursor.End)
-            self.dataProcessorOutput.insertHtml(html)
+            self.dataProcessorOutput.insertHtml(formatHtmlBlock(htmlFmt).format(html))
         
         self.tester.processtestupdate.connect(initDataProcessorWidget_append)
         self.tester.processtestclear.connect(self.dataProcessorOutput.clear)
@@ -346,14 +353,16 @@ class DataProcessorGuiMain(QMainWindow):
                     
                         tables.append("<h2>{}</h2><br>\n\n{}".format(key, str(fdtable)))
                 
-                webView.setHtml("\n".join([ l.strip() for l in """
+                htmlFmt = """
                 <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
                 # JSON Calculations:
-                
+
                 {fdtable}
-                
+
                 </div>
-                """.split("\n") ] ).format(fdtable="<br>\n<br>\n".join(tables)))
+                """
+                
+                webView.setHtml(formatHtmlBlock(htmlFmt).format(fdtable="<br>\n<br>\n".join(tables)))
             else:
                 webView.setHtml("<html></html>", QUrl())
         

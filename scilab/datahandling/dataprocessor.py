@@ -359,7 +359,7 @@ def process_methods(testfolder, state, args):
     projdesc = state.filestructure.projdesc
     state.projdesc = projdesc
     
-    skip_methods = args.options["testconfs"].get("skip_methods","")
+    skip_methods = args.options["dataprocessor","testconfs"].get("skip_methods","")
     
     for methodprop in projdesc.methods:
         try:

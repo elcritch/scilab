@@ -130,6 +130,16 @@ class ProjectContainer():
         self.test.timer.start(.200)
         self.test.queues = MultiProcessFile(), MultiProcessFile()
         
+        # guiimportraws.importrawsdialog(self.test, projectfolder=self.fs, parent=self)
+        testconfmethods = [ (list(m.keys())[0], True) for m in self.fs["projdesc"]["methods"] ] 
+        
+        testconfmethods_results = forms.fedit(testconfmethods, comment="<h3>Methods to run:</h3>")
+        
+        skip_methods = ','.join([ methodname for ((methodname, _), result) in zip(testconfmethods, testconfmethods_results) if result==False ])
+        self.args.options["dataprocessor", "testconfs"]["skip_methods"] = skip_methods + ","+self.args.options["dataprocessor", "testconfs"].get("skip_methods","")
+
+        print("Skipping: ", self.args.options["dataprocessor", "testconfs", "skip_methods"])
+        
         print("starting queue: ", self.test.queues[0])
         processargs = testinfodict, shallowfs, self.args, self.test.queues
         
@@ -206,7 +216,7 @@ class ProjectContainer():
         options["output", "generatepdfs"] = False
         options["output", "html", "auto"] = True
     
-        options["testconfs", "skip_methods"] = ""
+        options["dataprocessor", "testconfs", "skip_methods"] = ""
         options["dataprocessor", "exec", "imageMeasurement"]  = True
         options["dataprocessor", "exec", "datasheetparser"]   = True
         options["dataprocessor", "exec", "processMethods"]    = True
@@ -218,9 +228,10 @@ class ProjectContainer():
         
         # updated from saved options
         for key, value in flatten(savedoptions, astuple=True).items():
-            # debug(key, value)
+            debug(key, value)
             parent, stem = key[:-1], key[-1]
-            options[parent][stem] = value
+            if options[parent]:
+                options[parent][stem] = value
         
         # debug(options)
         

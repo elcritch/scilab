@@ -82,7 +82,7 @@ def run_config(test, args, config, configfile):
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
     
-    if zconfig["method"] in args.options["testconfs"].get("skip_methods",""):
+    if zconfig["method"] in args.options["dataprocessor","testconfs"].get("skip_methods",""):
         print("**Skipping Method**: `{}` ".format(zconfig))
         return
     

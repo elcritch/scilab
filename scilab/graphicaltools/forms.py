@@ -510,8 +510,12 @@ class FormDialog(QDialog):
 
         self.apply_callback = apply
         
-        # Form
-        if isinstance(data[0][0], (list, tuple)):
+        # Form        
+        if len(data) == 0: # special case
+            self.formwidget = FormWidget(data, comment=comment, 
+                                         parent=self)
+                                         
+        elif isinstance(data[0][0], (list, tuple)):
             self.formwidget = FormTabWidget(data, comment=comment,
                                             parent=self)
         elif len(data[0])==3:
