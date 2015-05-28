@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import PySide classes
-import sys, collections, json, tabulate
+import sys, collections, json, tabulate, shutil
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -200,7 +200,11 @@ class TestProtocolView(QFrame):
             frame = self.protocolView.page().mainFrame();
 
             # firstName = frame.findFirstElement("#firstname");
-            debug(frame.toHtml())
+            updatedHtml = frame.toHtml()
+            
+            with self.protocolTestSampleUrl.open('w', encoding='utf-8') as protocolHtml:
+                print("Saving updated protocol: ", str(self.protocolTestSampleUrl))
+                protocolHtml.write(updatedHtml)
         
         finally:
             return False
@@ -217,18 +221,19 @@ class TestProtocolView(QFrame):
             
         else:
             protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
-        
-            if not protocolUrl.exists():
+            protocolTestSampleUrl = test.folder.main / 'protocol.html'
+            self.protocolTestSampleUrl = protocolTestSampleUrl
+            
+            if not protocolUrl.exists() and not protocolTestSampleUrl.exists():
                 logging.warn("Protocol doesn't exist for test: "+str(protocolUrl))
                 return 
             
-            with protocolUrl.open('rb') as protocolFile:            
+            if not protocolTestSampleUrl.exists():
+                shutil.copy(str(protocolUrl), str(protocolTestSampleUrl))
+                
+            with protocolTestSampleUrl.open('rb') as protocolFile:            
                 protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
-        
-                self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
-            
-                # self.protocolView.page.mainFrame.evaluateJavaScript(jscontent)
-            # self.testitemchanged.connect(lambda obj: setitem(obj) )
+                self.protocolView.setHtml(protocolHtmlStr, QUrl("."))            
         
 
 class DataProcessorGuiMain(QMainWindow):
