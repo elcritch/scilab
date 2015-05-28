@@ -179,9 +179,32 @@ class TestProtocolView(QFrame):
         layout = QVBoxLayout()
         layout.addWidget(self.protocolView)
         self.setLayout(layout)
+        
+        self.protocolView.page().mainFrame().javaScriptWindowObjectCleared.connect(self.populateJavaScriptWindowObject)
+        self.protocolView.page().settings().setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
+        # view->page()->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
+        
+
+    @Slot()
+    def populateJavaScriptWindowObject(self):
+        self.protocolView.page().mainFrame().addToJavaScriptWindowObject("formExtractor", self);
 
     def setHtml(testhtml, testqurl):
         self.protocolView.setHtml(testhtml, testqurl)
+        
+    @Slot()
+    def submit(self):
+        
+        try:
+            print("\n\n[[SUBMIT!!]]\n")
+            frame = self.protocolView.page().mainFrame();
+
+            # firstName = frame.findFirstElement("#firstname");
+            debug(frame.toHtml())
+        
+        finally:
+            return False
+
         
     @Slot(object)
     def update(self, obj):
