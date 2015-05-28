@@ -90,12 +90,18 @@ import scilab.datagraphs.graph_cycles_stop as graph_cycles_stop
 def run_config(test, args, config, configfile):
     
     print(tag(h2="Running Config: {}".format(config)))
+    confignames = ("stage", "method", "item")
+    zconfig = OrderedDict(zip(confignames, config))
+    
+    if zconfig["method"] in args.options["dataprocessor","testconfs"].get("skip_methods",""):
+        debug(zconfig["method"], args.options["dataprocessor","testconfs"].get("skip_methods",""))
+        print("**Skipping Method**: `{}` ".format(zconfig))
+        return
+    
     # filepath = datafiles[config]
     debug(configfile)
     matdata = load_columns_matlab(configfile)
     
-    confignames = ("stage", "method", "item")
-    zconfig = OrderedDict(zip(confignames, config))
     sns.set_style("ticks")
     sns.set_style("whitegrid")
     

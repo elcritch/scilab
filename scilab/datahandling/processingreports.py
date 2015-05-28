@@ -88,14 +88,14 @@ def makeTestDocument(test, args):
     for name, tableconfig in fields.items():
         
         if isinstance(tableconfig, OrderedDict):
-            data = [ (k, fdetails[v]) for k,v in tableconfig.items() if not done(v) ]
+            data = [ (k, fdetails[v]) for k,v in tableconfig.items() if not done(v) and v in fdetails ]
             # summarykeys.add( ('Test',)+ tuple( i[0] for i in data )+('Preload',) )
             # summarydata.append( [ i[1] for i in data ])
             # summarydata[-1].insert(0,test.info.short)
             tab = tabulate.tabulate(data, headers=["Name", "Value"], tablefmt ='pipe' )
         elif isinstance(tableconfig, list):
             values = OrderedDict()
-            [ values.update( flatten(ddetails[key], parent_key=key) ) for key in tableconfig ]
+            [ values.update( flatten(ddetails[key], parent_key=key) ) for key in tableconfig if key in ddetails ]
             data = [ (" ".join(k.split('.')[:-1]), k.split('.')[-1], v) 
                             for k,v in flatten(values).items() if not done(k) ]
             tab = tabulate.tabulate(data, headers=["Group", "Field", "Value"], tablefmt ='pipe' )
