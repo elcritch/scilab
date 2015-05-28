@@ -204,7 +204,7 @@ class FileStructure(DataTree):
         
         self._testinfo = generatetestinfoclass(**projdesc["experiment_config"]["testinfo"])
         
-        names = self.projdesc.experiment_config.name.split('|')
+        names = self.projdesc.experiment_config.name.split('|' if '|' in self.projdesc.experiment_config.name else ';')
         self.experiment_name = names[0]
         self.test_name = names[1:]
 

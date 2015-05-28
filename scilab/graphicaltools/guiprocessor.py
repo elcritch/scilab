@@ -27,7 +27,9 @@ from scilab.expers.configuration import FileStructure
 from scilab.graphicaltools.gui_dataprocessor_testhandler import *
 import scilab.graphicaltools.forms as forms
 
-
+def formatHtmlBlock(html_raw):
+    return "\n".join([ l.strip() for l in html_raw.split("\n") ] )
+                    
 def supported_image_extensions():
     ''' Get the image file extensions that can be read. '''
     formats = QImageReader().supportedImageFormats()
@@ -147,6 +149,13 @@ class DataProcessorView(QTextEdit):
         
         # self.setContent("<html><h1>Text:</h1></html>", "text/html", QUrl("./"))
         
+# class CustomStyle(QProxyStyle):
+#
+#     def drawControl(self, element, option, painter, widget):
+#         if (element == QStyle.CE_CheckBox and option.styleObject):
+#             option.styleObject.setProperty("_q_no_animation", true)
+#         QProxyStyle.drawControl(element, option, painter, widget)
+
     
 class TestPageWebView(BasicWebView):
     
@@ -163,7 +172,9 @@ class TestProtocolView(QFrame):
         super(TestProtocolView, self).__init__()
         self.parent = parent
         self.setFrameStyle(QFrame.StyledPanel)
-        self.protocolView = BasicWebView()
+        self.protocolView = QWebView()
+        
+        self.protocolView.setStyle(QStyleFactory.create("windows"))
         
         layout = QVBoxLayout()
         layout.addWidget(self.protocolView)
@@ -192,7 +203,8 @@ class TestProtocolView(QFrame):
                 protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
         
                 self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
-        
+            
+                # self.protocolView.page.mainFrame.evaluateJavaScript(jscontent)
             # self.testitemchanged.connect(lambda obj: setitem(obj) )
         
 
@@ -270,9 +282,16 @@ class DataProcessorGuiMain(QMainWindow):
         self.testitemchanged.connect(lambda: self.tester.processtestclear.emit())
         
         def initDataProcessorWidget_append(html):
-            html = html.replace("\n", "<br>\n")
+            htmlFmt = """
+            <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
+            {}
+            </div>
+            <br>\n
+            """
+            
             self.dataProcessorOutput.moveCursor(QTextCursor.End)
-            self.dataProcessorOutput.insertHtml(html)
+            self.dataProcessorOutput.insertHtml(formatHtmlBlock(htmlFmt).format(html))
+            self.dataProcessorOutput.moveCursor(QTextCursor.End)
         
         self.tester.processtestupdate.connect(initDataProcessorWidget_append)
         self.tester.processtestclear.connect(self.dataProcessorOutput.clear)
@@ -285,7 +304,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.testPageWebView = TestPageWebView()
 
-        v1    = QVBoxLayout()
+        v1 = QVBoxLayout()
         v1.addWidget(self.testPageWebView)        
         widget.setLayout(v1)
         
@@ -346,14 +365,16 @@ class DataProcessorGuiMain(QMainWindow):
                     
                         tables.append("<h2>{}</h2><br>\n\n{}".format(key, str(fdtable)))
                 
-                webView.setHtml("\n".join([ l.strip() for l in """
+                htmlFmt = """
                 <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
                 # JSON Calculations:
-                
+
                 {fdtable}
-                
+
                 </div>
-                """.split("\n") ] ).format(fdtable="<br>\n<br>\n".join(tables)))
+                """
+                
+                webView.setHtml(formatHtmlBlock(htmlFmt).format(fdtable="<br>\n<br>\n".join(tables)))
             else:
                 webView.setHtml("<html></html>", QUrl())
         
