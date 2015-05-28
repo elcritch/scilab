@@ -149,6 +149,13 @@ class DataProcessorView(QTextEdit):
         
         # self.setContent("<html><h1>Text:</h1></html>", "text/html", QUrl("./"))
         
+# class CustomStyle(QProxyStyle):
+#
+#     def drawControl(self, element, option, painter, widget):
+#         if (element == QStyle.CE_CheckBox and option.styleObject):
+#             option.styleObject.setProperty("_q_no_animation", true)
+#         QProxyStyle.drawControl(element, option, painter, widget)
+
     
 class TestPageWebView(BasicWebView):
     
@@ -165,7 +172,9 @@ class TestProtocolView(QFrame):
         super(TestProtocolView, self).__init__()
         self.parent = parent
         self.setFrameStyle(QFrame.StyledPanel)
-        self.protocolView = BasicWebView()
+        self.protocolView = QWebView()
+        
+        self.protocolView.setStyle(QStyleFactory.create("windows"))
         
         layout = QVBoxLayout()
         layout.addWidget(self.protocolView)
@@ -194,7 +203,8 @@ class TestProtocolView(QFrame):
                 protocolHtmlStr = protocolFile.read().decode(encoding='UTF-8')
         
                 self.protocolView.setHtml(protocolHtmlStr, QUrl("."))
-        
+            
+                # self.protocolView.page.mainFrame.evaluateJavaScript(jscontent)
             # self.testitemchanged.connect(lambda obj: setitem(obj) )
         
 
@@ -276,10 +286,12 @@ class DataProcessorGuiMain(QMainWindow):
             <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
             {}
             </div>
+            <br>\n
             """
             
             self.dataProcessorOutput.moveCursor(QTextCursor.End)
             self.dataProcessorOutput.insertHtml(formatHtmlBlock(htmlFmt).format(html))
+            self.dataProcessorOutput.moveCursor(QTextCursor.End)
         
         self.tester.processtestupdate.connect(initDataProcessorWidget_append)
         self.tester.processtestclear.connect(self.dataProcessorOutput.clear)
@@ -292,7 +304,7 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.testPageWebView = TestPageWebView()
 
-        v1    = QVBoxLayout()
+        v1 = QVBoxLayout()
         v1.addWidget(self.testPageWebView)        
         widget.setLayout(v1)
         

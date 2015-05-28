@@ -163,8 +163,22 @@ def makeTestDocument(test, args):
     
     return testTemplate.format(info=test.info, **tables)
 
+class EmbeddedImageRenderer(mistune.Renderer):
+    def link(self, link, title, content):
+        
+        debug(link, title, content)
+        
+        linkresult = mistune.Renderer.link(link, title, content)
+        
+        debug(linkresult)
+        
+        return linkresult
+
 
 def processTestDocument(test, args):
+    
+    renderer = EmbeddedImageRenderer()
+    md = mistune.Markdown(renderer=renderer)
     
     print("## {} ".format(test.info))
     
@@ -182,9 +196,9 @@ def processTestDocument(test, args):
     if args.options["output", "html", "auto"]:
         
         if not args.options['output','dataprocessor','custom_css']:
-            reportStr.insert(0, "\n\n<style>{}</style>\n\n".format(defaultCss))
+            reportStr = "\n\n<style>{}</style>\n\n".format(defaultCss) + reportStr
         
-        reportHtmlStr = mistune.markdown(reportStr)
+        reportHtmlStr = md.render(reportStr)
         
         with open(str(reportHtmlPathname),'w', encoding='utf-8') as report:
             report.write(reportHtmlStr)
