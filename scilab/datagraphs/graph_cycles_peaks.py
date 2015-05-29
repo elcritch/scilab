@@ -26,7 +26,9 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
         return DataTree()
     
     stepslice = slice(*matdata.indexes.step.idx_5)
-    debug([ matdata.indexes.step.idx_5 ])
+    # debug([ matdata.indexes.step.idx_5 ])
+
+    # debug(matdata.data.__dict__.keys())
     
     getfield = lambda n: ( getattr(matdata.data, n)[stepslice], getattr(matdata.columninfo, n) )
     t,tl = getfield("cycleStartTime")

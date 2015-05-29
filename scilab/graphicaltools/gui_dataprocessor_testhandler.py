@@ -203,6 +203,7 @@ class ProjectContainer():
         
         print("## Loading Options ")
         options = DataTree()
+        options["dataprocessor", "forcerun", "norm"] = False
         options["dataprocessor", "forcerun", "raw"] = False
         options["dataprocessor", "forcerun", "excel"] = False
         options["dataprocessor", "version"] = "0"

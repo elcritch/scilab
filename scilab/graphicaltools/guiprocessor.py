@@ -26,6 +26,9 @@ import scilab
 from scilab.expers.configuration import FileStructure
 from scilab.graphicaltools.gui_dataprocessor_testhandler import *
 import scilab.graphicaltools.forms as forms
+import scilab.datahandling.processingreports 
+
+defaultCss = scilab.datahandling.processingreports.defaultCss 
 
 def formatHtmlBlock(html_raw):
     return "\n".join([ l.strip() for l in html_raw.split("\n") ] )
@@ -106,7 +109,7 @@ class ExperTestList(QListWidget):
         # Order Tests by last modification time
         self._testitems = collections.OrderedDict(
                     reversed(sorted(
-                        ( (test.short, DataTree(folder=folder, test=test)) for test, folder in testitemsd.items() ),
+                        ( ( "%s (%s)"%( test.short, test.date ), DataTree(folder=folder, test=test)) for test, folder in testitemsd.items() ),
                         key=lambda f: f[1].folder.stat().st_mtime
                     )))
 
@@ -115,6 +118,13 @@ class ExperTestList(QListWidget):
         for key, value in self._testitems.items():
             item = QListWidgetItem(self)
             item.setText(key)
+            item.setToolTip(value.test.name)
+            ttfont = QFont("Monospace")
+            ttfont.setStyleHint(QFont.TypeWriter)
+            ttfont.setPointSize(9)
+            item.setFont(ttfont)
+            
+            # item.setData( Qt.UserRole, key)
         
         if len(self._testitems) > 0:
             self.setCurrentRow(0)
@@ -221,7 +231,8 @@ class TestProtocolView(QFrame):
             
         else:
             protocolUrl = test.folder.main / ".." / ".." / 'protocol.html'
-            protocolTestSampleUrl = test.folder.main / 'protocol.html'
+            protocolTestSampleUrl = test.folder.main / 'protocol (test={}).html'.format(test["info"].short)
+            
             self.protocolTestSampleUrl = protocolTestSampleUrl
             
             if not protocolUrl.exists() and not protocolTestSampleUrl.exists():
@@ -245,6 +256,7 @@ class DataProcessorGuiMain(QMainWindow):
         super().__init__()
         self.settings = QSettings("Scilab", "Dataprocessor Gui")
         self.initUI()
+        self.__current_item = None
 
     def infoTestInfoPanel(self):
         
@@ -331,9 +343,11 @@ class DataProcessorGuiMain(QMainWindow):
         widget = QWidget()
         
         self.testPageWebView = TestPageWebView()
+        refreshButton = QPushButton("Refresh")
 
         v1 = QVBoxLayout()
         v1.addWidget(self.testPageWebView)        
+        v1.addWidget(refreshButton)        
         widget.setLayout(v1)
         
         self.testPageWebView.init()
@@ -345,13 +359,18 @@ class DataProcessorGuiMain(QMainWindow):
             # set
             if testobj:
                 testhtml, testurl = self.tester.getinfopanelhtml(testobj)
+                
                 testqurl = QUrl("file://{}/".format(testurl.resolve()))
+                
                 print("Test URL:", testqurl)
                 self.testPageWebView.setHtml(testhtml, testqurl)
+                
             else:
                 self.testPageWebView.setHtml("<html></html>", QUrl())
         
+        # Connect Buttons
         self.testitemchanged.connect(lambda obj: setitem(obj) )
+        refreshButton.clicked.connect(lambda obj: setitem(self.__current_item) )
         
         return widget
         
@@ -359,9 +378,11 @@ class DataProcessorGuiMain(QMainWindow):
         
         widget = QWidget()
         webView = TestPageWebView()
+        refreshButton = QPushButton("Refresh")
         
         v1 = QVBoxLayout()
         v1.addWidget(webView)        
+        v1.addWidget(refreshButton)        
         widget.setLayout(v1)
         
         ttfont = QFont("Monospace")
@@ -393,16 +414,27 @@ class DataProcessorGuiMain(QMainWindow):
                     
                         tables.append("<h2>{}</h2><br>\n\n{}".format(key, str(fdtable)))
                 
+                allfiles = [ [ f.relative_to(test.folder.main).as_posix(), ] for f in test.folder.main.rglob("**/*") ]
+                allfilesTable = tabulate.tabulate( allfiles, headers=["All Files"], tablefmt="html")
+                
                 htmlFmt = """
+                <style type="text/css">/*
+                {defaultCss}
+                </style>
+                
                 <div style='white-space: pre; font-family: "Courier New", Courier, monospace; font-size: 10; '> 
                 # JSON Calculations:
 
                 {fdtable}
 
                 </div>
-                """
                 
-                webView.setHtml(formatHtmlBlock(htmlFmt).format(fdtable="<br>\n<br>\n".join(tables)))
+                # All Files
+                
+                {allfilesTable}
+                
+                """                
+                webView.setHtml(formatHtmlBlock(htmlFmt).format(allfilesTable=allfilesTable,defaultCss=defaultCss, fdtable="<br>\n<br>\n".join(tables)))
             else:
                 webView.setHtml("<html></html>", QUrl())
         
@@ -410,9 +442,10 @@ class DataProcessorGuiMain(QMainWindow):
             try:
                 setitem(testobj)
             except Exception as err:
-                logging.error(err)
+                print(err.encoding("utf-8"))
         
         self.testitemchanged.connect(lambda obj: safe_setitem(obj) )
+        refreshButton.clicked.connect(lambda obj: safe_setitem(self.__current_item) )
         
         self.testDataWebView = webView
         
@@ -420,6 +453,8 @@ class DataProcessorGuiMain(QMainWindow):
     
     @Slot(object)
     def updateTestItem(self, item):
+        
+        self.__current_item = item # probably not thread-safe
         self.tester.setitem(item)
         self.testitemchanged.emit(item)
         
@@ -431,8 +466,8 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.testPanelTabs = QTabWidget(self)
         self.testPanelTabs.addTab(self.initDataProcessorWidget(), "Data Processor")
-        self.testPanelTabs.addTab(self.initTestPageWebView(), "Test Sample Panel")
-        self.testPanelTabs.addTab(self.initTestDataWebView(), "Test Sample Data")
+        self.testPanelTabs.addTab(self.initTestPageWebView(), "Summary Report")
+        self.testPanelTabs.addTab(self.initTestDataWebView(), "Variables / Data")
         
         self.testInfoPanel = self.infoTestInfoPanel()
         self.testProtocolView = TestProtocolView(self)
@@ -441,14 +476,19 @@ class DataProcessorGuiMain(QMainWindow):
         lFrame = QFrame(self)
         lFrame.setLayout(self.testInfoPanel)
 
+        # self.testProtocolView.setWidgetResizable(True)
+        # self.testPanelTabs.setWidgetResizable(True)
+
         self.testSplitter = QSplitter(self)
         self.testSplitter.addWidget(self.testProtocolView)
         self.testSplitter.addWidget(self.testPanelTabs)
-        self.testLabel = QLabel("<h2>Test:</h2> ")
+        # self.testLabel.setWidgetResizable(False)
+        self.testSplitter.setStretchFactor(0, 1)
+        self.testSplitter.setStretchFactor(1, 2)
 
-
+        # self.testSplitter.setWidgetResizable(True)
         testPanelsLayout = QVBoxLayout()
-        testPanelsLayout.addWidget(self.testLabel)
+        # testPanelsLayout.addWidget(self.testLabel)
         testPanelsLayout.addWidget(self.testSplitter)
         
         self.testPanels = QFrame(self)

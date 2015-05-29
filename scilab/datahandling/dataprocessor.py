@@ -114,7 +114,15 @@ def normalize_columns(data, norm_config, filenames, state):
             normeddata = None
         
         exec_variables = state.get('variables',DataTree())
-        props = exec_variables[state.methodname][state.methoditem.name][state.processorname]
+        
+        props = DataTree()
+        for k,v in flatten(exec_variables[state.methodname], astuple=True).items():
+            props[k[-2:]] = v
+        
+        # props = exec_variables[state.methodname][state.methoditem.name][state.processorname]
+        
+        # debug(state.methodname, state.methoditem.name, state.processorname)
+        # debug(exec_variables, props)
         
         if col['conversion','constant']:
             key, constantexpr = getpropertypair(col.conversion)

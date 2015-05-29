@@ -117,6 +117,11 @@ def makeTestDocument(test, args):
     debug(graphNames)
     graphFiles = [ (k,next(test.folder.graphs.glob(v), test.folder.graphs/v)) for k,v in graphNames ]
     
+    print("Graphs:\n\n", 
+        tabulate.tabulate( 
+            [ [ f.name, ] for f in test.folder.graphs.glob("*.png") ], 
+            headers=["Graph Files"], tablefmt="pipe"))
+    
     graphsHtml = "\n".join([ 
             "<tr><td><h3>{name}</h3><br><img width='100%' src='{src}'></img><pre>{src}</pre></td></tr>".format(
                 src=img.relative_to(testdir).as_posix(), name=n )
@@ -226,14 +231,14 @@ def processReportConfig(testconf, args):
     
     testconf.reportconf = reportconf
     
-    debug(reportconf)
+    # debug(reportconf)
     
     tablefields = collections.OrderedDict()
     
     for table in reportconf["Table"]:
         name = table["@name"]
         print()
-        debug(table)
+        # debug(table)
         
         if "@custom" in table:
             accessors = collections.OrderedDict( (f["@name"], f["@field"]) for f in table.get("Field", []) )
@@ -241,13 +246,15 @@ def processReportConfig(testconf, args):
             # debug(table["Fields"])
             accessors = list( f["@field"] for f in [table.get("Fields", ""),] if f)
         
-        debug(accessors)
+        # debug(accessors)
+        
         tablefields[name] = accessors
     
     graphnames = []
     
     for graph in reportconf["GraphTable"]["Graph"]:
         graphname = ( graph["@name"], graph["@match"].format(version=args.options["graphicsrunner"]["version"]) )
+        debug(graphname)
         graphnames.append(graphname)
         
     testconf.data.graphnames = graphnames

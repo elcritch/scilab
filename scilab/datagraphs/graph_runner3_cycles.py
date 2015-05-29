@@ -90,6 +90,8 @@ import scilab.datagraphs.graph_cycles_stop as graph_cycles_stop
 def run_config(test, args, config, configfile):
     
     print(tag(h2="Running Config: {}".format(config)))
+    debug(configfile.parent, configfile.name)
+    
     confignames = ("stage", "method", "item")
     zconfig = OrderedDict(zip(confignames, config))
     
@@ -99,7 +101,6 @@ def run_config(test, args, config, configfile):
         return
     
     # filepath = datafiles[config]
-    debug(configfile)
     matdata = load_columns_matlab(configfile)
     
     sns.set_style("ticks")
@@ -120,11 +121,11 @@ def run(test, args, stages=['norm', 'raw'], methods=["m1_preload", "m2_precond",
     # debug(test, args)
     # print(debugger_summary("run", locals()))
     # datafiles = DataTree()
-    # datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
-    datafiles = datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["tracking"], )
-    datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
+    datafiles = datacombinations(test, args, methods = ["m1_preload", "m2_precond", "m3_cycles"], items=["tracking"], )
+    # datafiles = datacombinations(test, args, stages=["raw"], methods = ["m3_cycles"], items=["tracking"], )
+    datafiles['norm', 'm3_cycles', 'trends'] = flatten(datacombinations(test, args, stages=["norm"], methods = ["m3_cycles"], items=["trends"],),tolist=True)[0][1]
     
-    config = ("raw", "uts", "tracking")
+    # config = ("raw", "uts", "tracking")
 
     for config, configfile in flatten(datafiles,astuple=True).items():
         try:
