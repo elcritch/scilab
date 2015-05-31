@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:gadfly="http://www.gadflyjl.org/ns"
+     version="1.2"
+     width="203.2mm" height="203.2mm" viewBox="0 0 203.2 203.2"
+     stroke="none"
+     fill="#000000"
+     stroke-width="0.3"
+     font-size="3.88"
+>
+<g fill="#000000" id="fig-e07a4c6fb0d54eb1b83605fecc62b818-element-1">
+  <rect x="152.4" y="152.4" width="50.8" height="50.8"/>
+  <rect x="101.6" y="101.6" width="50.8" height="50.8"/>
+  <rect x="50.8" y="152.4" width="50.8" height="50.8"/>
+  <rect x="0" y="101.6" width="50.8" height="50.8"/>
+  <rect x="152.4" y="50.8" width="50.8" height="50.8"/>
+  <rect x="101.6" y="0" width="50.8" height="50.8"/>
+  <rect x="50.8" y="50.8" width="50.8" height="50.8"/>
+  <rect x="0" y="0" width="50.8" height="50.8"/>
+</g>
+</svg>
