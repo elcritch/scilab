@@ -48,10 +48,11 @@ def _process(processargs):
 
 class FileFollower(QObject):
     
-    def __init__(self, file):
+    def __init__(self, filepath):
         super().__init__()
         
-        self.file = open(str(file), 'w+')
+        self.path = filepath
+        self.file = open(str(filepath), 'r+')
         self.pos = self.file.tell()
 
     def getvalue(self):
@@ -59,17 +60,19 @@ class FileFollower(QObject):
         Iterator generator that returns lines as data is added to the file.
         Based on: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/157035
         """
-        trailing = True       
-    
         self.file.seek(self.pos, 0)
-        
+
         lines = self.file.readlines()
+        # lines = [ '[[%s]] %s'%(self.counter,l) for l in self.file.readlines() ]
         
         self.pos = self.file.tell()
             
         return lines
 
-        
+    def reset(self):
+        self.file.truncate()
+        self.pos = 0
+        # self.counter += 1
 
 class ProjectContainer():
     
@@ -147,17 +150,13 @@ class ProjectContainer():
         self.test.timer.timeout.connect(self.doprocessorupdate)
         
         # self.test.timer.start(.200)
-        self.test.timer.setInterval(2*1000)
+        self.test.timer.setInterval(0.2*1000)
         self.test.timer.start()
-        
-        # = Setup Log File =
-        gui_version = self.args.options["graphicsrunner", "version"]
-        logOutPath = self.test.folder.main / "log (prog=guiprocessor; v{}).md".format(gui_version)
-        logErrPath = self.test.folder.main / "log (prog=guiprocessor; v{}).md".format(gui_version)
-        debug(logOutPath)
 
-        self.test.queues = logOutPath, None
-        self.test.logs = FileFollower(logOutPath), None
+        stdOutLog, stdErrLog = self.test.logs
+        stdOutLog.reset(), stdErrLog.reset()
+        
+        self.test.queues = stdOutLog.path, stdErrLog.path 
         
         debug(self.test.logs)
         
@@ -174,7 +173,6 @@ class ProjectContainer():
         print("starting queue: ", self.test.queues[0])
         processargs = DataTree(testinfodict=testinfodict, fs=shallowfs, args=self.args, logFileNames=self.test.queues)
         
-        # self.pool.map_async(_process_test, [processargs])
         self.pool.map_async(_process, [processargs])
         
     @Slot()
@@ -389,9 +387,24 @@ class TestHandler(QObject, ProjectContainer):
         if not item:
             self.test = DataTree()
         else:
+            if 'logs' in self.test:
+                try:
+                    f1, f2 = self.test.logs
+                    f1.file.close()
+                    f2.file.close()
+                except Error as err:
+                    raise err
+            
             self.test = DataTree()
             self.test.info = item.test
             self.test.folder = self.fs.testfolder(testinfo=self.test.info, ensure_folders_exists=False)
+            
+            # = Setup Log File =
+            logOutPath = self.test.folder.main / "log (prog=guiprocessor; type=stdout).md".format()
+            logErrPath = self.test.folder.main / "log (prog=guiprocessor; type=stderr).md".format()
+            debug(logOutPath)
+
+            self.test.logs = FileFollower(logOutPath), FileFollower(logErrPath)            
 
     def getitem(self):
         
