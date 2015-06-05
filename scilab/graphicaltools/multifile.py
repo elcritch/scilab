@@ -8,7 +8,6 @@ from io import StringIO
 from multiprocessing import *
 # import Queue as PyQueue
 
-
 # http://www.codeitive.com/0SHgjVkejq/python-multiprocessing-synchronizing-filelike-object.html 
 
 class MultiProcessFile(object):
@@ -37,26 +36,18 @@ class MultiProcessFile(object):
 
     def buffer(self, wait=False):
         if getpid() != self.__master:
-            # print("[MultiProcessFile::buffer::%s] Returning!"%(getpid()), file=sys.stderr)
             return
-
         
-        # cache = defaultdict(str)
         strbuffer = StringIO()
         
         while True:
             try:
                 pid, data = self.__queue.get(wait)
-                # cache[pid] += data
                 strbuffer.write(data)
-                # print("[MultiProcessFile::buffer::%s -> `%s` ] "%(getpid(), data), file=sys.stderr)
             except queue.Empty:
                 return strbuffer
         
-        # for pid in sorted(cache):
-        #     # self.__buffer.write( '[[thread:%s]] %r\n' % (pid, cache[pid]) )
-        #     self.__buffer.write(cache[pid])
-        
+        return
         
     def write(self, data):
         # print("[MultiProcessFile::write::%s] "%(getpid()), data, file=sys.stderr)

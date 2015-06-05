@@ -2,7 +2,6 @@
 
 # Import PySide classes
 import sys, collections, logging, traceback, io, multiprocessing, copy, time
-
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtWebKitWidgets import QWebView
@@ -28,29 +27,50 @@ import imp
 def _process_test(processargs):
     
     testinfodict, fs, args, queues = processargs
-    
     sys.stdout, a = queues
     
-    # print("processing!!!", file=stdoutprev)
     for i in range(60):
         print("{execute! %d}"%i)
         time.sleep(.1)
 
-    
 
 def _process(processargs):
     try:
-        processargs, queues = processargs[:-1], processargs[-1]
-        guitestprocess(processargs, queues=queues)
+        # testinfodict, fs, args, queues = processargs[:-1], processargs[-1]
+        # sys.stdout, sys.stderr = queues
+        guitestprocess(**processargs)
     except Exception as err:
-        print("[Error]", file=sys.stderr)
-        print(traceback.format_exc(), file=sys.stderr)
+        print("[Error]", file=sys.stderr,flush=True)
+        print(traceback.format_exc(), file=sys.stderr, flush=True)
         raise err
     finally:
         print("[Finished]")
 
+class FileFollower(QObject):
     
+    def __init__(self, file):
+        super().__init__()
+        
+        self.file = open(str(file), 'w+')
+        self.pos = self.file.tell()
+
+    def getvalue(self):
+        """\
+        Iterator generator that returns lines as data is added to the file.
+        Based on: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/157035
+        """
+        trailing = True       
     
+        self.file.seek(self.pos, 0)
+        
+        lines = self.file.readlines()
+        
+        self.pos = self.file.tell()
+            
+        return lines
+
+        
+
 class ProjectContainer():
     
     projectdirchanged = Signal(str)
@@ -94,17 +114,17 @@ class ProjectContainer():
         
     @Slot()
     def doprocessorupdate(self):
-        if not self.test or 'queues' not in self.test:
-            return
+        if not self.test or 'logs' not in self.test:
+            print("[Skipping doprocessorupdate -- no test and/or logs]")
         
-        stdout, stderr = self.test.queues[0].getvalue(wait=False), self.test.queues[1].getvalue(wait=False)
-        #print(stdout, flush=True, end='', file=sys.stdout)
-        #print(stderr, flush=True, end='', file=sys.stderr)
-        
-        if len(stdout) > 0:
-            self.processtestupdate.emit(stdout.rstrip())
-        if len(stderr) > 0:
-            self.processtestupdate.emit("<b>{}</b>".format(stderr.rstrip()) )
+        else:
+            
+            stdOutLines = ''.join(self.test.logs[0].getvalue())
+            stdErrLines = ""
+            if len(stdOutLines) > 0:
+                self.processtestupdate.emit(stdOutLines)
+            if len(stdErrLines) > 0:
+                self.processtestupdate.emit("<b>{}</b>".format(stdErrLines) )
 
     @Slot()
     def doprocessgraphs(self):
@@ -123,12 +143,23 @@ class ProjectContainer():
         shallowfs = copy.copy(self.fs)
         shallowfs._testinfo = None
 
-        self.test.queue = multiprocessing.Queue()
         self.test.timer = QTimer(self._parent)
         self.test.timer.timeout.connect(self.doprocessorupdate)
         
-        self.test.timer.start(.200)
-        self.test.queues = MultiProcessFile(), MultiProcessFile()
+        # self.test.timer.start(.200)
+        self.test.timer.setInterval(2*1000)
+        self.test.timer.start()
+        
+        # = Setup Log File =
+        gui_version = self.args.options["graphicsrunner", "version"]
+        logOutPath = self.test.folder.main / "log (prog=guiprocessor; v{}).md".format(gui_version)
+        logErrPath = self.test.folder.main / "log (prog=guiprocessor; v{}).md".format(gui_version)
+        debug(logOutPath)
+
+        self.test.queues = logOutPath, None
+        self.test.logs = FileFollower(logOutPath), None
+        
+        debug(self.test.logs)
         
         # guiimportraws.importrawsdialog(self.test, projectfolder=self.fs, parent=self)
         testconfmethods = [ (list(m.keys())[0], True) for m in self.fs["projdesc"]["methods"] ] 
@@ -141,7 +172,7 @@ class ProjectContainer():
         print("Skipping: ", self.args.options["dataprocessor", "testconfs", "skip_methods"])
         
         print("starting queue: ", self.test.queues[0])
-        processargs = testinfodict, shallowfs, self.args, self.test.queues
+        processargs = DataTree(testinfodict=testinfodict, fs=shallowfs, args=self.args, logFileNames=self.test.queues)
         
         # self.pool.map_async(_process_test, [processargs])
         self.pool.map_async(_process, [processargs])

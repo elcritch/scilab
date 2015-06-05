@@ -1,273 +1,200 @@
-{
-	"processors": {
-		"tracking": [
-			{
-				"name":"raw",
-				"columns": [
-		            { 
-						"info": { "name": "step", "label": "Step", "units": "Nº",  "full": "Step" }
-					},
-		            { 
-						"info": { "name": "totalTime", "label": "Total Time", "units": "s",   "full": "Total Time (s)" }
-					},
-		            { 
-						"info": { "name": "disp", "label": "Displacement", "units": "mm", "full": "Displacement(Linear|Digital Position) (mm)" }
-					},
-		            { 
-						"info": { "name": "load", "label": "Load (OmgDyn25)", "units": "N" },
-						"fulls": ["Load(Linear|OmgDyn25) (N)", "Load(Linear|OmgDy25) (N)", "Load(Linear|OmgDyb25lb) (N)"]
-					},
-		            { 
-						"info": { "name": "elapsedCycles", "label": "Elapsed Cycles", "units": "Nº",  "full": "Elapsed Cycles" }
-					},
-		            { 
-						"info": { "name": "cycleElapsedTime", "label": "Cycle Elapsed Time ", "units": "s",   "full": "Cycle Elapsed Time (s)" }
-					},
-		            { 
-						"info": { "name": "totalCycleCount", "label": "Total Cycle Count", "units": "Nº",  "full": "Total Cycle Count(Linear Waveform)" }
-					}
-				],
-				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
-			},
-			{
-				"name":"norm",
-				"columns": [
-					{
-						"source":     { "column": "totalTime" }
-					},
-					{ 
-						"source":     { "column": "elapsedCycles" }
-					},
-					{
-						"source":     { "column": "totalCycleCount" }
-					},
-					{
-						"source":     { "column": "cycleElapsedTime" }
-					},
-					{
-						"info": { "name": "disp", "label": "Displacement", "units": "mm", "full": "Displacement(Linear|Digital Position) (mm)" },
-						"source":     { "column": "disp" }
-					},
-					{
-						"info": { "name": "load", "label": "Load", "units": "N", "full": "Load(Linear|Load) (N)" },
-						"source":     { "column": "load" },
-						"conversion": { "func": "1.0 * x - variables.load_balance.value" }
-					},
-					{
-						"info":     { "name":     "strain", "units": "∆", "label": "Strain" }, 
-						"source":     { "column": "disp"},
-						"conversion": { "constant": "1.0/details['measurements']['datasheet']['gauge']['length']['value']" }
-					},
-					{
-						"info":     { "name":     "stress", "units": "MPa", "label": "Stress" },
-						"source":     { "column": "load" },
-						"conversion": { "func": "1.0/ (details['measurements']['image']['area']['value'] or 1.0) * (x - variables.load_balance.value)" }
-					},
-					{
-						"info":     { "name":     "step", "units": "", "label": "WaveMatrix Step" },
-						"source":     { "column": "step" }
-					}
-				],
-				"_slicecolumns_": [ {"column":"step", "type":"int"} ]
-			}
-		]
-	},
-	"methods": [
- 		{
- 			"preload": [
- 				{
-					"name": "tracking",
- 					"processor": { "$ref": "#/processors/tracking" },
- 					"files": { "_csv_": "{testfolder.raws.instron_method01_preload}/*.tracking.csv.gz" },
-					"variables": {
-						"norm": {
-							"pre": { 
-								"_exec_": { 
-									"load_balance": { "value": "0.0", "units": "'N'" }
-								}
-							}
-						}
-					}
- 				}
- 			]
- 		},
-		{
-			"precond": [
-				{
-					"name": "tracking",
-					"processor": { "$ref": "#/processors/tracking" },
-					"files": { "_csv_": "{testfolder.raws.instron_method02_precond}/*.tracking.csv.gz" },
-					"variables": {
-						"norm": {
-							"pre": { 
-								"_exec_": { 
-									"load_balance": { 
-										"value": "calc.mean( raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
-										"stdev": "calc.std(  raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
-										"units": "'N'"
-									}
-								}
-							},
-							"post": {
-								"_exec_": { 
-									"fitting": " codehandlers.process_precondition(norm, step_idx='idx_2') "
-								}
-							}
-						}
-					}
-				}
-			]
-		},
-		{
-			"uts": [
-				{
-					"name": "tracking",
-					"processor": { "$ref": "#/processors/tracking"},
-					"files": { "_csv_": "{testfolder.raws.instron_method03_uts}/*.tracking.csv.gz" },
-					"variables": {
-						"norm": {
-							"pre": { 
-								"_exec_": { 
-									"load_balance": { 
-										"value": "calc.mean( raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
-										"stdev": "calc.std(  raw.data.load[ slice(*raw.indexes.step.idx_1) ] )",
-										"units": "'N'"
-									}
-								}
-							},
-							"post": {
-								"_exec_": {
-									"load_max":         " calc.getmax( norm.data.load ).set(units='N')",
-									"stress_max":       " calc.getmax( norm.data.stress ).set(units='MPa')",
-									"disp_max_value":   " calc.asvalue( norm.data.disp[ norm.data.load.argmax() ], units='mm' )",
-									"strain_max_value": " calc.asvalue( norm.data.strain[ norm.data.stress.argmax() ], units='∆' )",
-									"strain_rate":  " calc.asvalue( 100.0*calc.diff(norm.data.strain[slice(*raw.indexes.step.idx_2)][0:100:99])[0] / calc.diff(norm.data.totalTime[slice(*raw.indexes.step.idx_2)][0:100:99])[0], units='%/s')"
-								}
-							}
-						}
-					}
-				}
-			]
-		}
-	],
-	"experiment_config": {
-		"name": "fatigue-failure|uts|expr1",
-		"start": "2014-12",
-		"projectfolder" : {
-			"_metadata_": "describe project folders",
-			
-			"filestructure": {
-					"raw": "01_Raw/",
-					"tests": "02_Tests/",
-					"results": "04_Results/",
-					"raws": {
-						"preload": "{raw}/01 (uts) preloads",
-						"precond": "{raw}/02 (uts) preconditions",
-						"uts":    " {raw}/04 (uts) uts-test",
-						"templates":    "{raw}/templates"
-					}
-				}
-		},
-		"testfolder" : {
-			"_metadata_": "describe folders structure for tests in experiment",
-			"folder": "{tests}/{testinfo.name}",
-			"raws": {
-				"instron_method01_preload": "{raw}/01 Preload/",
-				"instron_method02_precond": "{raw}/02 Precond/",
-				"instron_method03_uts": "{raw}/03 UTS/"
-			},
-			"filestructure": {
-		        "main":           "",
-		        "raw":            "raws/",
-		        "data":           "data/",
-		        "graphs":         "graphs/",
-		        "json":           "json/",
-		        "jsoncalc":       "json/calculated/",
-		        "images":         "images/"
-			},
-			"files": {
-		        "datasheet":      "data_sheet {testinfo.short}.xlsx",
-		        "details":        "{json}/{testinfo.short}.calculated.json",
-		        "frontImage":        "{images}/D*.front.JPG",
-		        "sideImage":        "{images}/D*.side.JPG"
-			}, 
-			"templates": {
-				"datasheet": "{filestructure.raws.templates}/datasheet (test=uts | latest).xlsx"
-			}		
-		},
-		"testinfo": {
-			"prefix": "uts",
-         "fields": [
-	          ["errors",      "(\\[.+?\\]\\s+)?"],
-						["date",        "\\w+\\d+" ],
-						["batch",       "(..)(\\d+)\\.(\\d+)" ],
-						["side",        "(l|r)(m|l)m" ],
-						["wedge",       "w([a-f])" ],
-						["orientation", "(tr|lg)" ],
-						["layer",       "l(\\d+)" ],
-						["sample",      "x(\\d+)" ],
-						["run",         "(-.+)?" ]
-			],
-			"namefmt": "{errors}{date}({batch}-{side})-{wedge}-{orientation}-{layer}-{sample}{run}",
-			"shortfmt": "{errors}{wedge.groups[0]}{orientation}-{batch.groups[1]}{batch.groups[2]:02d}-{layer.groups[0]:d}{sample.groups[0]:02d}"
-		},
-		"config": { 
-			"calibration": {
-				"image_measurement": {
-					"imageconfs": [
-						{
-							"name": "frontImage",
-							"aspect": "front",
-							"crops": "front"
-						},
-						{
-							"name": "sideImage",
-							"aspect": "side",
-							"crops": "side"
-						}
-					],
-					"parameters": {
-						"minsamplesize": { "x":0.8, "y":0.8, "z":7.0, "units": "mm" }
-					},
-		      "scales": {
-						"_lookup_": {
-							"imageconf.aspect": { 
-								"front" : { "value": 12.492081448, "units":"px/mm" },
-								"side" :  { "value": 13.3873114463, "units":"px/mm" }
-							}
-						}
-					},
-					"crops": {
-						"_lookup_": {
-							"args.testconf.info.orientation": {
-						      "tr": {
-										"_lookup_": {
-											"imageconf.aspect": { 
-								          "front": { "xd": [2325,3550], "yd": [1300,2550], "units": "px"  },
-								          "side":  { "xd": [2350,3550], "yd": [1300,2535], "units": "px"  }
-											}
-										}
-						      },
-						      "lg": {
-										"_lookup_": {
-											"imageconf.aspect": { 
-								          "front":  { "xd": [2325,2550], "yd": [1250,1550], "units": "px" },
-								          "side":   { "xd": [2325,2525], "yd": [1250,1550], "units": "px" }
-										 }
-									 }
-								 }
-							}
-						}
-					},
-					"calculations": {
-						"image": [
-							{ "width": " calc.asvalue( frontImage['thirds']['middle']['value'] - frontImage['thirds']['middle']['stdev'], units='mm') " },
-							{ "depth": " calc.asvalue( sideImage['thirds']['middle']['value'] - sideImage['thirds']['middle']['stdev'], units='mm') " },
-							{ "area":  " calc.asvalue( results['image']['width']['value']*results['image']['depth']['value'] , units='mm^2') " }
-						]
-					}
-				}
-			}
-		}
-	} 
-}
+a1
+a2
+a3
+a4
+a5
+a6
+a7
+a8
+a9
+a10
+a11
+a12
+a13
+a14
+a15
+a16
+a17
+a18
+a19
+a20
+a21
+a22
+a23
+a24
+a25
+a26
+a27
+a28
+a29
+a30
+a31
+a32
+a33
+a34
+a35
+a36
+a37
+a38
+a39
+a40
+a41
+a42
+a43
+a44
+a45
+a46
+a47
+a48
+a49
+a50
+a51
+a52
+a53
+a54
+a55
+a56
+a57
+a58
+a59
+a60
+a61
+a62
+a63
+a64
+a65
+a66
+a67
+a68
+a69
+a70
+a71
+a72
+a73
+a74
+a75
+a76
+a77
+a78
+a79
+a80
+a81
+a82
+a83
+a84
+a85
+a86
+a87
+a88
+a89
+a90
+a91
+a92
+a93
+a94
+a95
+a96
+a97
+a98
+a99
+a100
+a101
+a102
+a103
+a104
+a105
+a106
+a107
+a108
+a109
+a110
+a111
+a112
+a113
+a114
+a115
+a116
+a117
+a118
+a119
+a120
+a121
+a122
+a123
+a124
+a125
+a126
+a127
+a128
+a129
+a130
+a131
+a132
+a133
+a134
+a135
+a136
+a137
+a138
+a139
+a140
+a141
+a142
+a143
+a144
+a145
+a146
+a147
+a148
+a149
+a150
+a151
+a152
+a153
+a154
+a155
+a156
+a157
+a158
+a159
+a160
+a161
+a162
+a163
+a164
+a165
+a166
+a167
+a168
+a169
+a170
+a171
+a172
+a173
+a174
+a175
+a176
+a177
+a178
+a179
+a180
+a181
+a182
+a183
+a184
+a185
+a186
+a187
+a188
+a189
+a190
+a191
+a192
+a193
+a194
+a195
+a196
+a197
+a198
+a199
+HIHI

@@ -23,7 +23,6 @@ class TeeIO:
             self.fd2.close()
 
 
-
 class TeeStdIO:
     
     def __init__(self, stdname, tee):

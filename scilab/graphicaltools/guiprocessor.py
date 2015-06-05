@@ -24,7 +24,7 @@ from pathlib import *
 
 import scilab
 from scilab.expers.configuration import FileStructure
-from scilab.graphicaltools.gui_dataprocessor_testhandler import *
+from scilab.graphicaltools.guitesthandler import *
 import scilab.graphicaltools.forms as forms
 import scilab.datahandling.processingreports 
 
