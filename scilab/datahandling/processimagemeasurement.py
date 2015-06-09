@@ -13,7 +13,7 @@ from skimage.util import img_as_ubyte
 from PIL import Image as PILImage
 
 def processimg(img, scale, max_width,
-                gamma, gain, img_otsu, 
+               gamma, gain, img_otsu, 
                remove_small, remove_small_pre, 
                min_size, auto_otsu, equalize_adapthist,
                erode_pixels, 

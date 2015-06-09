@@ -206,10 +206,8 @@ class TestProtocolView(QFrame):
     def submit(self):
         
         try:
-            print("\n\n[[SUBMIT!!]]\n")
-            frame = self.protocolView.page().mainFrame();
 
-            # firstName = frame.findFirstElement("#firstname");
+            frame = self.protocolView.page().mainFrame()
             updatedHtml = frame.toHtml()
             
             with self.protocolTestSampleUrl.open('w', encoding='utf-8') as protocolHtml:

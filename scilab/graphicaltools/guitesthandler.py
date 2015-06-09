@@ -52,11 +52,15 @@ class FileFollower(QObject):
         super().__init__()
         
         self.path = filepath
+        if not filepath.exists():
+            with open(str(filepath), 'w') as file:
+                file.write('')
+            
         self.file = open(str(filepath), 'r+')
         self.pos = self.file.tell()
 
     def getvalue(self):
-        """\
+        """
         Iterator generator that returns lines as data is added to the file.
         Based on: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/157035
         """

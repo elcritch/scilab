@@ -4,6 +4,7 @@ from pathlib import Path
 import sys, collections, logging, traceback, io, multiprocessing, copy, time
 
 from contextlib import contextmanager
+from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
 
 @contextmanager
 def setupStdLogs(logStdOutFile, logStdErrFile):
@@ -71,6 +72,7 @@ def guitestprocess(testinfodict, fs, args, logFileNames):
         if not 'data' in test:
             test.data = DataTree()
         
+        
         dataprocessor.execute(fs=fs, name=test.info.name, testconf=test, args=args )
 
-        print("Done")
+        print(mdBlock("<p>\n# Done #</p>"))
