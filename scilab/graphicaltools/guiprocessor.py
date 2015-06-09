@@ -425,12 +425,15 @@ class DataProcessorGuiMain(QMainWindow):
 
                 {fdtable}
 
-                </div>
                 
                 # All Files
                 
+                <br>
+                
                 {allfilesTable}
                 
+                </div>
+                <br>
                 """                
                 webView.setHtml(formatHtmlBlock(htmlFmt).format(allfilesTable=allfilesTable,defaultCss=defaultCss, fdtable="<br>\n<br>\n".join(tables)))
             else:
