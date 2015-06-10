@@ -86,11 +86,11 @@ def processimg(img, scale, max_width,
     # = Reconvert back to boolean! (Just in case... this has a tendency to revert after various ops causing issues) =
     img_bw = img_bw.astype('bool')
     
+    errors = []
     if np.sum(img_bw) < min_size:
-        
-            raise ValueError("Binarized image below minimum size! Sum: ", np.sum(img_bw)/zoomfactor**2, min_size/zoomfactor**2)
-    
-    return DataTree(image=img, adjusted=image, binarized=img_bw)
+        errors.append( ValueError("Binarized image below minimum size! Sum: ", np.sum(img_bw)/zoomfactor**2, min_size/zoomfactor**2) )
+
+    return DataTree(image=img, adjusted=image, binarized=img_bw, errors=errors)
 
 def argvaluechanges(data):
     indices = (np.where(data[:-1] != data[1:])[0]).astype(int)
@@ -201,6 +201,8 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     if testconf['options','processing']:
         processingconfs.update(testconf['options','processing'])
     
+    debug(processingconfs, imagepath, scaling, cropping, minsamplesize, zoomfactor, equalize_adapthist, )
+    
     def getimagepath(stage):
         return state.processed / "{name}.{stage}.png".format(name=imageconf["name"], stage=stage)
     
@@ -210,14 +212,23 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     if not imagepath or not imagepath.exists():
         raise ValueError("Image file not found: "+str(croppedimage), imageconf)
     
-    if not croppedimage.exists() or args["force", "imagecropping"]:
-        print("Cropping and caching image")
+    debug(args["options", "graphicsrunner", "forceImageCropping"])
+    
+    if not croppedimage.exists() or args["options", "graphicsrunner", "forceImageCropping"]:
+        print("Cropping and caching image", flush=True)
         img = loadimage(imagepath=imagepath)
-        debug(img.shape)
+        print("Image Loaded:", img.shape, flush=True)
         imgout = crop(img, **cropping)
-        imgout = scipy.ndimage.zoom(imgout, (zoomfactor, zoomfactor, 1), order=3)
-        debug(imgout.shape)
+        print("Image Cropped:", imgout.shape, flush=True)
+        
         saveimage(imgout, croppedimage)
+        print("Cropped image saved:", str(croppedimage), flush=True)
+        
+        if zoomfactor > 1.00:
+            print("Zooming image:", zooming)
+            imgout = scipy.ndimage.zoom(imgout, (zoomfactor, zoomfactor, 1), order=3)        
+            saveimage(imgout, croppedimage)
+            print("Saving zoom image:", imgout.shape)
     
     image = loadimage(croppedimage)
     
@@ -227,17 +238,18 @@ def process_image(testconf, imagepath, scaling, cropping, minsamplesize, zoomfac
     
     args_processimg = DataTree(img=image, scale=scaling, zoomfactor=zoomfactor, 
                                 dbg=args["dbg","image_measurement"], **processingconfs)
-    try:
-        processedimages = processimg(**args_processimg)
-    except ValueError as err:
-        # = Handle case where equalize_adapthist fails (this could be improved via a two stage algo) =
-        if processingconfs["equalize_adapthist"] == True:           
-            processedimages = processimg(**args_processimg.set(equalize_adapthist=False))
-            logging.warning("Binarized image below minimum size! Turned off skimage.exposure.equalize_adapthist")
-        
-    
+    processedimages = processimg(**args_processimg)
+
     saveimage(processedimages.adjusted, getimagepath("adjusted"))
     saveimage(processedimages.binarized, getimagepath("binarized"))
+    
+    for err in ( err for err in processedimages.errors if isinstance(err, ValueError) ):
+        # = Handle case where equalize_adapthist fails (this could be improved via a two stage algo) =
+        # if processingconfs["equalize_adapthist"] == True:
+        #     processedimages = processimg(**args_processimg.set(equalize_adapthist=False))
+        logging.warning("Binarized image below minimum size! Turned off skimage.exposure.equalize_adapthist")
+        
+        raise err
     
     return processedimages
         
@@ -287,6 +299,7 @@ def process_imageconf(testconf, imageconf, state, args):
             args_samplemeasurement.img_bw = processedimages.binarized
             measurements = samplemeasurement(**args_samplemeasurement)
             logging.warn("Too many objects found, turning. Turned off skimage.exposure.equalize_adapthist")
+            raise err
     
     measurements["parameters", "scale"] = scaling  
     measurements["parameters", "zoomfactor"] = valueUnits(100*zoomfactor, units='%')._asdict()

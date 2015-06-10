@@ -242,7 +242,9 @@ class ProjectContainer():
         options["dataprocessor", "version"] = "0"
         options["dataprocessor", "optional_errors"]
         
+        options["graphicsrunner", "forceImageCropping"] = False
         options["graphicsrunner", "version"] = "0"
+        
         options["dataprocessor", "suppress_optional_errors"] = False
         
         options["output", "excel"] = False
