@@ -102,10 +102,10 @@ def makeTestDocument(test, args):
         
         tables[name] = "#### {}\n\n".format(name) + str(tab)
     
-    specimenImagesHtml = "\n".join([ 
-                    "<img src='{}' width='{}%'></img>".format(img.relative_to(testdir).as_posix(), 28 )
+    specimenImagesHtml = "<table width='70%' height='350px' ><tr><td>{}</td><td>{}</td></tr></table>".format(*[ 
+                    "<img src='{}' height='300px' ></img>".format(img.relative_to(testdir).as_posix() )
                         for img in test.folder.images.glob("processed/*.cropped.png") 
-                    ])
+                    ][0:2] )
         
     # graphNames = [
     #     ('UTS', "*norm*graph=uts*.png"),
@@ -830,7 +830,7 @@ sub {
 	}
 	table tr {
 		border-top: 1px solid #ccc;
-		background-color: #fff;
+        # background-color: #fff;
 	}
 /*	table tr:nth-child(3n) {
 		border-bottom: 2px outset  #ccc;
@@ -844,7 +844,7 @@ sub {
 /*		border-right:  2px inset #ddd;*/
 	}
 	table tr:nth-child(2n) {
-		background-color: #fff;
+        # background-color: #fff;
 	}
 	
 	pre {
