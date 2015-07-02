@@ -32,7 +32,7 @@ defaultCss = scilab.datahandling.processingreports.defaultCss
 
 def formatHtmlBlock(html_raw):
     return "\n".join([ l.strip() for l in html_raw.split("\n") ] )
-                    
+
 def supported_image_extensions():
     ''' Get the image file extensions that can be read. '''
     formats = QImageReader().supportedImageFormats()
