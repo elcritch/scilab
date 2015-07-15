@@ -1,3 +1,16 @@
+
+# using PyPlot
+using Distributions
+using GLM
+using Formatting
+using MAT;
+using Glob;
+using Match
+# using Memoize
+using Pipe
+using DataStructures
+# using FunctionalData
+
 function fit_weibul(data)
 
 
@@ -20,13 +33,32 @@ function f2(f)
     @sprintf("%.2f", f)
 end
 
+## Array indexes
+
+
+≈(x,y::Real) = isapprox(x, y)
+≈(x,yt::Tuple) = isapprox(x, yt[1], atol=yt[2])
+≈(xs::Array,y::Int) = find(x-> trunc(x) == y, xs)
+≈(xs::Array,y::Real) = find(x->isapprox(x, y), xs)
+≈(xs::Array,yt::Tuple) = find(x->isapprox(x, yt[1], atol=yt[2]), xs)
+
+## Dictionary Handling ##
+
+markdownsplitter(x::String) = @pipe x |> strip(_) |> strip(_,'|') |> split(_,'|') |> map(strip,_)
+dictFromArray(fields) = x -> Dict(zip(fields,x))
+arrayFromDictKeyArray(d::Dict, keys::Array, exclude...) = [ d[k] for k in filter(x-> !(x in exclude),keys) ]
+
+⊂(d::Dict, keys::Array) = Dict( [ k=>v for (k,v) in filter((x,y)-> in(x,Set(keys)),d) ] )
+∪(u::Dict, v::Dict) = Dict( concat(u ⊂ collect(keys(v)),v) )
+
+## Plotting Configs ##
 
 function configure_matplotlib_publication_style()
 
     ## NSF Grant Settings
     rc("axes", linewidth=2)                                # but this works
 
-    rc("font", size=14, family="serif", variant="normal", weight="heavy", serif=["Times New Roman"])
+    rc("font", size=18, family="serif", variant="normal", weight="heavy", serif=["Times New Roman"])
     rc("text", color="k")
     rc("axes", facecolor="white", color_cycle="k", labelsize= 16, labelcolor= "k", linewidth= 1, edgecolor="k")
 
@@ -43,12 +75,13 @@ function configure_matplotlib_publication_style()
     rc("text", usetex=false)
 
     rc("grid", linestyle="-", color="lightgrey" )
+    rc("axes", grid = true)
     rc("axes", labelweight="normal" )
     rc("axes.formatter", use_mathtext=false )
 
     rc("font", weight="normal")
-    rc("xtick", labelsize=13)
-    rc("ytick", labelsize=13)
+    rc("xtick", labelsize=15)
+    rc("ytick", labelsize=15)
     rc("legend", scatterpoints = 1)
 
     return;
@@ -82,27 +115,53 @@ simplify_mat(o::Any) = o
 
 
 
-function load_test_data_raw(name::String, tests::String; kind="norm", method="cycles")
-    folder = "$tests/$name"
-    # println(folder |> basename)
+
+function convert_slices(matdata)
+    # @show(keys(matdata))
+    @assert Set(map(x->size(x,1), matdata[:data] |> values)) |> length == 1
+
+    map(matdata[:indexes] |> keys) do key
+        L = matdata[:data][key] |> length
+
+        map(matdata[:indexes][key]) do idx
+            @match idx begin
+                (:idx_neg_1, [i j k]) => (:idx_end, i:k:L)
+                (         s, [i -1 k]) => (s, i+1:k:L)
+                (         s, [i  j k]) => (s, i+1:k:j+1)
+            end
+        end |> sort |> OrderedDict
+    end |> Dict
+end
 
 
-    trends_file = glob("data/data (*$kind*trends*$method*).mat", folder) |> first;
-    tracks_file = glob("data/data (*$kind*tracking*$method*).mat", folder) |> first;
+function load_test_data_raw(info::Dict, testspath::String; stage="norm", method="cycles")
+    folder = "$testspath/$name"
 
+    # find the files
+    trends_file = glob("data/data (*$stage*trends*$method*).mat", folder) |> first;
+    tracks_file = glob("data/data (*$stage*tracking*$method*).mat", folder) |> first;
+
+    # read the files
     trends_mat = matread(trends_file);
     tracks_mat = matread(tracks_file);
 
-    short = ""
-    return { :name => name, :short => short, :trends => trends_mat, :tracks => tracks_mat }
+    return { :info => info, :trends => trends_mat, :tracks => tracks_mat }
 end
 
 function simplify_test_data(testdata::Dict)
-    Dict( [ symbol(string(k)*"_data") => simplify_mat(v) for (k,v) in testdata])
+    Dict( [ symbol(string(k)) => simplify_mat(v) for (k,v) in testdata])
 end
 
-function load_test_data(name::String, tests::String; kind="norm", method="cycles")
+function load_test_data(name::String, tests::String; stage="norm", method="cycles")
     test_data = load_test_data_raw(name, tests) |> simplify_test_data
+
+    trends_slices = mat_slices(test_data[:trends])
+    tracks_slices = mat_slices(test_data[:tracks])
+
+    return test_data ∪ {
+        :trends => ( test_data[:trends] ∪ {:indexes => trends_slices} ),
+        :tracks => ( test_data[:tracks] ∪ {:indexes => tracks_slices} ),
+    }
 end
 
 function simple_fit(x, y)
@@ -121,54 +180,7 @@ function r2(ydata, fit)
 end
 
 
-
-
-function mat_slices(matdata, key=:step)
-    # @show(keys(matdata))
-    @assert Set(map(x->size(x,1), matdata[:data] |> values)) |> length == 1
-    L = matdata[:data][key] |> length
-
-    map(matdata[:indexes][key]) do idx
-        @match idx begin
-            (:idx_neg_1, [i j k]) => (:idx_end, i:k:L)
-            (         s, [i -1 k]) => (s, i+1:k:L)
-            (         s, [i  j k]) => (s, i+1:k:j+1)
-        end
-    end |> sort |> OrderedDict
-end
-
-
-function load_test(name; trim=100)
-    # Load Data...
-    test_data = load_test_data(name, tests)
-    trends = test_data[:trends_data][:data]
-    tracks = test_data[:tracks_data][:data]
-
-    # Slices...
-    size_step = size(trends[:totalCycles],1)
-    sliceFrom(s::Array{Int64,2}) = s[1]+trim:size_step-trim
-    s5 = trends_data[:indexes][:step][:idx_5] |> sliceFrom
-
-    fig, (ax1) = subplots(ncols=1, nrows=1, sharex=true)
-
-    t = trends[:totalCycles][s5];
-    x = trends[:stress_max][s5];
-    y = trends[:strain_max][s5];
-    tl = "Cycles (Nº)"
-    xl = "Stress (MPa)"
-    yl = "Strain (∆)"
-
-    linfit = simple_fit( t[int(end/3):int(end-end/3)], (x ./ y)[int(end/3):int(end-end/3)] )
-
-    ax1[:set_title](name)
-    ax1[:plot](t, x ./ y, label="data" )
-    ax1[:plot](t, linfit[:f](t), label=linfit[:fstr], ls="--", color="lightgrey" )
-    ax1[:set_xlabel](tl)
-    ax1[:set_ylabel]("$xl / $yl ")
-    ax1[:legend]()
-end
-
-
+## HTML Text ###
 th(i) = "<th>$i</th>"
 th(s::Array) = map(th, s)
 th(s...) = map(th, s)
@@ -182,6 +194,7 @@ tr(s::Dict) = [ tr(k)*tr(v) for (k,v) in s ]
 tr(s::Array) = map(tr, s)
 tr(s...) = map(tr, s)
 
+## Test Helpers ##
 join_nt(s) = "\t"*join(s, "\n\t")*"\n"
 join_ss(s) = join(s, " ")
 
@@ -193,3 +206,20 @@ $( isempty(headers) ? "" : tr( [ th(i...) for i in headers] |> join_ss ) |> join
 $( maketablerows(s) )
 </table>
 """)
+
+## Data Handling ##
+
+## Research Dir
+load_tests_from_md(f::Function, testfile) = load_tests_from_md(testfile, f=f)
+
+function load_tests_from_md(testfile; f::Function=(x)->x)
+    tests = open("$testfile") do f readlines(f) end
+    headers = tests[1] |> markdownsplitter |> xs->map(lowercase, xs) |> xs->map(symbol, xs)
+    @show headers
+
+    @pipe( tests[3:end]
+        |> map(markdownsplitter,_)
+        |> map(dictFromArray(headers),_)
+        |> map(f,_)
+    )
+end
