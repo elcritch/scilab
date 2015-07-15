@@ -12,7 +12,7 @@ import scilab.tools.fitting as Fitting
 from scilab.datahandling.datahandlers import *
 import scipy.ndimage, skimage
 
-def graphimage(test, axes, imageName, measureName, testfolder):
+def graphimage(test, axes, imageName, measureName, testfolder, processedFolder="processed"):
 
     scale = test.details.measurements[imageName]["parameters"]["scale"]
     zoomfactor = test.details.measurements[imageName]["parameters"]["zoomfactor"]
@@ -26,7 +26,11 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     # debug(test.details)
     debug(scale, zoomfactor, middle, measureValue)
     
-    processedFolder = testfolder.images / 'processed' 
+    
+    processedFolder = testfolder.images / processedFolder
+    
+    debug(processedFolder)
+    
     imgadjusted  = loadimage( processedFolder / '{}.adjusted.png'.format(imageName) )
     imgbinarized = loadimage( processedFolder / '{}.binarized.png'.format(imageName) )
     imgcropped   = loadimage( processedFolder / '{}.cropped.png'.format(imageName) )
@@ -72,12 +76,13 @@ def graphimage(test, axes, imageName, measureName, testfolder):
     return 
     
 
-def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
+def graph(test, args, zconfig=DataTree(), forceRun=False, **graph_args):
 
-    if not ('norm' in zconfig['stage'] and 'precond' in zconfig['method'] and 'tracking' in zconfig['item']):
-        logging.warning("Graph doesn't match graph type: "+repr(zconfig))
-        return DataTree()
-    
+    if not forceRun:
+        if not ('norm' in zconfig['stage'] and 'precond' in zconfig['method'] and 'tracking' in zconfig['item']):
+            logging.warning("Graph doesn't match graph type: "+repr(zconfig))
+            return DataTree()
+
 
     testinfo = test.info
     testfolder = test.folder
@@ -87,8 +92,10 @@ def graph(test, matdata, args, zconfig=DataTree(), **graph_args):
 
     fig.suptitle("Image Measurement", fontsize=18, fontweight='bold') 
     
-    graphimage(test, axr1, "frontImage", "width", testfolder)
-    graphimage(test, axr2, "sideImage", "depth", testfolder)
+    processedFolder = args.options["guiprocessor", "imageOutputFolderName"] or "processed"
+    
+    graphimage(test, axr1, "frontImage", "width", testfolder, processedFolder=processedFolder)
+    graphimage(test, axr2, "sideImage", "depth", testfolder, processedFolder=processedFolder)
 
     return DataTree(fig=fig, calcs=DataTree())
     

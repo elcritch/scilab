@@ -49,18 +49,18 @@ def formatHandler(k,v):
             try:
                 ff = lambda x: float('nan') if x == None else x
                 if all( ( not i for i in v ) ): return ""
-                if shapeName == "valueIndex": return "{:.2f}".format(*v)
-                if shapeName == "valueIndexUnits": return "{0:.2f} <code>{1}</code>".format(ff(v[0]), v[2])
-                if shapeName == "valueUnitsStd": return "{0:.2f} ± {2:.2f} <code>{1}</code>".format(ff(v[0]), v[1], ff(v[2]))
-                if shapeName == "valueUnits": return "{0:.2f} <code>{1}</code>".format(ff(v[0]), v[1])
-                if shapeName == "linearFit": return "{0:.2f}/{1:.2f}".format(ff(v[0]), ff(v[1]))
+                if shapeName == "valueIndex": return "{:.3f}".format(*v)
+                if shapeName == "valueIndexUnits": return "{0:.3f} <code>{1}</code>".format(ff(v[0]), v[2])
+                if shapeName == "valueUnitsStd": return "{0:.3f} ± {2:.2f} <code>{1}</code>".format(ff(v[0]), v[1], ff(v[2]))
+                if shapeName == "valueUnits": return "{0:.3f} <code>{1}</code>".format(ff(v[0]), v[1])
+                if shapeName == "linearFit": return "{0:.3f}/{1:.3f}".format(ff(v[0]), ff(v[1]))
             except ValueError as err:
                 return " ".join([ str(v) for i in v ])
         except Exception as err:
             display(HTML(debugger_summary("formatHandler", locals())))
             raise err
     elif shape == "number":
-        return "{:.3f}".format(v)
+        return "{:.4f}".format(v)
     else:
         return v
 
@@ -102,10 +102,10 @@ def makeTestDocument(test, args):
         
         tables[name] = "#### {}\n\n".format(name) + str(tab)
     
-    specimenImagesHtml = "\n".join([ 
-                    "<img src='{}' width='{}%'></img>".format(img.relative_to(testdir).as_posix(), 28 )
+    specimenImagesHtml = "<table width='70%' height='350px' ><tr><td>{}</td><td>{}</td></tr></table>".format(*[ 
+                    "<img src='{}' height='300px' ></img>".format(img.relative_to(testdir).as_posix() )
                         for img in test.folder.images.glob("processed/*.cropped.png") 
-                    ])
+                    ][0:2] )
         
     # graphNames = [
     #     ('UTS', "*norm*graph=uts*.png"),
@@ -830,7 +830,7 @@ sub {
 	}
 	table tr {
 		border-top: 1px solid #ccc;
-		background-color: #fff;
+        # background-color: #fff;
 	}
 /*	table tr:nth-child(3n) {
 		border-bottom: 2px outset  #ccc;
@@ -844,7 +844,7 @@ sub {
 /*		border-right:  2px inset #ddd;*/
 	}
 	table tr:nth-child(2n) {
-		background-color: #fff;
+        # background-color: #fff;
 	}
 	
 	pre {

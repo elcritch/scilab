@@ -24,7 +24,7 @@ from pathlib import *
 
 import scilab
 from scilab.expers.configuration import FileStructure
-from scilab.graphicaltools.gui_dataprocessor_testhandler import *
+from scilab.graphicaltools.guitesthandler import *
 import scilab.graphicaltools.forms as forms
 import scilab.datahandling.processingreports 
 
@@ -32,7 +32,7 @@ defaultCss = scilab.datahandling.processingreports.defaultCss
 
 def formatHtmlBlock(html_raw):
     return "\n".join([ l.strip() for l in html_raw.split("\n") ] )
-                    
+
 def supported_image_extensions():
     ''' Get the image file extensions that can be read. '''
     formats = QImageReader().supportedImageFormats()
@@ -206,10 +206,8 @@ class TestProtocolView(QFrame):
     def submit(self):
         
         try:
-            print("\n\n[[SUBMIT!!]]\n")
-            frame = self.protocolView.page().mainFrame();
 
-            # firstName = frame.findFirstElement("#firstname");
+            frame = self.protocolView.page().mainFrame()
             updatedHtml = frame.toHtml()
             
             with self.protocolTestSampleUrl.open('w', encoding='utf-8') as protocolHtml:
@@ -427,12 +425,15 @@ class DataProcessorGuiMain(QMainWindow):
 
                 {fdtable}
 
-                </div>
                 
                 # All Files
                 
+                <br>
+                
                 {allfilesTable}
                 
+                </div>
+                <br>
                 """                
                 webView.setHtml(formatHtmlBlock(htmlFmt).format(allfilesTable=allfilesTable,defaultCss=defaultCss, fdtable="<br>\n<br>\n".join(tables)))
             else:
