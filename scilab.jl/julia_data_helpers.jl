@@ -103,7 +103,9 @@ end
 type HTML
    s::String
 end
+
 import Base.writemime
+
 function writemime(io::IO, ::MIME"text/html", x::HTML)
     write(io, x.s);
 end
@@ -219,6 +221,7 @@ function load_tests_from_md(testfile; f::Function=(x)->x)
 
     @pipe( tests[3:end]
         |> map(markdownsplitter,_)
+        |> filter( l -> any(  x -> !isempty(x), l), _)
         |> map(dictFromArray(headers),_)
         |> map(f,_)
     )
