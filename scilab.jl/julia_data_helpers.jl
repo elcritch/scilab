@@ -134,7 +134,7 @@ function convert_slices(matdata)
 end
 
 
-function load_test_data_raw(info::Dict, testspath::String; stage="norm", method="cycles")
+function load_test_data_raw(name, testspath::String; stage="norm", method="cycles")
     folder = "$testspath/$name"
 
     # find the files
@@ -152,7 +152,7 @@ function simplify_test_data(testdata::Dict)
     Dict( [ symbol(string(k)) => simplify_mat(v) for (k,v) in testdata])
 end
 
-function load_test_data(name::String, tests::String; stage="norm", method="cycles")
+function load_test_data(name, tests::String; stage="norm", method="cycles")
     test_data = load_test_data_raw(name, tests) |> simplify_test_data
 
     trends_slices = mat_slices(test_data[:trends])

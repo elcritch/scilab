@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/local/bin/python3
 
 # Import PySide classes
 import sys, collections, json, tabulate, shutil
