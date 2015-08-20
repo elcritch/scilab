@@ -88,9 +88,10 @@ class BasicWebView(QWebView):
         
         # Tell the HTML side, we are open for business
         self.myFrame.evaluateJavaScript("ApplicationIsReady()")
-
+        
 
 class ExperTestList(QListWidget):
+
 
     def __init__(self, parent):
         super(ExperTestList, self).__init__(parent=parent)
@@ -98,21 +99,53 @@ class ExperTestList(QListWidget):
         self.parent = parent
         self.currentItemChanged.connect(self.updateTestItem)
 
+        def keyerModTime(x):
+            return -x[1].folder.stat().st_mtime
+
+        def keyerName(x):
+            return str(x[1].test.short)
+
+        def keyerDate(x):
+            months = [ "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" ]
+            dtstr = str(x[1].test.date)
+            for idx, month in enumerate(months):
+                dtstr = dtstr.replace(month, str(idx*10000))
+            print("dtstr",dtstr)
+            return -int(dtstr)
+        
+        self.sortKeyers = {
+            "ModTime": keyerModTime,
+            "Name": keyerName,
+            "DateRun": keyerDate,
+        }
+        
+        self.sortKeyer = self.sortKeyers["ModTime"]
+        
+    def setSortKey(self, name):        
+        if name in self.sortKeyers.keys():
+            print("Setting Sort Method:", name)
+            self.sortKeyer = self.sortKeyers[name]
+        else:
+            print("Warning::No such sort method", name)
+
     def _populate(self):
         ''' Fill the list with images from the
         current directory in self._dirpath. '''
 
         # In case we're repopulating, clear the list
         self.clear()
-
         testitemsd = self.testfs.testitemsd()
-
+                
         # Order Tests by last modification time
         self._testitems = collections.OrderedDict(
-                    reversed(sorted(
-                        ( ( "%s (%s)"%( test.short, test.date ), DataTree(folder=folder, test=test)) for test, folder in testitemsd.items() ),
-                        key=lambda f: f[1].folder.stat().st_mtime
-                    )))
+                    sorted( 
+                        ([ "%s (%s)"%( test.short, test.date ), # Visible Key
+                           DataTree(folder=folder, test=test) # Item Data
+                         ] for test, folder in testitemsd.items()
+                        )
+                        , key=self.sortKeyer                        
+                    )
+                )
 
         print("Setting testfolders:", len(self._testitems))
 
@@ -269,10 +302,23 @@ class DataProcessorGuiMain(QMainWindow):
         
         leftLayout.addWidget(self.testList)
 
+        # Sort Combo Box
+        def updateSorter(keyText):
+            self.testList.setSortKey(keyText)
+            self.tester.projectrefresh.emit()
+            
+        combo = QComboBox(self)
+        combo.addItem("–")
+        [ combo.addItem(keyerName) for keyerName in sorted(self.testList.sortKeyers.keys()) ]
+        combo.activated[str].connect(updateSorter)
+        leftLayout.addWidget(combo)
+        
+        # Refresh Test Lists
         updateButton = QPushButton("Refresh")
         updateButton.clicked.connect(lambda: self.tester.projectrefresh.emit())
         leftLayout.addWidget(updateButton)
         
+        # Create New Test
         createButton = QPushButton("Create")
         createButton.clicked.connect(lambda: self.tester.createnewtest.emit())
         leftLayout.addWidget(createButton)
