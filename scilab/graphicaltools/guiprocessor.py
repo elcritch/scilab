@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtWebKitWidgets import QWebView
 from PyQt5.QtWebKit import QWebSettings
 from PyQt5.QtNetwork import QNetworkRequest
+from PyQt5.QtPrintSupport import QPrinter
 
 Signal = pyqtSignal
 Slot = pyqtSlot
@@ -174,7 +175,7 @@ class TestPageWebView(BasicWebView):
     
     def init(self):
         
-        self.setContent("<html>Test!</html>", "text/html", QUrl("./"))
+        self.setContent("<html></html>".encode("ascii"), "text/html", QUrl("./"))
 
 class TestProtocolView(QFrame):
     
@@ -342,10 +343,18 @@ class DataProcessorGuiMain(QMainWindow):
         
         self.testPageWebView = TestPageWebView()
         refreshButton = QPushButton("Refresh")
+        pdfButton = QPushButton("Save PDF")
+
+        buttons = QWidget()
+        h2 = QHBoxLayout()
+        h2.addWidget(pdfButton)        
+        h2.addWidget(refreshButton)     
+        h2.setSizeConstraint(QLayout.SetFixedSize)
+        buttons.setLayout(h2)        
 
         v1 = QVBoxLayout()
         v1.addWidget(self.testPageWebView)        
-        v1.addWidget(refreshButton)        
+        v1.addWidget(buttons)     
         widget.setLayout(v1)
         
         self.testPageWebView.init()
@@ -356,11 +365,11 @@ class DataProcessorGuiMain(QMainWindow):
             
             # set
             if testobj:
-                testhtml, testurl = self.tester.getinfopanelhtml(testobj)
+                testhtml, testurl, testhtmlpath = self.tester.getinfopanelhtml(testobj)
                 
+                self._testhtmlpathpdf = testhtmlpath.with_suffix(".pdf")
+                self.printer.setOutputFileName(str(self._testhtmlpathpdf))
                 testqurl = QUrl("file://{}/".format(testurl.resolve()))
-                
-                print("Test URL:", testqurl)
                 self.testPageWebView.setHtml(testhtml, testqurl)
                 
             else:
@@ -370,17 +379,32 @@ class DataProcessorGuiMain(QMainWindow):
         self.testitemchanged.connect(lambda obj: setitem(obj) )
         refreshButton.clicked.connect(lambda obj: setitem(self.__current_item) )
         
+        ## Save PDF Button
+        self.printer = QPrinter()
+        self.printer.setPageSize(QPrinter.A4)
+        self.printer.setOutputFormat(QPrinter.PdfFormat)
+ 
+        def savePdf():
+            self.testPageWebView.print_(self.printer)
+            
+            msg = "PDF Saved: "+str(self._testhtmlpathpdf)
+            print(msg)
+            QMessageBox.information(self,"Information",msg)        
+        
+        pdfButton.clicked.connect(savePdf)
+        
         return widget
         
     def initTestDataWebView(self):
         
         widget = QWidget()
         webView = TestPageWebView()
+        
         refreshButton = QPushButton("Refresh")
         
         v1 = QVBoxLayout()
         v1.addWidget(webView)        
-        v1.addWidget(refreshButton)        
+        v1.addWidget(refreshButton)     
         widget.setLayout(v1)
         
         ttfont = QFont("Monospace")

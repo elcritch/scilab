@@ -428,7 +428,7 @@ class TestHandler(QObject, ProjectContainer):
         else:
             reportHtmlStr = ""
         
-        return reportHtmlStr, self.test.folder.main
+        return reportHtmlStr, self.test.folder.main, reportUrl
 
     def get_testitem_info(self, item):
 
@@ -472,12 +472,13 @@ class TestHandler(QObject, ProjectContainer):
         except Exception as err:
             traceback.print_exc(file=sys.stdout)
             
-            errstr = repr(err)
+            errstr = str(err)
             # raise err
             return """
-            Exception:
+            Exec Exception:
 
             {err}
+            
             """.format(err=errstr)
 
 

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import sys, collections, logging, traceback, io, multiprocessing, copy, time
+import traceback
 
 from contextlib import contextmanager
 from scilab.tools.tables import mdBlock, mdHeader, ImageTable, MarkdownTable
@@ -78,5 +79,6 @@ def guitestprocess(testinfodict, fs, args, logFileNames):
             print(mdBlock("<p>\n# Done #</p>"))
         except Exception as err:
             print("\n<br>\n[Error]\n<br>\n", flush=True)
-            print("Exception:\n", str(err))
+            print("Exception:\n", repr(err))
+            print("Traceback:\n", traceback.format_exc())
             logging.exception(err)
