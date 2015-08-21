@@ -76,7 +76,8 @@ def parser_data_sheet_excel(ws, testconf):
     assert "estimated_amp" in other.keys()
     assert "actual_sl" in other.keys()
     
-    valueUnitsOverride = [ ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
+    # valueUnitsOverride = [ ('precond_amp', 'mm'), ('precond_disp', 'mm'), ('uts', 'N') ]
+    valueUnitsOverride = [ ('precond_amp', 'mm'), ('precond_disp', 'mm'), ]
     for key, units in valueUnitsOverride:
         other[key] = valueUnits(value=other[key] if key in other else float('nan'), units=units)._asdict()
     
