@@ -57,7 +57,7 @@ def formatHandler(k,v):
             except ValueError as err:
                 return " ".join([ str(v) for i in v ])
         except Exception as err:
-            display(HTML(debugger_summary("formatHandler", locals())))
+            print("Values:", debug(k), debug(v))
             raise err
     elif shape == "number":
         return "{:.4f}".format(v)
@@ -70,6 +70,7 @@ def makeTestDocument(test, args):
     ddetails = test.data.summarydetails
     fdetails = test.data.flatdetails
     graphNames = test.data.graphnames
+    imgNames = test.data.imgnames
     
     testdir = test.folder.main
     infoStr = str(test.info)
@@ -259,6 +260,15 @@ def processReportConfig(testconf, args):
         
     testconf.data.graphnames = graphnames
     
+    imgnames = []
+    
+    for imgitem in reportconf["ImgTable"]["Graph"]:
+        name = ( imgitem["@name"], imgitem["@match"].format(version=args.options["graphicsrunner"]["version"]) )
+        debug(name)
+        imgnames.append(name)
+        
+    testconf.data.imgnames = imgnames
+    
     # for line in fieldNames.strip().split("\n"):
     #     name, table, accessor = [ s.strip() for s in line.split('|') ]
     #     fields[table][name] = accessor
@@ -266,7 +276,6 @@ def processReportConfig(testconf, args):
     # fields['Measurements'] = [ "measurements" ]
     # fields['Excel'] = [ "excel" ]
     # fields['Variables'] = [ "variables" ]
-    testconf.data.graphnames = graphnames
     testconf.data.tablefields = tablefields
     
     return tablefields
