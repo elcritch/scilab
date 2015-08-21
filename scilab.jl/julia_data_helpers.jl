@@ -45,7 +45,7 @@ end
 ## Dictionary Handling ##
 
 markdownsplitter(x::String) = @pipe x |> strip(_) |> strip(_,'|') |> split(_,'|') |> map(strip,_)
-dictFromArray(fields) = x -> Dict(zip(fields,x))
+dictFromArray(fields) = x -> OrderedDict(zip(fields,x))
 arrayFromDictKeyArray(d::Dict, keys::Array, exclude...) = [ d[k] for k in filter(x-> !(x in exclude),keys) ]
 
 ⊂(d::Dict, keys::Array) = Dict( [ k=>v for (k,v) in filter((x,y)-> in(x,Set(keys)),d) ] )
