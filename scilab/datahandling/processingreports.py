@@ -107,7 +107,14 @@ def makeTestDocument(test, args):
                     "<img src='{}' height='300px' ></img>".format(img.relative_to(testdir).as_posix() )
                         for img in test.folder.images.glob("processed/*.cropped.png") 
                     ][0:2] )
-        
+    
+    otherImgFiles = [ (k,next(test.folder.main.glob(v), test.folder.graphs/v)) for k,v in imgNames ]
+    
+    otherImgsHtml = "\n".join([ 
+            "<tr><td><h3>{name}</h3><br><img width='90%' src='{src}'></img><pre>{src}</pre></td></tr>".format(
+                src=img.relative_to(testdir).as_posix(), name=name )
+                for name, img in otherImgFiles ])
+                    
     # graphNames = [
     #     ('UTS', "*norm*graph=uts*.png"),
     #     ('Precond Fit', "graph*norm*graph=precond_fit*.png"),
@@ -262,11 +269,14 @@ def processReportConfig(testconf, args):
     
     imgnames = []
     
-    for imgitem in reportconf["ImgTable"]["Graph"]:
-        name = ( imgitem["@name"], imgitem["@match"].format(version=args.options["graphicsrunner"]["version"]) )
-        debug(name)
-        imgnames.append(name)
-        
+    for imgitem in reportconf["Img-Table"]["Img-Item"]:
+        item = ( imgitem["@name"], imgitem["@match"].format(version=args.options["graphicsrunner"]["version"]) )
+        debug(item)
+        if not item[0]:
+            continue
+        else:
+            imgnames.append(item)
+    
     testconf.data.imgnames = imgnames
     
     # for line in fieldNames.strip().split("\n"):
