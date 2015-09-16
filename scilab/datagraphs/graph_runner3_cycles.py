@@ -73,9 +73,11 @@ def handle_grapher(graphmod, test, matdata, args, zconfig):
     print(tag(b="Figure: "+figname))
     
     test.folder.save_graph(filename=figname, fig=graphdata.fig)
-    
-    
-    plt.close()
+
+    try:
+        plt.close()
+    except:
+        None
 
 # =================
 # = Graphs Import =
@@ -88,6 +90,10 @@ import scilab.datagraphs.graph_cycles_n_to_strain as graph_cycles_n_to_strain
 import scilab.datagraphs.graph_cycles_stop as graph_cycles_stop
 
 def run_config(test, args, config, configfile):
+    
+    
+    import matplotlib as mpl
+    mpl.rcParams['agg.path.chunksize'] = 10000
     
     print(tag(h2="Running Config: {}".format(config)))
     debug(configfile.parent, configfile.name)

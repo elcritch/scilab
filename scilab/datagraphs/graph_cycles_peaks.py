@@ -88,7 +88,7 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     tgt_label='Tgt. {:3.1f} (SL{})'.format(calcs.target_stress.value, calcs.stress_level.value)
     # pred_label='PredMax. {:3.1f} (SL{})'.format(max_stress_limit, calcs.stress_level.value)
     
-    ax12.hlines(calcs.load_balance, *ax1.get_xbound(), linestyles='dotted', label='Offset', color='black')
+    ax12.hlines(calcs.load_balance, *ax1.get_xbound(), linestyles='dotted', label='Offset', color='yellow')
     ax12.hlines(calcs.actual_stress.value, *ax1.get_xbound(), linestyles='dashed', label=avg_label, color='black')
     ax12.hlines(calcs.target_stress.value, *ax1.get_xbound(), linestyles='dashed', label=tgt_label, color='orange')
     # ax12.hlines(max_stress_limit, *ax1.get_xbound(), linestyles='dashed', label=pred_label, color='red')
@@ -114,13 +114,15 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax2.hlines(calcs.stress_amp_target.value, *ax1.get_xbound(), linestyles='dashed', color='orange', label=tgt_label)
 
     ax3 = ax2.twinx()
-    ax3.plot(t, yamp, label=labeler(xampl), color=next(ax1._get_lines.color_cycle), ls='-') 
+    
+    ax3.plot(t, yamp, label=labeler(yampl), color=next(ax1._get_lines.color_cycle), ls='-') 
+    
     ax3.set_ylabel(labeler(yampl))
     
     # ax2.hlines(target_disp_level.value, *ax2.get_xbound(), linestyles='dashed', label='Targ. '+ymaxl.label)
     
     ax2.legend(loc=0, fontsize=10,fancybox=True, framealpha=0.5)
-    ax3.legend(loc=1, fontsize=10,fancybox=True, framealpha=0.5)
+    ax3.legend(loc=2, fontsize=10,fancybox=True, framealpha=0.5)
     ax2.set_title(ax2_title)
     fig.subplots_adjust(hspace=1.4, )    
     # Make some room at the bottom 
