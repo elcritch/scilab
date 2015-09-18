@@ -65,8 +65,8 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     max_stress_limit = np.max(xmax)
     
     ## Setup plot
-    fig, axes = plt.subplots(ncols=2, figsize=(14,6))
-    (ax1,ax2) = axes
+    fig, axes = plt.subplots(nrows=3, figsize=(14,16))
+    (ax1,ax2, ax3) = axes
     
     ## First Plot ##
     ax1.set_ylim((-0.10*max_stress_limit, 1.2*max_stress_limit))
@@ -113,9 +113,11 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     ax2.hlines(calcs.stress_amp_actual.value, *ax1.get_xbound(), linestyles='dashed', color='black', label=avg_label)
     ax2.hlines(calcs.stress_amp_target.value, *ax1.get_xbound(), linestyles='dashed', color='orange', label=tgt_label)
 
-    ax3 = ax2.twinx()
+    # ax3 = ax2.twinx()
     
-    ax3.plot(t, yamp, label=labeler(yampl), color=next(ax1._get_lines.color_cycle), ls='-') 
+    ax3.plot(t, yamp, label=labeler(yampl), ) 
+    ax3.plot(t, ymax, label=labeler(ymaxl), ) 
+    ax3.plot(t, ymin, label=labeler(yminl), ) 
     
     ax3.set_ylabel(labeler(yampl))
     
@@ -127,6 +129,8 @@ def graph(test, matdata, args, step_idx='idx_5', zconfig=DataTree(), **graph_arg
     fig.subplots_adjust(hspace=1.4, )    
     # Make some room at the bottom 
     fig.subplots_adjust(bottom=0.20, left=0.20, right=0.80, top=0.90)
+    
+    fig.tight_layout() # Or equivalently,  "plt.tight_layout()"
     
     return DataTree(fig=fig, axes=(ax1,ax2), calcs=DataTree())
 

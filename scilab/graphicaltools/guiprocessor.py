@@ -413,10 +413,13 @@ class DataProcessorGuiMain(QMainWindow):
             if testobj:
                 testhtml, testurl, testhtmlpath = self.tester.getinfopanelhtml(testobj)
                 
-                self._testhtmlpathpdf = testhtmlpath.with_suffix(".pdf")
-                self.printer.setOutputFileName(str(self._testhtmlpathpdf))
+                if testhtmlpath:
+                    self._testhtmlpathpdf = testhtmlpath.with_suffix(".pdf")
+                    self.printer.setOutputFileName(str(self._testhtmlpathpdf))
+                    
                 testqurl = QUrl("file://{}/".format(testurl.resolve()))
                 self.testPageWebView.setHtml(testhtml, testqurl)
+                    
                 
             else:
                 self.testPageWebView.setHtml("<html></html>", QUrl())
